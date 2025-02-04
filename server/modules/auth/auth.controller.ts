@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
+import validator from 'validator';
 import asyncHandler from '../../shared/middleware/async';
 import ErrorResponse from '../../utils/errorResponce';
-import { isValidEmail } from '../../utils/validation'; // You'll need to create this
 import User, { UserDocument } from '../user/user.model';
 import authService from './auth.service';
 
@@ -29,28 +29,28 @@ export const register = asyncHandler(
     res: Response,
     next: NextFunction,
   ) => {
-    const { first_name, last_name, email, password, role } = req.body;
+    let { first_name, last_name, email, password, role } = req.body;
+
+    // Trim and sanitize inputs
+    first_name = validator.trim(first_name || '');
+    last_name = validator.trim(last_name || '');
+    email = validator.trim(email || '').toLowerCase();
+    password = validator.trim(password || '');
 
     // Input validation
-    if (
-      !first_name?.trim() ||
-      !last_name?.trim() ||
-      !email?.trim() ||
-      !password?.trim()
-    ) {
+    if (!first_name || !last_name || !email || !password) {
       return next(new ErrorResponse('All fields are required', 400));
     }
 
     // Validate email format
-    if (!isValidEmail(email)) {
+    if (!validator.isEmail(email)) {
       return next(new ErrorResponse('Invalid email format', 400));
     }
 
-    // Validate role (whitelist approach)
-
     // Check if user already exists (case insensitive)
-    const existingUser = await User.findOne({
-      email: new RegExp(`^${email.trim()}$`, 'i'),
+    const existingUser = await User.findOne({ email }).collation({
+      locale: 'en',
+      strength: 2,
     });
 
     if (existingUser) {
@@ -59,10 +59,10 @@ export const register = asyncHandler(
 
     // Create user with sanitized inputs
     const user: UserDocument = await User.create({
-      first_name: first_name.trim(),
-      last_name: last_name.trim(),
-      email: email.trim().toLowerCase(),
-      password, // Password will be hashed by the model's pre-save hook
+      first_name,
+      last_name,
+      email,
+      password, // Password will be hashed in the model pre-save hook
       role: role || 'user',
     });
 
@@ -90,35 +90,36 @@ export const login = asyncHandler(
     res: Response,
     next: NextFunction,
   ) => {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+
+    // Trim and sanitize inputs
+    email = validator.trim(email || '').toLowerCase();
+    password = validator.trim(password || '');
 
     // Input validation
-    if (!email?.trim() || !password?.trim()) {
+    if (!email || !password) {
       return next(
         new ErrorResponse('Please provide an email and password', 400),
       );
     }
 
     // Validate email format
-    if (!isValidEmail(email)) {
+    if (!validator.isEmail(email)) {
       return next(new ErrorResponse('Invalid email format', 400));
     }
 
     // Find user with case-insensitive email match
-    const user = await User.findOne({
-      email: new RegExp(`^${email.trim()}$`, 'i'),
-    }).select('+password');
+    const user = await User.findOne({ email })
+      .collation({ locale: 'en', strength: 2 })
+      .select('+password');
 
     if (!user) {
-      // Use consistent error message for security
-      return next(new ErrorResponse('Invalid credentials', 401));
+      return next(new ErrorResponse('Invalid credentials', 401)); // Generic message
     }
 
     // Check password
     const isMatched = await authService.matchPassword(password, user);
-
     if (!isMatched) {
-      // Use consistent error message for security
       return next(new ErrorResponse('Invalid credentials', 401));
     }
 
