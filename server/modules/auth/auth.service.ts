@@ -1,6 +1,6 @@
-import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
-import { UserDocument } from '../user/user.model';
+import bcrypt from "bcryptjs";
+import jwt, { SignOptions } from "jsonwebtoken";
+import { UserDocument } from "../user/user.model";
 
 class AuthService {
   private JWT_SECRET: string;
@@ -8,7 +8,7 @@ class AuthService {
 
   constructor() {
     if (!process.env.JWT_SECRET || !process.env.JWT_EXPIRE) {
-      throw new Error('JWT configuration is missing');
+      throw new Error("JWT configuration is missing");
     }
     this.JWT_SECRET = process.env.JWT_SECRET;
     this.JWT_EXPIRE = process.env.JWT_EXPIRE;
@@ -16,7 +16,7 @@ class AuthService {
 
   public generateToken(user: UserDocument): string {
     const signOptions: SignOptions = {
-      expiresIn: '30d',
+      expiresIn: parseInt(this.JWT_EXPIRE, 10),
     };
 
     return jwt.sign(
@@ -25,7 +25,7 @@ class AuthService {
         role: user.user_roles,
       },
       this.JWT_SECRET,
-      signOptions,
+      signOptions
     );
   }
 

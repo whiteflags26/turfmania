@@ -4,8 +4,14 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/Button";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
+import {useAuth} from "@/lib/contexts/authContext";
 
 interface SignUpFormData {
+  first_name: string;
+  last_name: string;
   email: string;
   password: string;
   retypePassword: string;
@@ -13,23 +19,63 @@ interface SignUpFormData {
 }
 
 export default function SignUpPage() {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const {login}=useAuth();
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     watch,
+    reset,
   } = useForm<SignUpFormData>();
-
-  const onSubmit = (data: SignUpFormData) => {
-    console.log(data);
-    // Handle form submission
-  };
 
   const password = watch("password");
 
+  const onSubmit = async (data: SignUpFormData) => {
+    try {
+      setIsLoading(true);
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // Important for cookies
+          body: JSON.stringify({
+            first_name: data.first_name,
+            last_name: data.last_name,
+            email: data.email,
+            password: data.password,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Something went wrong");
+      }
+
+      // Login user after successful registration
+      await login(data.email, data.password);
+
+      // Successfully registered
+      toast.success("Registration successful!");
+      reset(); // Clear form
+      router.push("/"); // Redirect to login page
+    } catch (error: any) {
+      toast.error(error.message || "Failed to register");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col relative">
-      {/* Content Section */}
       <div className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -37,7 +83,6 @@ export default function SignUpPage() {
           transition={{ delay: 0.2 }}
           className="w-full max-w-md bg-white bg-opacity-90 p-8 rounded-3xl shadow-2xl"
         >
-          {/* Form Title */}
           <div className="text-center mb-6">
             <h2 className="text-3xl font-medium text-gray-900">
               Sign Up and Get Started
@@ -47,8 +92,57 @@ export default function SignUpPage() {
             </p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* First Name Field */}
+            <div>
+              <label
+                htmlFor="first_name"
+                className="block text-sm font-medium text-gray-700"
+              >
+                First Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="first_name"
+                {...register("first_name", {
+                  required: "First name is required",
+                  minLength: { value: 2, message: "First name is too short" },
+                })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm"
+                placeholder="Enter your first name"
+              />
+              {errors.first_name && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.first_name.message}
+                </p>
+              )}
+            </div>
+
+            {/* Last Name Field */}
+            <div>
+              <label
+                htmlFor="last_name"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Last Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="last_name"
+                {...register("last_name", {
+                  required: "Last name is required",
+                  minLength: { value: 2, message: "Last name is too short" },
+                })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm"
+                placeholder="Enter your last name"
+              />
+              {errors.last_name && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.last_name.message}
+                </p>
+              )}
+            </div>
+
             {/* Email Field */}
             <div>
               <label
@@ -57,15 +151,19 @@ export default function SignUpPage() {
               >
                 Email <span className="text-red-500">*</span>
               </label>
-              <div className="relative mt-1">
-                <input
-                  type="email"
-                  id="email"
-                  {...register("email", { required: "Email is required" })}
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm "
-                  placeholder="Enter your email"
-                />
-              </div>
+              <input
+                type="email"
+                id="email"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Invalid email address",
+                  },
+                })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm"
+                placeholder="Enter your email"
+              />
               {errors.email && (
                 <p className="mt-1 text-sm text-red-600">
                   {errors.email.message}
@@ -84,8 +182,14 @@ export default function SignUpPage() {
               <input
                 type="password"
                 id="password"
-                {...register("password", { required: "Password is required" })}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm "
+                {...register("password", {
+                  required: "Password is required",
+                  minLength: {
+                    value: 8,
+                    message: "Password must be at least 8 characters",
+                  },
+                })}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm"
                 placeholder="Enter your password"
               />
               {errors.password && (
@@ -111,7 +215,7 @@ export default function SignUpPage() {
                   validate: (value) =>
                     value === password || "Passwords do not match",
                 })}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm "
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm"
                 placeholder="Re-type your password"
               />
               {errors.retypePassword && (
@@ -131,11 +235,17 @@ export default function SignUpPage() {
               />
               <label htmlFor="terms" className="ml-2 text-sm text-gray-600">
                 I agree to the{" "}
-                <Link href="/terms" className="font-medium hover:text-green-700 underline">
+                <Link
+                  href="/terms"
+                  className="font-medium hover:text-green-700 underline"
+                >
                   Terms & Conditions
                 </Link>{" "}
                 and{" "}
-                <Link href="/privacy" className="font-medium hover:text-green-700 underline">
+                <Link
+                  href="/privacy"
+                  className="font-medium hover:text-green-700 underline"
+                >
                   Privacy Policy
                 </Link>
               </label>
@@ -147,8 +257,13 @@ export default function SignUpPage() {
             )}
 
             {/* Submit Button */}
-            <Button type="submit" variant="default" className="w-full">
-              Create Account
+            <Button
+              type="submit"
+              variant="default"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
 
@@ -165,7 +280,6 @@ export default function SignUpPage() {
         </motion.div>
       </div>
 
-      {/* Footer */}
       <footer className="absolute bottom-4 w-full text-center text-sm text-gray-500">
         © {new Date().getFullYear()} TurfMania. All Rights Reserved.
       </footer>
