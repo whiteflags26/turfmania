@@ -2,7 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { VariantProps, cva } from "class-variance-authority";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/utils";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center rounded-md text-sm  transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none relative overflow-hidden",
