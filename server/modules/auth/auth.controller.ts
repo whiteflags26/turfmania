@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import asyncHandler from "../../shared/middleware/async";
 import ErrorResponse from "../../utils/errorResponse";
-import { isValidEmail } from "../../utils/validation";
+import validator from "validator";
 import User, { UserDocument } from "../user/user.model";
-import authService from "./auth.service";
+import authService, { resetUserPassword } from "./auth.service";
+import Token from "../token/token.model";
 
 interface RegisterBody {
   first_name: string;
@@ -33,28 +34,27 @@ export const register = asyncHandler(
     res: Response,
     next: NextFunction
   ) => {
-    const { first_name, last_name, email, password, role } = req.body;
+    let { first_name, last_name, email, password, role } = req.body;
+    // Trim and sanitize inputs
+    first_name = validator.trim(first_name || "");
+    last_name = validator.trim(last_name || "");
+    email = validator.trim(email || "").toLowerCase();
+    password = validator.trim(password || "");
 
     // Input validation
-    if (
-      !first_name?.trim() ||
-      !last_name?.trim() ||
-      !email?.trim() ||
-      !password?.trim()
-    ) {
+    if (!first_name || !last_name || !email || !password) {
       return next(new ErrorResponse("All fields are required", 400));
     }
 
     // Validate email format
-    if (!isValidEmail(email)) {
+    if (!validator.isEmail(email)) {
       return next(new ErrorResponse("Invalid email format", 400));
     }
 
-    // Validate role (whitelist approach)
-
     // Check if user already exists (case insensitive)
-    const existingUser = await User.findOne({
-      email: new RegExp(`^${email.trim()}$`, "i"),
+    const existingUser = await User.findOne({ email }).collation({
+      locale: "en",
+      strength: 2,
     });
 
     if (existingUser) {
@@ -63,9 +63,9 @@ export const register = asyncHandler(
 
     // Create user with sanitized inputs
     const user: UserDocument = await User.create({
-      first_name: first_name.trim(),
-      last_name: last_name.trim(),
-      email: email.trim().toLowerCase(),
+      first_name,
+      last_name,
+      email,
       password, // Password will be hashed by the model's pre-save hook
       role: role || "user",
     });
@@ -81,7 +81,7 @@ export const register = asyncHandler(
       httpOnly: true,
       //secure: process.env.NODE_ENV === "production",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      sameSite: "lax", 
+      sameSite: "lax",
     });
 
     res.status(201).json({
@@ -102,24 +102,27 @@ export const login = asyncHandler(
     res: Response,
     next: NextFunction
   ) => {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+    // Trim and sanitize inputs
+    email = validator.trim(email || "").toLowerCase();
+    password = validator.trim(password || "");
 
     // Input validation
-    if (!email?.trim() || !password?.trim()) {
+    if (!email || !password) {
       return next(
         new ErrorResponse("Please provide an email and password", 400)
       );
     }
 
     // Validate email format
-    if (!isValidEmail(email)) {
+    if (!validator.isEmail(email)) {
       return next(new ErrorResponse("Invalid email format", 400));
     }
 
     // Find user with case-insensitive email match
-    const user = await User.findOne({
-      email: new RegExp(`^${email.trim()}$`, "i"),
-    }).select("+password");
+    const user = await User.findOne({ email })
+      .collation({ locale: "en", strength: 2 })
+      .select("+password");
 
     if (!user) {
       // Use consistent error message for security
@@ -185,7 +188,6 @@ export const logout = asyncHandler(
  */
 export const getMe = asyncHandler(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    console.log("Auth Check - Request User:", req.user);
     if (!req.user) {
       return next(new ErrorResponse("User not authenticated", 401));
     }
@@ -200,5 +202,73 @@ export const getMe = asyncHandler(
       success: true,
       data: user,
     });
+  }
+);
+
+/**
+ * @route   POST /api/v1/auth/forgot-password
+ * @desc    Request a password reset email
+ * @access  Public
+ */
+
+export const forgotPassword = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email } = req.body;
+
+    if (!email) {
+      return next(new ErrorResponse("Please provide an email", 400));
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return next(new ErrorResponse("User not found", 404));
+    }
+    let token = await Token.findOne({ userId: user._id });
+    if (token) {
+      await token.deleteOne();
+    }
+
+    try {
+      const result = await authService.sendPasswordResetEmail(user);
+      res.status(200).json(result);
+    } catch (error) {
+      return next(
+        new ErrorResponse("An error occured sending reset email.", 500)
+      );
+    }
+  }
+);
+
+/**
+ * @route   POST /api/v1/auth/reset-password/?token=token&id=id
+ * @desc    Reset password
+ * @access  Public
+ */
+
+export const resetPassword = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { token, id } = req.query;
+      const { password } = req.body;
+
+      if (!token || !id || !password) {
+        return next(
+          new ErrorResponse("Invalid request. Missing parameters.", 400)
+        );
+      }
+
+      // Call the modular service function
+      const response = await resetUserPassword(
+        id as string,
+        token as string,
+        password
+      );
+
+      res.status(200).json(response);
+    } catch (error) {
+      console.error(error);
+      return next(error);
+    }
   }
 );

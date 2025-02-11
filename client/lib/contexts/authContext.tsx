@@ -4,9 +4,10 @@ import {
   useContext,
   useEffect,
   useState,
+  useMemo,
   ReactNode,
 } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface User {
   id: string;
@@ -25,13 +26,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
-
-  
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -42,10 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             credentials: "include", // Important for sending cookies
           }
         );
-  
+
         if (response.ok) {
           const data = await response.json();
-          console.log("Auth Response:", data);
           setUser(data.data);
         } else {
           setUser(null);
@@ -58,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
     checkAuthStatus();
-  }, [pathname]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
@@ -108,11 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ user, login, logout, isLoading }),
+    [user, isLoading] // `login` and `logout` are stable and do not need to be dependencies
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => {

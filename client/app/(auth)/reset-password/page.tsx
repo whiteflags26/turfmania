@@ -2,7 +2,10 @@
 
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
+import { sendResetPasswordRequest } from "@/lib/server-apis/password-api";
+import toast from "react-hot-toast";
 
 interface ResetPasswordFormData {
   newPassword: string;
@@ -17,16 +20,43 @@ export default function ResetPasswordPage() {
     watch,
   } = useForm<ResetPasswordFormData>();
 
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  const userId = searchParams.get("id");
+  const router = useRouter();
+
   const newPassword = watch("newPassword");
 
-  const onSubmit = (data: ResetPasswordFormData) => {
-    console.log(data);
-    // Handle password reset submission
+  const onSubmit = async (data: ResetPasswordFormData) => {
+    if (!token || !userId) {
+      toast.error("Invalid or expired reset token.");
+      return;
+    }
+
+    try {
+      const response = await sendResetPasswordRequest(
+        data.newPassword.trim(), // Trim password to remove accidental spaces
+        token,
+        userId
+      );
+
+      if (!response || !response.message) {
+        throw new Error("Unexpected server response.");
+      }
+
+      toast.success(response.message);
+
+      // Redirect to /sign-in after 2 seconds
+      setTimeout(() => {
+        router.push("/sign-in");
+      }, 2000);
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred. Please try again.");
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col relative">
-      {/* Content Section */}
       <div className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -34,7 +64,6 @@ export default function ResetPasswordPage() {
           transition={{ delay: 0.2 }}
           className="w-full max-w-md bg-white bg-opacity-90 p-8 rounded-3xl shadow-2xl"
         >
-          {/* Form Title */}
           <div className="text-center mb-6">
             <h2 className="text-3xl font-medium text-gray-900">
               Reset Your Password
@@ -44,7 +73,6 @@ export default function ResetPasswordPage() {
             </p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* New Password Field */}
             <div>
@@ -57,6 +85,7 @@ export default function ResetPasswordPage() {
               <input
                 type="password"
                 id="newPassword"
+                autoComplete="new-password"
                 {...register("newPassword", {
                   required: "New password is required",
                   minLength: {
@@ -85,10 +114,12 @@ export default function ResetPasswordPage() {
               <input
                 type="password"
                 id="retypeNewPassword"
+                autoComplete="new-password"
                 {...register("retypeNewPassword", {
                   required: "Please retype your new password",
                   validate: (value) =>
-                    value === newPassword || "Passwords do not match",
+                    value.trim() === newPassword.trim() ||
+                    "Passwords do not match",
                 })}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm"
                 placeholder="Re-type your new password"
@@ -100,18 +131,13 @@ export default function ResetPasswordPage() {
               )}
             </div>
 
-            {/* Update Password Button */}
+            {/* Submit Button */}
             <Button type="submit" variant="default" className="w-full">
               Update Password
             </Button>
           </form>
         </motion.div>
       </div>
-
-      {/* Footer */}
-      <footer className="absolute bottom-4 w-full text-center text-sm text-gray-500">
-        © {new Date().getFullYear()} TurfMania. All Rights Reserved.
-      </footer>
     </div>
   );
 }
