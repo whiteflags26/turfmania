@@ -1,5 +1,12 @@
 import express from "express";
-import { login, register,logout,getMe } from "./auth.controller";
+import {
+  login,
+  register,
+  logout,
+  getMe,
+  forgotPassword,
+  resetPassword,
+} from "./auth.controller";
 import { protect } from "./auth.middleware";
 
 const router = express.Router();
@@ -12,5 +19,8 @@ router.post("/logout", logout);
 
 router.get("/me", protect, getMe);
 
-export default router;
+router.post("/forgot-password", forgotPassword);
 
+router.post("/reset-password", resetPassword);
+
+export default router;

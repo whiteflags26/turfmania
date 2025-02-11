@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import Link from "next/link";
-import { Search, Menu, ChevronDown } from "lucide-react";
+import { Search, Menu, CircleUserRound, CircleChevronDown } from "lucide-react";
 import { NAV_LINKS } from "@/constants";
 import { Button } from "@/components/Button";
 import {
@@ -61,6 +61,53 @@ const Navbar = () => {
     }, 300);
   };
 
+  let userContent;
+
+  if (isLoading) {
+    userContent = (
+      <span className="text-lg text-gray-700">Loading User...</span>
+    );
+  } else if (user) {
+    userContent = (
+      <div className="relative">
+        <button
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="flex items-center gap-2 text-lg text-gray-700 hover:text-green-700"
+        >
+          <CircleUserRound className="w-8 h-8 text-gray-500" />
+          {user.first_name} {user.last_name}
+          <CircleChevronDown className="w-4 h-4" />
+        </button>
+        {dropdownOpen && (
+          <div className="absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white border border-gray-200">
+            <Link
+              href="/profile"
+              className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+            >
+              View Profile
+            </Link>
+            <button
+              onClick={logout}
+              className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  } else {
+    userContent = (
+      <Button
+        href="/sign-in"
+        variant="default"
+        className="hidden lg:inline-flex px-7"
+      >
+        Sign In
+      </Button>
+    );
+  }
+
   return (
     <motion.div
       animate={isHidden ? "hidden" : "visible"}
@@ -117,43 +164,7 @@ const Navbar = () => {
               />
             </motion.div>
           </div>
-          {isLoading ? (
-            <span>Loading User...</span>
-          ) : user ? (
-            <div className="relative">
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 text-lg font-medium text-gray-700 hover:text-green-700"
-              >
-                {user.first_name} {user.last_name}
-                <ChevronDown className="w-4 h-4" />
-              </button>
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white border border-gray-200">
-                  <Link
-                    href="/profile"
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                  >
-                    View Profile
-                  </Link>
-                  <button
-                    onClick={logout}
-                    className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <Button
-              href="/sign-in"
-              variant="default"
-              className="hidden lg:inline-flex px-7"
-            >
-              Sign In
-            </Button>
-          )}
+          {userContent}
           <Sheet>
             <SheetTrigger asChild>
               <Button className="lg:hidden">
