@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../../modules/user/user.model';
 import ErrorResponse from '../../utils/errorResponse';
+import Turf from '../turf/turf.model';
 
 interface JwtPayload {
   id: string;
@@ -80,5 +81,58 @@ export const authorize = (...roles: string[]) => {
     }
 
     next();
+  };
+};
+export const authorizeTurfRoles = (action: string) => {
+  return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const turf = await Turf.findById(req.params.id);
+      if (!turf) {
+        return next(
+          new ErrorResponse(`Turf not found with ID ${req.params.id}`, 404),
+        );
+      }
+      // Ensure the user exists and has a role in the Turf
+      const userIdToCheck = req.user?._id;
+      if (!userIdToCheck) {
+        return next(new ErrorResponse('User Not Found', 404));
+      }
+      const userRoleEntry = turf.userRoles.find(
+        userRole => userRole.user.toString() === userIdToCheck.toString(),
+      );
+      if (!userRoleEntry) {
+        return next(
+          new ErrorResponse(
+            `User is not assigned a role in this bootcamp`,
+            403,
+          ),
+        );
+      }
+      // Get permissible roles for the action
+      const permissibleRoles = turf.permissions?.get(action);
+      if (!permissibleRoles) {
+        return next(
+          new ErrorResponse(
+            `No permissions defined for action: ${action}`,
+            403,
+          ),
+        );
+      }
+      // Check if the user's role is authorized
+      const isAuthorized = permissibleRoles.includes(userRoleEntry.role);
+      if (!isAuthorized) {
+        return next(
+          new ErrorResponse(
+            `User role "${userRoleEntry.role}" is not authorized to perform action: ${action}`,
+            403,
+          ),
+        );
+      }
+
+      // Proceed to the next middleware
+      next();
+    } catch (error) {
+      next(error);
+    }
   };
 };
