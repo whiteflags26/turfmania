@@ -6,8 +6,9 @@ import {
   logout,
   register,
   resetPassword,
-} from './auth.controller';
-import { protect } from './auth.middleware';
+  verifyEmail
+} from "./auth.controller";
+import { protect } from "./auth.middleware";
 
 const router = express.Router();
 
@@ -21,6 +22,8 @@ router.get('/me', protect, getMe);
 
 router.post('/forgot-password', forgotPassword);
 
-router.post('/reset-password', resetPassword);
+router.post("/reset-password", resetPassword);
+
+router.get("/verify-email", verifyEmail);
 
 export default router;

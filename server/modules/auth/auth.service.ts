@@ -38,6 +38,24 @@ class AuthService {
     return await bcrypt.compare(enteredPassword, user.password);
   }
 
+  /** @desc Generate verification token and send verification email **/
+  
+  public async sendVerificationEmail(user: UserDocument) {
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(20).toString("hex");
+    user.verificationToken = verificationToken;
+    user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await user.save();
+
+    // Send verification email
+    const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}&id=${user._id}`;
+    await sendEmail(
+      user.email,
+      "Verify Your Email",
+      `Click the link to verify your email:\n\n${verificationUrl}\n\nThis link is valid for 24 hours.`
+    );
+  }
+
   /** @desc Password reset email sender **/
 
   public async sendPasswordResetEmail(user: UserDocument) {
