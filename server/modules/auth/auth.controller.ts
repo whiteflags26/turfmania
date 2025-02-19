@@ -28,6 +28,69 @@ interface AuthenticatedRequest extends Request {
  * @desc    Register a new user
  * @access  Public
  */
+// export const register = asyncHandler(
+//   async (
+//     req: Request<{}, {}, RegisterBody>,
+//     res: Response,
+//     next: NextFunction
+//   ) => {
+//     let { first_name, last_name, email, password, role } = req.body;
+//     // Trim and sanitize inputs
+//     first_name = validator.trim(first_name || "");
+//     last_name = validator.trim(last_name || "");
+//     email = validator.trim(email || "").toLowerCase();
+//     password = validator.trim(password || "");
+
+//     // Input validation
+//     if (!first_name || !last_name || !email || !password) {
+//       return next(new ErrorResponse("All fields are required", 400));
+//     }
+
+//     // Validate email format
+//     if (!validator.isEmail(email)) {
+//       return next(new ErrorResponse("Invalid email format", 400));
+//     }
+
+//     // Check if user already exists (case insensitive)
+//     const existingUser = await User.findOne({ email }).collation({
+//       locale: "en",
+//       strength: 2,
+//     });
+
+//     if (existingUser) {
+//       return next(new ErrorResponse("Email already registered", 400));
+//     }
+
+//     // Create user with sanitized inputs
+//     const user: UserDocument = await User.create({
+//       first_name, 
+//       last_name,
+//       email,
+//       password, // Password will be hashed by the model's pre-save hook
+//       role: role || "user",
+//     });
+
+//     const token = await authService.generateToken(user);
+
+//     // Remove sensitive data from response
+//     const userWithoutPassword = user.toObject();
+//     delete userWithoutPassword.password;
+
+//     // Set token in cookie
+//     res.cookie("token", token, {
+//       httpOnly: true,
+//       //secure: process.env.NODE_ENV === "production",
+//       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+//       sameSite: "lax",
+//     });
+
+//     res.status(201).json({
+//       success: true,
+//       data: { user: userWithoutPassword, token },
+//     });
+//   }
+// );
+
 export const register = asyncHandler(
   async (
     req: Request<{}, {}, RegisterBody>,
@@ -70,23 +133,17 @@ export const register = asyncHandler(
       role: role || "user",
     });
 
-    const token = await authService.generateToken(user);
+    // Send verification email
+    await authService.sendVerificationEmail(user);
 
     // Remove sensitive data from response
     const userWithoutPassword = user.toObject();
     delete userWithoutPassword.password;
 
-    // Set token in cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      //secure: process.env.NODE_ENV === "production",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      sameSite: "lax",
-    });
-
     res.status(201).json({
       success: true,
-      data: { user: userWithoutPassword, token },
+      data: { user: userWithoutPassword },
+      message: "Registration successful! Please check your email to verify your account.",
     });
   }
 );
@@ -270,5 +327,46 @@ export const resetPassword = asyncHandler(
       console.error(error);
       return next(error);
     }
+  }
+);
+
+/**
+ * @route   POST /api/v1/auth/verify-email/?token=token&id=id
+ * @desc    Reset password
+ * @access  Public
+ */
+export const verifyEmail = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { token, id } = req.query;
+
+    // Check if token and ID are provided
+    if (!token || !id) {
+      return next(new ErrorResponse("Invalid verification link", 400));
+    }
+
+    // Find the user by ID
+    const user = await User.findById(id);
+    if (!user) {
+      return next(new ErrorResponse("User not found", 404));
+    }
+
+    // Check if the token matches and is not expired
+    if (
+      user.verificationToken !== token ||
+      new Date() > user.verificationTokenExpires
+    ) {
+      return next(new ErrorResponse("Invalid or expired token", 400));
+    }
+
+    // Mark the user as verified
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Email verified successfully!",
+    });
   }
 );

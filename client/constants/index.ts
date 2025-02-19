@@ -168,5 +168,6 @@ export const authRoutes=[
   "/sign-in",
   "/sign-up",
   "/forgot-password",
-  "/reset-password"
+  "/reset-password",
+  "/verify-email"
 ];

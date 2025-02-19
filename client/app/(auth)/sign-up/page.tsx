@@ -7,7 +7,8 @@ import { Button } from "@/components/Button";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import {useAuth} from "@/lib/contexts/authContext";
+import { useAuth } from "@/lib/contexts/authContext";
+import { registerUser } from "@/lib/server-apis/register-api";
 
 interface SignUpFormData {
   first_name: string;
@@ -21,7 +22,7 @@ interface SignUpFormData {
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const {login}=useAuth();
+  const { login } = useAuth();
 
   const {
     register,
@@ -37,28 +38,13 @@ export default function SignUpPage() {
     try {
       setIsLoading(true);
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include", // Important for cookies
-          body: JSON.stringify({
-            first_name: data.first_name,
-            last_name: data.last_name,
-            email: data.email,
-            password: data.password,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Something went wrong");
-      }
+      // Register user
+      await registerUser({
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        password: data.password,
+      });
 
       // Login user after successful registration
       await login(data.email, data.password);

@@ -8,6 +8,9 @@ export interface UserDocument extends Document {
   password: string;
   phone_number?: string;
   user_roles: string[];
+  isVerified: boolean;
+  verificationToken: string;
+  verificationTokenExpires: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,6 +23,9 @@ const UserSchema = new Schema<UserDocument>(
     password: { type: String, minlength: 6, select: false, required: true },
     phone_number: { type: String },
     user_roles: { type: [String], required: true, default: ["user"] },
+    isVerified: { type: Boolean, default: false }, // Default to false
+    verificationToken: { type: String }, // Token for email verification
+    verificationTokenExpires: { type: Date }, // Token expiration time
   },
   { timestamps: true }
 );

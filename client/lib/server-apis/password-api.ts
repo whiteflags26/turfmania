@@ -29,4 +29,3 @@ export async function sendResetPasswordRequest(
   if (!response.ok) throw new Error("Failed to reset password.");
   return response.json();
 }
-

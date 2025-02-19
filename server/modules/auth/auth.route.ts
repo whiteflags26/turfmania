@@ -6,6 +6,7 @@ import {
   getMe,
   forgotPassword,
   resetPassword,
+  verifyEmail
 } from "./auth.controller";
 import { protect } from "./auth.middleware";
 
@@ -22,5 +23,7 @@ router.get("/me", protect, getMe);
 router.post("/forgot-password", forgotPassword);
 
 router.post("/reset-password", resetPassword);
+
+router.get("/verify-email", verifyEmail);
 
 export default router;
