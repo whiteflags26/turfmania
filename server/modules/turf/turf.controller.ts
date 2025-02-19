@@ -198,7 +198,7 @@ export const updateTurfPermissions = asyncHandler(
 
         // Validate roles
         const validRoles = roles.every(role =>
-          ['owner', 'manager', 'stuff'].includes(role),
+          ['owner', 'manager', 'staff'].includes(role),
         );
         if (!validRoles) {
           return next(

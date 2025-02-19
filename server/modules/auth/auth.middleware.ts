@@ -102,10 +102,7 @@ export const authorizeTurfRoles = (action: string) => {
       );
       if (!userRoleEntry) {
         return next(
-          new ErrorResponse(
-            `User is not assigned a role in this bootcamp`,
-            403,
-          ),
+          new ErrorResponse(`User is not assigned a role in this turf`, 403),
         );
       }
       // Get permissible roles for the action

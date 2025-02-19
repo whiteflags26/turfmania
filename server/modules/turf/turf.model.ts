@@ -26,7 +26,7 @@ interface ITurf extends mongoose.Document {
   owner: mongoose.Types.ObjectId;
   userRoles: Array<{
     user: mongoose.Types.ObjectId;
-    role: 'owner' | 'manager' | 'stuff';
+    role: 'owner' | 'manager' | 'staff';
   }>;
   permissions: Map<string, string[]>;
   createdAt: Date;
@@ -86,7 +86,7 @@ const TurfSchema = new mongoose.Schema<ITurf>({
       },
       role: {
         type: String,
-        enum: ['owner', 'manager', 'stuff'],
+        enum: ['owner', 'manager', 'staff'],
         required: true,
       },
     },
