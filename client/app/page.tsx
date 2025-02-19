@@ -1,10 +1,10 @@
-import Hero from "@/components/Hero";
-import {FeatureSection} from '@/components/FeatureSection'
+import { FeatureSection } from '@/components/FeatureSection';
+import Hero from '@/components/Hero';
 export default function Home() {
   return (
     <div>
       <Hero />
-      <FeatureSection/>
+      <FeatureSection />
     </div>
   );
 }
