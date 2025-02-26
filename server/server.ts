@@ -5,7 +5,6 @@ import ExpressMongoSanitize from 'express-mongo-sanitize';
 import helmet from 'helmet';
 import connectDB from './config/db';
 import authRouter from './modules/auth/auth.route';
-import turfRouter from './modules/turf/tuf.route';
 import errorHandler from './shared/middleware/error';
 
 const app = express();
@@ -30,7 +29,6 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/turf', turfRouter);
 
 app.use(errorHandler);
 app.listen(port, () => console.log(`Server app listening on port ${port}!`));
