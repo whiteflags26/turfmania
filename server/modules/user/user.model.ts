@@ -11,8 +11,7 @@ export interface UserDocument extends Document {
   isVerified: boolean;
   verificationToken: string;
   verificationTokenExpires: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  reviews: mongoose.Types.ObjectId[];
 }
 
 const UserSchema = new Schema<UserDocument>(
@@ -26,6 +25,10 @@ const UserSchema = new Schema<UserDocument>(
     isVerified: { type: Boolean, default: false }, // Default to false
     verificationToken: { type: String }, // Token for email verification
     verificationTokenExpires: { type: Date }, // Token expiration time
+    reviews: [{
+      type: Schema.Types.ObjectId,
+      ref: "TurfReview",
+    }],
   },
   { timestamps: true }
 );
