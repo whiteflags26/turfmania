@@ -23,7 +23,6 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
-  const { login } = useAuth();
 
   const {
     register,
