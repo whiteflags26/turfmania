@@ -9,7 +9,8 @@
     "start": "node dst/server.js",
     "predev": "npm run build",
     "dev": "concurrently \"npx tsc -w \" \"nodemon dst/server.js\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "seed": "node dst/seed/seed.js"
   },
   "keywords": [],
   "author": "",
@@ -33,6 +34,7 @@
     "validator": "^13.12.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "^9.5.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
