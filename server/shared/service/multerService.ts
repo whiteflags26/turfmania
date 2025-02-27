@@ -1,7 +1,6 @@
 import multer from "multer";
 import { Request } from "express";
 
-
 export interface MulterFile {
   fieldname: string;
   originalname: string;
