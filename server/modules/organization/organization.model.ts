@@ -57,7 +57,9 @@ const OrganizationSchema: Schema = new Schema(
 
 OrganizationSchema.index({ "location.coordinates": "2dsphere" });
 
-export const Organization = mongoose.model<IOrganization>(
+const Organization = mongoose.model<IOrganization>(
   "Organization",
   OrganizationSchema
 );
+
+export default Organization;
