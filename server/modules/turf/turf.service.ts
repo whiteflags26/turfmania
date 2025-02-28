@@ -11,4 +11,13 @@ export default class TurfService {
   async getTurfById(id: string): Promise<ITurf | null> {
     return await Turf.findById(id);
   }
+  async updateTurf(
+    id: string,
+    updateData: Partial<ITurf>,
+  ): Promise<ITurf | null> {
+    return await Turf.findByIdAndUpdate(id, updateData, { new: true });
+  }
+  async deleteTurf(id: string): Promise<ITurf | null> {
+    return await Turf.findByIdAndDelete(id);
+  }
 }

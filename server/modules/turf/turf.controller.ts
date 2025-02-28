@@ -52,4 +52,40 @@ export default class turfController {
       });
     },
   );
+  updateTurfById = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { id } = req.params;
+      const updatebody = req.body;
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(new ErrorResponse('Invalid Turf ID format', 404));
+      }
+      const turf = await this.turfService.updateTurf(id, updatebody);
+      if (!turf) {
+        return next(new ErrorResponse('No turf found', 404));
+      }
+
+      res.status(200).json({
+        success: true,
+        data: turf,
+      });
+    },
+  );
+  deleteTurfById = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { id } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(new ErrorResponse('Invalid Turf ID format', 404));
+      }
+      const turf = await this.turfService.deleteTurf(id);
+      if (!turf) {
+        return next(new ErrorResponse('No turf found', 404));
+      }
+
+      res.status(200).json({
+        success: true,
+        data: turf,
+      });
+    },
+  );
 }
