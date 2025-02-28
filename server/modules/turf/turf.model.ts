@@ -11,8 +11,7 @@ export interface ITurf extends Document {
     open: string; // "09:00"
     close: string; // "22:00"
   }[];
-  createdAt: Date;
-  updatedAt: Date;
+  reviews: mongoose.Types.ObjectId[];
 }
 
 const TurfSchema: Schema = new Schema(
@@ -66,6 +65,12 @@ const TurfSchema: Schema = new Schema(
           match: /^([01]\d|2[0-3]):([0-5]\d)$/,
         },
         _id: false,
+      },
+    ],
+    reviews: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'TurfReview',
       },
     ],
   },
