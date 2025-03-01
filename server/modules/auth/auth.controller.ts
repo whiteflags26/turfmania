@@ -5,23 +5,8 @@ import validator from "validator";
 import User, { UserDocument } from "../user/user.model";
 import authService, { resetUserPassword } from "./auth.service";
 import Token from "../token/token.model";
-
-interface RegisterBody {
-  first_name: string;
-  last_name: string;
-  email: string;
-  password: string;
-  role?: string;
-}
-
-interface LoginBody {
-  email: string;
-  password: string;
-}
-
-interface AuthenticatedRequest extends Request {
-  user?: { id: string }; // Define the user property with an id
-}
+import { AuthenticatedRequest } from "../../types/request";
+import { RegisterBody, LoginBody } from "../../types/request";
 
 /**
  * @route   POST /api/v1/auth/register
