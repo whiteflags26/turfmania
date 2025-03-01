@@ -59,4 +59,19 @@ export default class TurfReviewService {
 
     return await turfReview.save();
   }
+
+  //delete a review
+  async deleteReview(reviewId: string, userId: string): Promise<boolean> {
+    const review = await TurfReview.findById(reviewId);
+
+    if (!review) {
+      throw new Error("Review not found");
+    }
+    if (review.user.toString() !== userId) {
+      throw new Error("You are not authorized to delete this review");
+    }
+
+    await review.deleteOne();
+    return true;
+  }
 }
