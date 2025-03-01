@@ -2,6 +2,7 @@ import { Response } from "express";
 import asyncHandler from "../../shared/middleware/async";
 import TurfReviewService from "./turf-review.service";
 import { AuthenticatedRequest } from "../../types/request";
+import { getUserId } from "../../utils/getUserId";
 
 export default class TurfReviewController {
   private turfReviewService: TurfReviewService;
@@ -20,15 +21,7 @@ export default class TurfReviewController {
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const { turfId, rating, review, images } = req.body;
 
-      // Ensure userId is always present
-      if (!req.user || !req.user.id) {
-        res
-          .status(401)
-          .json({ success: false, message: "Authentication required" });
-        return;
-      }
-
-      const userId = req.user.id;
+      const userId = getUserId(req);
 
       const newTurfReview = await this.turfReviewService.createReview({
         turfId,
