@@ -57,7 +57,19 @@ export default class TurfReviewService {
       images: data.images || [],
     });
 
-    return await turfReview.save();
+    const newReview = await turfReview.save();
+
+    // Update the User document
+    await User.findByIdAndUpdate(data.userId, {
+      $push: { reviews: newReview._id },
+    });
+
+    // Update the Turf document
+    await Turf.findByIdAndUpdate(data.turfId, {
+      $push: { reviews: newReview._id },
+    });
+
+    return newReview;
   }
 
   //delete a review
@@ -72,6 +84,17 @@ export default class TurfReviewService {
     }
 
     await review.deleteOne();
+
+    // Update the User document
+    await User.findByIdAndUpdate(userId, {
+      $pull: { reviews: reviewId },
+    });
+
+    // Update the Turf document
+    await Turf.findByIdAndUpdate(review.turf, {
+      $pull: { reviews: reviewId },
+    });
+
     return true;
   }
 }
