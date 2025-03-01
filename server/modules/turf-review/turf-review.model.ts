@@ -15,7 +15,7 @@ export interface ITurfReview extends Document {
   user: mongoose.Types.ObjectId;
   rating: number;
   review?: string;
-  images: string[];
+  images?: string[];
 }
 
 const TurfReviewSchema: Schema = new Schema(
