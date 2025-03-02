@@ -41,8 +41,9 @@ export const uploadImage = async (
       const uploadStream = cloudinary.uploader.upload_stream(
         { folder },
         (error, result) => {
-          if (error) reject(new ErrorResponse("Image upload failed", 500));
-          else resolve(result);
+          if (error) {
+            reject(new ErrorResponse("Image upload failed", 500));
+          } else resolve(result);
         }
       );
 
