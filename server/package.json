@@ -10,7 +10,7 @@
     "predev": "npm run build",
     "dev": "concurrently \"npx tsc -w \" \"nodemon dst/server.js\"",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "seed": "node dst/seed/seed.js"
+    "seed": "npm run build && node dst/seed/seed.js"
   },
   "keywords": [],
   "author": "",

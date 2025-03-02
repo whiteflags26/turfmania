@@ -1,44 +1,80 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ITurf extends Document {
   organization: mongoose.Types.ObjectId;
-  price: number;
+  name: string;
+  basePrice: number;
   sports: string[];
   team_size: number;
-  time_slots: {
-    start_time: Date;
-    end_time: Date;
-    is_available: boolean;
-    price_override?: number;
+  operatingHours: {
+    day: number; // 0-6 (Sunday-Saturday)
+    open: string; // "09:00"
+    close: string; // "22:00"
   }[];
+  reviews: mongoose.Types.ObjectId[];
 }
 
 const TurfSchema: Schema = new Schema(
   {
     organization: {
       type: Schema.Types.ObjectId,
-      ref: "Organization",
+      ref: 'Organization',
       required: true,
     },
-    price: {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    basePrice: {
       type: Number,
       required: true,
       min: 0,
       get: (v: number) => parseFloat(v.toFixed(2)),
       set: (v: number) => parseFloat(v.toFixed(2)),
     },
-    sports: { type: [String], required: true },
-    team_size: { type: Number, required: true },
-    time_slots: [
+    sports: {
+      type: [String],
+      required: true,
+      validate: [
+        (val: string[]) => val.length > 0,
+        'At least one sport must be specified',
+      ],
+    },
+    team_size: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    operatingHours: [
       {
-        start_time: { type: Date, required: true },
-        end_time: { type: Date, required: true },
-        is_available: { type: Boolean, default: true },
-        price_override: { type: Number, min: 0 },
+        day: {
+          type: Number,
+          required: true,
+          min: 0,
+          max: 6,
+        },
+        open: {
+          type: String,
+          required: true,
+          match: /^([01]\d|2[0-3]):([0-5]\d)$/,
+        },
+        close: {
+          type: String,
+          required: true,
+          match: /^([01]\d|2[0-3]):([0-5]\d)$/,
+        },
+        _id: false,
+      },
+    ],
+    reviews: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'TurfReview',
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-export const Turf = mongoose.model<ITurf>("Turf", TurfSchema);
+export const Turf = mongoose.model<ITurf>('Turf', TurfSchema);
