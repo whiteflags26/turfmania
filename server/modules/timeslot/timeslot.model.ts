@@ -43,3 +43,4 @@ const TimeSlotSchema: Schema = new Schema(
   { timestamps: true },
 );
 TimeSlotSchema.index({ turf: 1, start_time: 1, is_available: 1 });
+export const TimeSlot = mongoose.model<ITimeSlot>('TimeSlot', TimeSlotSchema);
