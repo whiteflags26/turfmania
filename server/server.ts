@@ -7,6 +7,7 @@ import connectDB from './config/db';
 import authRouter from './modules/auth/auth.route';
 import timeslotRoutes from './modules/timeslot/timeslot.route';
 import turfRoutes from './modules/turf/turf.route';
+import bookingRoutes from './modules/booking/booking.route'
 import errorHandler from './shared/middleware/error';
 
 const app = express();
@@ -33,6 +34,6 @@ app.get('/', (req: Request, res: Response) => {
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/turf', turfRoutes);
 app.use('/api/v1/timeslot', timeslotRoutes);
-
+app.use('/api/v1/booking',bookingRoutes)
 app.use(errorHandler);
 app.listen(port, () => console.log(`Server app listening on port ${port}!`));
