@@ -9,6 +9,9 @@ import authRouter from './modules/auth/auth.route';
 import organizationRouter from "./modules/organization/organization.route";
 import turfRoutes from './modules/turf/turf.route';
 import turfReviewRoutes from './modules/turf-review/turf-review.route';
+import timeslotRoutes from './modules/timeslot/timeslot.route';
+
+import bookingRoutes from './modules/booking/booking.route'
 
 
 
@@ -37,5 +40,9 @@ app.use('/api/v1/auth', authRouter);
 app.use("/api/v1/organizations", organizationRouter);
 app.use('/api/v1/turf', turfRoutes);
 app.use('/api/v1/turf-review', turfReviewRoutes);
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/turf', turfRoutes);
+app.use('/api/v1/timeslot', timeslotRoutes);
+app.use('/api/v1/booking',bookingRoutes)
 app.use(errorHandler);
 app.listen(port, () => console.log(`Server app listening on port ${port}!`));
