@@ -44,7 +44,6 @@ export const protect = async (
   try {
     // Verify token
     const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
-    console.log(decoded.id)
 
     // Fetch user and attach to request object excluding password
     const user = await User.findById(decoded.id).select('-password');
@@ -52,10 +51,7 @@ export const protect = async (
       return next(new ErrorResponse('User not found', 404));
     }
 
-    req.user = {
-      id: decoded.id,
-      user_roles:decoded.role
-    }; // Attach user to request
+    req.user = user; // Attach user to request
     next();
   } catch (error) {
     return next(new ErrorResponse('Not authorized, invalid token', 401));
@@ -86,4 +82,3 @@ export const authorize = (...roles: string[]) => {
     next();
   };
 };
-
