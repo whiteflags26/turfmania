@@ -7,7 +7,10 @@ import {
 import multer from "multer";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() }); // Store files in memory for Cloudinary upload
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024, files: 5 },
+}); // Store files in memory for Cloudinary upload
 
 // Create organization
 router.post("/", upload.array("images", 5), createOrganization); // Allow up to 5 images
