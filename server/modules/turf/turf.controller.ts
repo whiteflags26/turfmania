@@ -112,6 +112,7 @@ export default class turfController {
       });
     }
   );
+
   updateTurfById = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const { id } = req.params;
@@ -122,66 +123,98 @@ export default class turfController {
         return next(new ErrorResponse("Invalid Turf ID format", 404));
       }
 
-      // Initialize updateData with rest of the fields
-      const updateData: Partial<ITurf> = { ...rest };
+      try {
+        const updateData = await this.validateAndParseUpdateData(
+          { basePrice, operatingHours, sports, ...rest },
+          next
+        );
+        if (!updateData) return;
 
-      // Parse numeric fields
-      if (basePrice) {
-        const parsedBasePrice = parseFloat(basePrice);
-        if (isNaN(parsedBasePrice)) {
-          return next(
-            new ErrorResponse("basePrice must be a valid number", 400)
-          );
-        }
-        updateData.basePrice = parsedBasePrice;
+        const turf = await this.turfService.updateTurf(
+          id,
+          updateData,
+          newImages
+        );
+        if (!turf) return next(new ErrorResponse("No turf found", 404));
+
+        res.status(200).json({
+          success: true,
+          data: turf,
+          message: "Turf updated successfully",
+        });
+      } catch (error) {
+        next(error);
       }
-
-      // Parse sports array if provided
-      if (sports) {
-        try {
-          updateData.sports =
-            typeof sports === "string" ? JSON.parse(sports) : sports;
-        } catch (error) {
-          return next(new ErrorResponse("Invalid sports format", 400));
-        }
-      }
-
-      // Parse operatingHours if provided
-      if (operatingHours) {
-        try {
-          updateData.operatingHours =
-            typeof operatingHours === "string"
-              ? JSON.parse(operatingHours)
-              : operatingHours;
-        } catch (error) {
-          return next(new ErrorResponse("Invalid operatingHours format", 400));
-        }
-      }
-
-      // Validate team_size if provided
-      if (rest.team_size) {
-        const parsedTeamSize = parseInt(rest.team_size);
-        if (isNaN(parsedTeamSize)) {
-          return next(
-            new ErrorResponse("team_size must be a valid integer", 400)
-          );
-        }
-        updateData.team_size = parsedTeamSize;
-      }
-
-      const turf = await this.turfService.updateTurf(id, updateData, newImages);
-
-      if (!turf) {
-        return next(new ErrorResponse("No turf found", 404));
-      }
-
-      res.status(200).json({
-        success: true,
-        data: turf,
-        message: "Turf updated successfully",
-      });
     }
   );
+
+  private async validateAndParseUpdateData(
+    data: any,
+    next: NextFunction
+  ): Promise<Partial<ITurf> | void> {
+    const updateData: Partial<ITurf> = {};
+    const { basePrice, operatingHours, sports, team_size, ...rest } = data;
+
+    // Copy simple fields
+    Object.assign(updateData, rest);
+
+    // Parse and validate individual fields
+    const parsers = [
+      this.parseBasePrice(basePrice, next),
+      this.parseSports(sports, next),
+      this.parseOperatingHours(operatingHours, next),
+      this.parseTeamSize(team_size, next),
+    ];
+
+    // Check for any parser errors
+    for (const result of parsers) {
+      if (result.error) return next(result.error);
+      Object.assign(updateData, result.data);
+    }
+
+    return updateData;
+  }
+
+  // Field-specific parser functions
+  private parseBasePrice(value: any, next: NextFunction) {
+    if (!value) return { data: {} };
+    const parsed = parseFloat(value);
+    return isNaN(parsed)
+      ? { error: new ErrorResponse("basePrice must be a valid number", 400) }
+      : { data: { basePrice: parsed } };
+  }
+
+  private parseSports(value: any, next: NextFunction) {
+    if (!value) return { data: {} };
+    try {
+      return {
+        data: { sports: typeof value === "string" ? JSON.parse(value) : value },
+      };
+    } catch {
+      return { error: new ErrorResponse("Invalid sports format", 400) };
+    }
+  }
+
+  private parseOperatingHours(value: any, next: NextFunction) {
+    if (!value) return { data: {} };
+    try {
+      return {
+        data: {
+          operatingHours: typeof value === "string" ? JSON.parse(value) : value,
+        },
+      };
+    } catch {
+      return { error: new ErrorResponse("Invalid operatingHours format", 400) };
+    }
+  }
+
+  private parseTeamSize(value: any, next: NextFunction) {
+    if (!value) return { data: {} };
+    const parsed = parseInt(value);
+    return isNaN(parsed)
+      ? { error: new ErrorResponse("team_size must be a valid integer", 400) }
+      : { data: { team_size: parsed } };
+  }
   deleteTurfById = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const { id } = req.params;
