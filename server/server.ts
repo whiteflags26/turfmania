@@ -41,7 +41,6 @@ app.use("/api/v1/organizations", organizationRouter);
 app.use('/api/v1/turf', turfRoutes);
 app.use('/api/v1/turf-review', turfReviewRoutes);
 app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/turf', turfRoutes);
 app.use('/api/v1/timeslot', timeslotRoutes);
 app.use('/api/v1/booking',bookingRoutes)
 app.use(errorHandler);

@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema } from "mongoose";
 
 export interface ITurf extends Document {
   organization: mongoose.Types.ObjectId;
@@ -6,6 +6,7 @@ export interface ITurf extends Document {
   basePrice: number;
   sports: string[];
   team_size: number;
+  images: string[];
   operatingHours: {
     day: number; // 0-6 (Sunday-Saturday)
     open: string; // "09:00"
@@ -18,7 +19,7 @@ const TurfSchema: Schema = new Schema(
   {
     organization: {
       type: Schema.Types.ObjectId,
-      ref: 'Organization',
+      ref: "Organization",
       required: true,
     },
     name: {
@@ -38,13 +39,17 @@ const TurfSchema: Schema = new Schema(
       required: true,
       validate: [
         (val: string[]) => val.length > 0,
-        'At least one sport must be specified',
+        "At least one sport must be specified",
       ],
     },
     team_size: {
       type: Number,
       required: true,
       min: 1,
+    },
+    images: {
+      type: [String],
+      default: [],
     },
     operatingHours: [
       {
@@ -70,11 +75,11 @@ const TurfSchema: Schema = new Schema(
     reviews: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'TurfReview',
+        ref: "TurfReview",
       },
     ],
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
-export const Turf = mongoose.model<ITurf>('Turf', TurfSchema);
+export const Turf = mongoose.model<ITurf>("Turf", TurfSchema);
