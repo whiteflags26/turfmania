@@ -224,5 +224,30 @@ export default class TurfService {
         query._id = { $exists: false };
       }
     }
+
+    // Facilities filter (requires joining with Organization collection)
+    if (facilities) {
+      const facilitiesList = Array.isArray(facilities)
+        ? facilities
+        : [facilities];
+
+      if (facilitiesList.length > 0) {
+        // We need to use aggregation pipeline for this
+        aggregatePipeline.push({
+          $lookup: {
+            from: "organizations",
+            localField: "organization",
+            foreignField: "_id",
+            as: "organizationData",
+          },
+        });
+
+        aggregatePipeline.push({
+          $match: {
+            "organizationData.facilities": { $all: facilitiesList },
+          },
+        });
+      }
+    }
   }
 }
