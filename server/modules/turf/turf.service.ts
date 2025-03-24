@@ -4,7 +4,6 @@ import { ITurf, Turf } from "./turf.model";
 import { uploadImage, deleteImage } from "../../utils/cloudinary";
 import ErrorResponse from "./../../utils/errorResponse";
 import { extractPublicIdFromUrl } from "../../utils/extractUrl";
-import { FilterOptions } from "../../types/filter";
 import { FilterOptions } from "./../../types/filter.d";
 
 export default class TurfService {
@@ -170,6 +169,23 @@ export default class TurfService {
       const sportsList = Array.isArray(sports) ? sports : [sports];
       if (sportsList.length > 0) {
         query.sports = { $in: sportsList };
+      }
+    }
+
+    // Time preference filter
+    if (preferredDay !== undefined && preferredTime !== undefined) {
+      const day = Number(preferredDay);
+
+      // Validate day is 0-6
+      if (day >= 0 && day <= 6) {
+        // Find turfs that are open at the preferred time on the preferred day
+        query.operatingHours = {
+          $elemMatch: {
+            day,
+            open: { $lte: preferredTime },
+            close: { $gte: preferredTime },
+          },
+        };
       }
     }
   }
