@@ -164,5 +164,13 @@ export default class TurfService {
     if (teamSize !== undefined) {
       query.team_size = Number(teamSize);
     }
+
+    // Sports filter
+    if (sports) {
+      const sportsList = Array.isArray(sports) ? sports : [sports];
+      if (sportsList.length > 0) {
+        query.sports = { $in: sportsList };
+      }
+    }
   }
 }
