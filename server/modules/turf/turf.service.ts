@@ -117,17 +117,46 @@ export default class TurfService {
 
   async filterTurfs(filterOptions: FilterOptions) {
     try {
-      // parse and validate filter options
+      // Parse and validate filter options
       const {
         query,
         aggregatePipeline,
         page = 1,
         limit = 10,
-        organizationIds,
       } = await this.buildFilterQuery(filterOptions);
+
+      // Execute query based on whether we need aggregation or not
+      let turfs;
+      let totalResults;
+
+      if (aggregatePipeline.length > 0) {
+        // If we need aggregation (for facilities or complex filters)
+        aggregatePipeline.unshift({ $match: query });
+
+        // Add pagination to aggregation
+        const skip = (Number(page) - 1) * Number(limit);
+        const paginatedPipeline = [
+          ...aggregatePipeline,
+          { $skip: skip },
+          { $limit: Number(limit) },
+        ];
+
+        // Execute aggregation
+        turfs = await Turf.aggregate(paginatedPipeline);
+
+        // Count total results (without pagination)
+        const countPipeline = [...aggregatePipeline];
+        const countResults = await Turf.aggregate([
+          ...countPipeline,
+          { $count: "total" },
+        ]);
+
+        totalResults = countResults.length > 0 ? countResults[0].total : 0;
+      } else {
+      }
     } catch (error) {
-      console.error(error);
-      throw new ErrorResponse("Failed to filter turfs", 500);
+      console.error("Filter turfs error:", error);
+      throw error;
     }
   }
 
