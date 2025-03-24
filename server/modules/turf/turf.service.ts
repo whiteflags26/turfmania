@@ -5,6 +5,7 @@ import { uploadImage, deleteImage } from "../../utils/cloudinary";
 import ErrorResponse from "./../../utils/errorResponse";
 import { extractPublicIdFromUrl } from "../../utils/extractUrl";
 import { FilterOptions } from "../../types/filter";
+import { FilterOptions } from "./../../types/filter.d";
 
 export default class TurfService {
   /**@desc Create new turf with image upload and data validation**/
@@ -115,5 +116,37 @@ export default class TurfService {
 
   /**@desc filter turfs based on price, team_size, facilities, preferred_time, location and radius, sports**/
 
+  async filterTurfs(FilterOptions: FilterOptions) {
+    try {
+      // parse and validate filter options
+      const {
+        query,
+        aggregatePipeline,
+        page = 1,
+        limit = 10,
+        organizationIds,
+      } = await this.buildFilterQuery(filterOptions);
+    } catch (error) {
+      console.error(error);
+      throw new ErrorResponse("Failed to filter turfs", 500);
+    }
+  }
 
+  /**@desc Build filter query based on filter options**/
+  private async buildFilterQuery(filterOptions: FilterOptions) {
+    const {
+      minPrice,
+      maxPrice,
+      teamSize,
+      sports,
+      facilities,
+      preferredDay,
+      preferredTime,
+      latitude,
+      longitude,
+      radius = "5", // Default radius 5km
+      page = "1",
+      limit = "10",
+    } = filterOptions;
+  }
 }
