@@ -153,6 +153,16 @@ export default class TurfService {
 
         totalResults = countResults.length > 0 ? countResults[0].total : 0;
       } else {
+        // Use regular find query (more efficient when possible)
+        const skip = (Number(page) - 1) * Number(limit);
+
+        turfs = await Turf.find(query)
+          .skip(skip)
+          .limit(Number(limit))
+          .populate("organization")
+          .exec();
+
+        totalResults = await Turf.countDocuments(query);
       }
     } catch (error) {
       console.error("Filter turfs error:", error);
