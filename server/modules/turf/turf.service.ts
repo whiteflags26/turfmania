@@ -159,5 +159,10 @@ export default class TurfService {
       if (minPrice !== undefined) query.basePrice.$gte = Number(minPrice);
       if (maxPrice !== undefined) query.basePrice.$lte = Number(maxPrice);
     }
+
+    // Team size filter
+    if (teamSize !== undefined) {
+      query.team_size = Number(teamSize);
+    }
   }
 }
