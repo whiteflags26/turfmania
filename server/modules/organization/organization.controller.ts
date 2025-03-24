@@ -145,3 +145,37 @@ export const deleteOrganization = asyncHandler(
     });
   },
 );
+
+/**
+ * @route   PUT /api/v1/organizations/:id
+ * @desc    Add an user to organization
+ * @access  Private (Admin only)
+ */
+export const addUserToTurf = asyncHandler(
+  async (
+    req: AuthenticatedRequest & Request<{ id: string }>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const { id } = req.params;
+    if (!req.user) {
+      return next(new ErrorResponse('User not authenticated', 401));
+    }
+    const role = req.body;
+
+    const organization = await organizationService.addUserToTurf(
+      req.user.id,
+      role,
+      id,
+    );
+
+    if (!organization) {
+      return next(new ErrorResponse('Organization not found', 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Added user to organization successfully',
+    });
+  },
+);
