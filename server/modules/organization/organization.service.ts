@@ -3,6 +3,7 @@ import { deleteImage, uploadImage } from '../../utils/cloudinary';
 import ErrorResponse from '../../utils/errorResponse';
 import { extractPublicIdFromUrl } from '../../utils/extractUrl';
 import Organization, { IOrganization } from './organization.model';
+import User from '../user/user.model';
 
 class OrganizationService {
   /**
@@ -136,6 +137,41 @@ class OrganizationService {
     } catch (error) {
       console.error(error);
       throw new ErrorResponse('Failed to delete organization', 500);
+    }
+  }
+  public async addUserToTurf(userId:string,role:string,organizationId:string):Promise<IOrganization | null>{
+    try {
+      const[userToAdd,organization]=await Promise.all([
+        User.findById(userId),
+        Organization.findById(organizationId)
+      ])
+      if (!organization) throw new ErrorResponse('Organization not found', 404);
+      if (!userToAdd) throw new ErrorResponse('No user to add', 404);
+
+      const existingRole=organization.userRoles.find(
+        userRole=>userRole.user.toString()===userId.toString()
+      )
+      if (existingRole) throw new ErrorResponse('The user is already assigned to a role', 400);
+      const updatedOrganization=await Organization.findByIdAndUpdate(
+        organizationId,
+        {
+          $push: {
+            userRoles: { user: userId, role: role },
+          },
+        },
+        {
+          new: true,
+          runValidators: true,
+        },
+
+      )
+      return updatedOrganization;
+
+      
+    } catch (error) {
+      console.error(error);
+      throw new ErrorResponse('Failed to add user to turf', 500);
+      
     }
   }
 }
