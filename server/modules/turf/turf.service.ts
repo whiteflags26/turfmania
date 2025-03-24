@@ -164,9 +164,23 @@ export default class TurfService {
 
         totalResults = await Turf.countDocuments(query);
       }
+
+      // Calculate pagination info
+      const totalPages = Math.ceil(totalResults / Number(limit));
+
+      return {
+        success: true,
+        count: turfs.length,
+        data: turfs,
+        pagination: {
+          currentPage: Number(page),
+          totalPages,
+          totalResults,
+        },
+      };
     } catch (error) {
-      console.error("Filter turfs error:", error);
-      throw error;
+      console.error("Error filtering turfs:", error);
+      throw new ErrorResponse("Failed to filter turfs", 500);
     }
   }
 
