@@ -10,6 +10,12 @@ export default class turfController {
   constructor() {
     this.turfService = new TurfService();
   }
+
+  /**
+   * @route POST /api/v1/turfs
+   * @desc Create a new turf with details, images, and operating hours
+   * @access Private/Admin
+   */
   createTurf = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const {
@@ -80,6 +86,12 @@ export default class turfController {
     }
   );
 
+  /**
+   * @route GET /api/v1/turfs
+   * @desc Retrieve all turfs with optional basic filtering
+   * @access Public
+   */
+
   getTurfs = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const filter = req.query;
@@ -94,6 +106,12 @@ export default class turfController {
       });
     }
   );
+
+  /**
+   * @route GET /api/v1/turfs/:id
+   * @desc Retrieve a specific turf by ID
+   * @access Public
+   */
 
   getTurfById = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -112,6 +130,12 @@ export default class turfController {
       });
     }
   );
+
+  /**
+   * @route PUT /api/v1/turfs/:id
+   * @desc Update a turf's details and images by ID
+   * @access Private/Admin
+   */
 
   updateTurfById = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -215,6 +239,12 @@ export default class turfController {
       ? { error: new ErrorResponse("team_size must be a valid integer", 400) }
       : { data: { team_size: parsed } };
   }
+
+  /**
+   * @route DELETE /api/v1/turfs/:id
+   * @desc Delete a turf by ID
+   * @access Private/Admin
+   */
   deleteTurfById = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const { id } = req.params;
@@ -236,4 +266,11 @@ export default class turfController {
       });
     }
   );
+
+  /**
+   * @route GET /api/v1/turfs/filter
+   * @desc Filter turfs by price, sports, location, availability, etc.
+   * @access Public
+   */
+  
 }

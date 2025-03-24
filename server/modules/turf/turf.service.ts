@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+import Organization from "../organization/organization.model";
 import { ITurf, Turf } from "./turf.model";
 import { uploadImage, deleteImage } from "../../utils/cloudinary";
 import ErrorResponse from "./../../utils/errorResponse";
