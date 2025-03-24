@@ -4,6 +4,7 @@ import asyncHandler from "../../shared/middleware/async";
 import ErrorResponse from "../../utils/errorResponse";
 import TurfService from "./turf.service";
 import { ITurf } from "./turf.model";
+import { FilterOptions } from "../../types/filter.d";
 
 export default class turfController {
   private turfService: TurfService;
@@ -272,5 +273,28 @@ export default class turfController {
    * @desc Filter turfs by price, sports, location, availability, etc.
    * @access Public
    */
-  
+
+  filterTurfs = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      // Extract filter options from query parameters
+      const filterOptions: FilterOptions = {
+        minPrice: req.query.minPrice as string,
+        maxPrice: req.query.maxPrice as string,
+        teamSize: req.query.teamSize as string,
+        sports: req.query.sports as string | string[],
+        facilities: req.query.facilities as string | string[],
+        preferredDay: req.query.preferredDay as string,
+        preferredTime: req.query.preferredTime as string,
+        latitude: req.query.latitude as string,
+        longitude: req.query.longitude as string,
+        radius: req.query.radius as string,
+        page: req.query.page as string,
+        limit: req.query.limit as string,
+      };
+
+      const result = await this.turfService.filterTurfs(filterOptions);
+
+      res.status(200).json(result);
+    }
+  );
 }
