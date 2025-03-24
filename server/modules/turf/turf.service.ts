@@ -4,6 +4,7 @@ import { ITurf, Turf } from "./turf.model";
 import { uploadImage, deleteImage } from "../../utils/cloudinary";
 import ErrorResponse from "./../../utils/errorResponse";
 import { extractPublicIdFromUrl } from "../../utils/extractUrl";
+import { FilterOptions } from "../../types/filter";
 
 export default class TurfService {
   /**@desc Create new turf with image upload and data validation**/
@@ -111,4 +112,8 @@ export default class TurfService {
       throw new ErrorResponse("Failed to delete turf", 500);
     }
   }
+
+  /**@desc filter turfs based on price, team_size, facilities, preferred_time, location and radius, sports**/
+
+
 }
