@@ -188,5 +188,41 @@ export default class TurfService {
         };
       }
     }
+
+    // Location radius filter
+    let organizationIds: mongoose.Types.ObjectId[] = [];
+    if (latitude && longitude && radius) {
+      // Convert radius from km to meters
+      const radiusInMeters = Number(radius) * 1000;
+
+      // First find all organizations within the radius
+      const nearbyOrganizations = await Organization.find({
+        "location.coordinates": {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: [Number(longitude), Number(latitude)],
+            },
+            $maxDistance: radiusInMeters,
+          },
+        },
+      }).select("_id");
+
+      interface OrgDocument {
+        _id: mongoose.Types.ObjectId;
+      }
+
+      organizationIds = nearbyOrganizations.map(
+        (org) => (org as unknown as OrgDocument)._id
+      );
+
+      // If organizations found, add to query
+      if (organizationIds.length > 0) {
+        query.organization = { $in: organizationIds };
+      } else {
+        // No organizations in radius, return empty query that will match nothing
+        query._id = { $exists: false };
+      }
+    }
   }
 }
