@@ -116,7 +116,7 @@ export default class TurfService {
 
   /**@desc filter turfs based on price, team_size, facilities, preferred_time, location and radius, sports**/
 
-  async filterTurfs(FilterOptions: FilterOptions) {
+  async filterTurfs(filterOptions: FilterOptions) {
     try {
       // parse and validate filter options
       const {
@@ -148,5 +148,16 @@ export default class TurfService {
       page = "1",
       limit = "10",
     } = filterOptions;
+
+    // Base query
+    const query: any = {};
+    const aggregatePipeline: any[] = [];
+
+    // Price filter
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      query.basePrice = {};
+      if (minPrice !== undefined) query.basePrice.$gte = Number(minPrice);
+      if (maxPrice !== undefined) query.basePrice.$lte = Number(maxPrice);
+    }
   }
 }
