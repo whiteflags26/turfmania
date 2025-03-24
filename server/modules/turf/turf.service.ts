@@ -6,6 +6,8 @@ import ErrorResponse from "./../../utils/errorResponse";
 import { extractPublicIdFromUrl } from "../../utils/extractUrl";
 
 export default class TurfService {
+  /**@desc Create new turf with image upload and data validation**/
+
   async createTurf(
     turfData: Partial<ITurf>,
     images?: Express.Multer.File[]
@@ -31,12 +33,19 @@ export default class TurfService {
       throw new ErrorResponse("Failed to create turf", 500);
     }
   }
+
+  /**@desc Retrieve all turfs with basic filtering options **/
+
   async getTurfs(filters = {}): Promise<ITurf[]> {
     return await Turf.find(filters);
   }
+
+  /**@desc Retrieve turf by ID **/
   async getTurfById(id: string): Promise<ITurf | null> {
     return await Turf.findById(id);
   }
+
+  /**@desc Update turf by ID with image upload and data validation **/
   async updateTurf(
     id: string,
     updateData: Partial<ITurf>,
@@ -66,7 +75,6 @@ export default class TurfService {
         updateData.images = newImageUrls;
       }
 
-      // Update turf
       const updatedTurf = await Turf.findByIdAndUpdate(id, updateData, {
         new: true,
         runValidators: true,
@@ -78,6 +86,8 @@ export default class TurfService {
       throw new ErrorResponse("Failed to update turf", 500);
     }
   }
+
+  /**@desc Delete turf by ID **/
   async deleteTurf(id: string): Promise<ITurf | null> {
     try {
       const turf = await Turf.findById(id);
@@ -95,7 +105,6 @@ export default class TurfService {
         );
       }
 
-      // Delete from database
       return await Turf.findByIdAndDelete(id);
     } catch (error) {
       console.error("Error deleting turf:", error);
