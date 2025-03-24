@@ -249,5 +249,13 @@ export default class TurfService {
         });
       }
     }
+
+    return {
+      query,
+      aggregatePipeline,
+      page: Number(page),
+      limit: Number(limit),
+      organizationIds,
+    };
   }
 }
