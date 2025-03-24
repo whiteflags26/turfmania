@@ -1,4 +1,5 @@
 import express from "express";
+import { protect } from "../auth/auth.middleware";
 import {
   createOrganization,
   deleteOrganization,
@@ -13,7 +14,7 @@ const upload = multer({
 }); // Store files in memory for Cloudinary upload
 
 // Create organization
-router.post("/", upload.array("images", 5), createOrganization); // Allow up to 5 images
+router.post("/",protect,upload.array("images", 5), createOrganization); // Allow up to 5 images
 
 // Update organization
 router.put("/:id", upload.array("images", 5), updateOrganization);

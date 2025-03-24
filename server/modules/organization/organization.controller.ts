@@ -1,8 +1,11 @@
-import { NextFunction, Request, Response } from "express";
-import asyncHandler from "../../shared/middleware/async";
-import ErrorResponse from "../../utils/errorResponse";
-import { organizationService } from "./organization.service";
-import { IOrganization } from "./organization.model";
+import { NextFunction, Request, Response } from 'express';
+import asyncHandler from '../../shared/middleware/async';
+import ErrorResponse from '../../utils/errorResponse';
+import { IOrganization } from './organization.model';
+import { organizationService } from './organization.service';
+interface AuthenticatedRequest extends Request {
+  user?: { id: string };
+}
 
 interface CreateOrganizationBody {
   name: string;
@@ -11,7 +14,7 @@ interface CreateOrganizationBody {
     place_id: string;
     address: string;
     coordinates: {
-      type: "Point";
+      type: 'Point';
       coordinates: [number, number];
     };
     area?: string;
@@ -28,40 +31,46 @@ interface CreateOrganizationBody {
  */
 export const createOrganization = asyncHandler(
   async (
-    req: Request<{}, {}, CreateOrganizationBody>,
+    req: AuthenticatedRequest & { body: CreateOrganizationBody },
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) => {
     const { name, facilities } = req.body;
     const location =
-      typeof req.body.location === "string"
+      typeof req.body.location === 'string'
         ? JSON.parse(req.body.location)
         : req.body.location;
-    const images = req.files as Express.Multer.File[];
+    // const images = req.files as Express.Multer.File[];
+
+    // Check if user is authenticated
+    if (!req.user) {
+      return next(new ErrorResponse('User not authenticated', 401));
+    }
+    console.log('user', req.user.id);
 
     // Input validation
     if (!name || !facilities || !location) {
       return next(
-        new ErrorResponse("All fields except images are required", 400)
+        new ErrorResponse('All fields except images are required', 400),
       );
     }
 
-    // Create organization
+    // Create organization with owner
     const organization = await organizationService.createOrganization(
       name,
       facilities,
-      images,
-      location
+      // images,
+      location,
+      req.user.id, // Pass the user ID
     );
 
     res.status(201).json({
       success: true,
       data: organization,
-      message: "Organization created successfully",
+      message: 'Organization created successfully',
     });
-  }
+  },
 );
-
 interface UpdateOrganizationBody extends Partial<CreateOrganizationBody> {
   imagesToKeep?: string[];
 }
@@ -75,7 +84,7 @@ export const updateOrganization = asyncHandler(
   async (
     req: Request<{ id: string }, {}, UpdateOrganizationBody>,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) => {
     const { id } = req.params;
     const { name, facilities, location, ...rest } = req.body;
@@ -86,13 +95,13 @@ export const updateOrganization = asyncHandler(
       ...(name && { name }),
       ...(facilities && {
         facilities:
-          typeof facilities === "string" ? JSON.parse(facilities) : facilities,
+          typeof facilities === 'string' ? JSON.parse(facilities) : facilities,
       }),
     };
 
     if (location) {
       updateData.location =
-        typeof location === "string" ? JSON.parse(location) : location;
+        typeof location === 'string' ? JSON.parse(location) : location;
     }
 
     Object.assign(updateData, rest);
@@ -100,19 +109,19 @@ export const updateOrganization = asyncHandler(
     const organization = await organizationService.updateOrganization(
       id,
       updateData,
-      newImages
+      newImages,
     );
 
     if (!organization) {
-      return next(new ErrorResponse("Organization not found", 404));
+      return next(new ErrorResponse('Organization not found', 404));
     }
 
     res.status(200).json({
       success: true,
       data: organization,
-      message: "Organization updated successfully",
+      message: 'Organization updated successfully',
     });
-  }
+  },
 );
 
 /**
@@ -127,12 +136,12 @@ export const deleteOrganization = asyncHandler(
     const result = await organizationService.deleteOrganization(id);
 
     if (result.deletedCount === 0) {
-      return next(new ErrorResponse("Organization not found", 404));
+      return next(new ErrorResponse('Organization not found', 404));
     }
 
     res.status(200).json({
       success: true,
-      message: "Organization deleted successfully",
+      message: 'Organization deleted successfully',
     });
-  }
+  },
 );
