@@ -33,14 +33,46 @@ export const createOrganization = asyncHandler(
     next: NextFunction
   ) => {
     const { name, facilities } = req.body;
-    const location =
-      typeof req.body.location === "string"
-        ? JSON.parse(req.body.location)
-        : req.body.location;
+
+    let parsedFacilities: IOrganization["facilities"];
+
+    // Parse facilities (if sent as a JSON string)
+    try {
+      parsedFacilities =
+        typeof facilities === "string" ? JSON.parse(facilities) : facilities;
+    } catch (error) {
+      return next(new ErrorResponse("Invalid facilities format", 400));
+    }
+
+    // parse and validate location
+    let location: IOrganization["location"];
+    try {
+      const parsedLocation =
+        typeof req.body.location === "string"
+          ? JSON.parse(req.body.location)
+          : req.body.location;
+
+      // Validate location structure
+      if (
+        !parsedLocation.place_id ||
+        !parsedLocation.address ||
+        !parsedLocation.coordinates ||
+        !parsedLocation.coordinates.type ||
+        !parsedLocation.coordinates.coordinates ||
+        !parsedLocation.city
+      ) {
+        throw new Error("Invalid location structure");
+      }
+
+      location = parsedLocation;
+    } catch (error) {
+      return next(new ErrorResponse("Invalid location format or structure", 400));
+    }
+
     const images = req.files as Express.Multer.File[];
 
     // Input validation
-    if (!name || !facilities || !location) {
+    if (!name || !parsedFacilities || !location) {
       return next(
         new ErrorResponse("All fields except images are required", 400)
       );
@@ -49,7 +81,7 @@ export const createOrganization = asyncHandler(
     // Create organization
     const organization = await organizationService.createOrganization(
       name,
-      facilities,
+      parsedFacilities,
       images,
       location
     );
