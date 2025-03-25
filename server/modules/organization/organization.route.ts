@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { protect } from '../auth/auth.middleware';
+import { authorize, authorizeOrganizationRoles, protect } from '../auth/auth.middleware';
 import {
   addUserToOrganization,
   createOrganization,
@@ -16,11 +16,11 @@ const upload = multer({
 }); // Store files in memory for Cloudinary upload
 
 // Create organization
-router.post('/', protect, upload.array('images', 5), createOrganization); // Allow up to 5 images
+router.post('/', protect,authorize('owner'), upload.array('images', 5), createOrganization); // Allow up to 5 images
 
 // Update organization
 router.put('/:id', upload.array('images', 5), updateOrganization);
-router.put('/:id/add_user', protect, addUserToOrganization);
+router.put('/:id/add_user', protect,authorizeOrganizationRoles("addUser"), addUserToOrganization);
 // Update organization permissions
 router.put('/:id/permissions', protect, updateOrganizationPermissions);
 // Delete organization
