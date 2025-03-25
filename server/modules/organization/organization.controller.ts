@@ -1,8 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import asyncHandler from "../../shared/middleware/async";
 import ErrorResponse from "../../utils/errorResponse";
-import { organizationService } from "./organization.service";
 import { IOrganization } from "./organization.model";
+import { organizationService } from "./organization.service";
+interface AuthenticatedRequest extends Request {
+  user?: { id: string };
+}
 
 interface CreateOrganizationBody {
   name: string;
@@ -28,7 +31,7 @@ interface CreateOrganizationBody {
  */
 export const createOrganization = asyncHandler(
   async (
-    req: Request<{}, {}, CreateOrganizationBody>,
+    req: AuthenticatedRequest & { body: CreateOrganizationBody },
     res: Response,
     next: NextFunction
   ) => {
@@ -66,10 +69,16 @@ export const createOrganization = asyncHandler(
 
       location = parsedLocation;
     } catch (error) {
-      return next(new ErrorResponse("Invalid location format or structure", 400));
+      return next(
+        new ErrorResponse("Invalid location format or structure", 400)
+      );
     }
-
     const images = req.files as Express.Multer.File[];
+
+    // Check if user is authenticated
+    if (!req.user) {
+      return next(new ErrorResponse("User not authenticated", 401));
+    }
 
     // Input validation
     if (!name || !parsedFacilities || !location) {
@@ -78,12 +87,13 @@ export const createOrganization = asyncHandler(
       );
     }
 
-    // Create organization
+    // Create organization with owner
     const organization = await organizationService.createOrganization(
       name,
       parsedFacilities,
       images,
-      location
+      location,
+      req.user.id // Pass the user ID
     );
 
     res.status(201).json({
@@ -93,7 +103,6 @@ export const createOrganization = asyncHandler(
     });
   }
 );
-
 interface UpdateOrganizationBody extends Partial<CreateOrganizationBody> {
   imagesToKeep?: string[];
 }
@@ -165,6 +174,74 @@ export const deleteOrganization = asyncHandler(
     res.status(200).json({
       success: true,
       message: "Organization deleted successfully",
+    });
+  }
+);
+
+/**
+ * @route   PUT /api/v1/organizations/:id
+ * @desc    Add an user to organization
+ * @access  Private (Admin only)
+ */
+export const addUserToOrganization = asyncHandler(
+  async (
+    req: AuthenticatedRequest &
+      Request<{ organizationid: string; userId: string }>,
+    res: Response,
+    next: NextFunction
+  ) => {
+    const { id } = req.params;
+
+    if (!req.user) {
+      return next(new ErrorResponse("User not authenticated", 401));
+    }
+    const { role, userId } = req.body;
+
+    const organization = await organizationService.addUserToTurf(
+      userId,
+      role,
+      id
+    );
+
+    if (!organization) {
+      return next(new ErrorResponse("Organization not found", 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Added user to organization successfully",
+    });
+  }
+);
+
+export const updateOrganizationPermissions = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const { permissions } = req.body;
+    const { id } = req.params;
+
+    // Check if user is authenticated
+    if (!req.user) {
+      return next(new ErrorResponse("User not authenticated", 401));
+    }
+
+    // Input validation
+    if (!permissions || typeof permissions !== "object") {
+      return next(
+        new ErrorResponse("Please provide valid permissions object", 400)
+      );
+    }
+
+    const updatedOrganization =
+      await organizationService.updateOrganizationPermissions(
+        id,
+        req.user.id,
+        permissions
+      );
+
+    res.status(200).json({
+      success: true,
+      data: updatedOrganization?.permissions,
+      message: "Organization permissions updated successfully",
     });
   }
 );
