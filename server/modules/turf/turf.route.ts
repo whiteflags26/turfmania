@@ -22,11 +22,11 @@ const upload = multer({
   },
 });
 
-// Updated routes with file upload handling
 router.post("/", upload.array("images", 5), turfController.createTurf);
 router.get("/", turfController.getTurfs);
 router.get("/:id", turfController.getTurfById);
 router.put("/:id", upload.array("images", 5), turfController.updateTurfById);
 router.delete("/:id", turfController.deleteTurfById);
+router.get("/filter/search", turfController.filterTurfs);
 
 export default router;

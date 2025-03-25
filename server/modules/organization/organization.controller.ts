@@ -1,8 +1,8 @@
-import { NextFunction, Request, Response } from 'express';
-import asyncHandler from '../../shared/middleware/async';
-import ErrorResponse from '../../utils/errorResponse';
-import { IOrganization } from './organization.model';
-import { organizationService } from './organization.service';
+import { NextFunction, Request, Response } from "express";
+import asyncHandler from "../../shared/middleware/async";
+import ErrorResponse from "../../utils/errorResponse";
+import { IOrganization } from "./organization.model";
+import { organizationService } from "./organization.service";
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
 }
@@ -14,7 +14,7 @@ interface CreateOrganizationBody {
     place_id: string;
     address: string;
     coordinates: {
-      type: 'Point';
+      type: "Point";
       coordinates: [number, number];
     };
     area?: string;
@@ -33,43 +33,75 @@ export const createOrganization = asyncHandler(
   async (
     req: AuthenticatedRequest & { body: CreateOrganizationBody },
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     const { name, facilities } = req.body;
-    const location =
-      typeof req.body.location === 'string'
-        ? JSON.parse(req.body.location)
-        : req.body.location;
-    // const images = req.files as Express.Multer.File[];
+
+    let parsedFacilities: IOrganization["facilities"];
+
+    // Parse facilities (if sent as a JSON string)
+    try {
+      parsedFacilities =
+        typeof facilities === "string" ? JSON.parse(facilities) : facilities;
+    } catch (error) {
+      return next(new ErrorResponse("Invalid facilities format", 400));
+    }
+
+    // parse and validate location
+    let location: IOrganization["location"];
+    try {
+      const parsedLocation =
+        typeof req.body.location === "string"
+          ? JSON.parse(req.body.location)
+          : req.body.location;
+
+      // Validate location structure
+      if (
+        !parsedLocation.place_id ||
+        !parsedLocation.address ||
+        !parsedLocation.coordinates ||
+        !parsedLocation.coordinates.type ||
+        !parsedLocation.coordinates.coordinates ||
+        !parsedLocation.city
+      ) {
+        throw new Error("Invalid location structure");
+      }
+
+      location = parsedLocation;
+    } catch (error) {
+      return next(
+        new ErrorResponse("Invalid location format or structure", 400)
+      );
+    }
+    const images = req.files as Express.Multer.File[];
 
     // Check if user is authenticated
     if (!req.user) {
-      return next(new ErrorResponse('User not authenticated', 401));
+      return next(new ErrorResponse("User not authenticated", 401));
     }
-    console.log('user', req.user.id);
 
     // Input validation
-    if (!name || !facilities || !location) {
+    if (!name || !parsedFacilities || !location) {
       return next(
-        new ErrorResponse('All fields except images are required', 400),
+        new ErrorResponse("All fields except images are required", 400)
       );
     }
 
     // Create organization with owner
     const organization = await organizationService.createOrganization(
       name,
-      facilities,
-      // images,
+      parsedFacilities,
+      images,
       location,
-      req.user.id, // Pass the user ID
+      req.user.id // Pass the user ID
     );
 
     res.status(201).json({
       success: true,
       data: organization,
-      message: 'Organization created successfully',
+      message: "Organization created successfully",
     });
-  },
+  }
 );
 interface UpdateOrganizationBody extends Partial<CreateOrganizationBody> {
   imagesToKeep?: string[];
@@ -84,7 +116,7 @@ export const updateOrganization = asyncHandler(
   async (
     req: Request<{ id: string }, {}, UpdateOrganizationBody>,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     const { id } = req.params;
     const { name, facilities, location, ...rest } = req.body;
@@ -95,13 +127,13 @@ export const updateOrganization = asyncHandler(
       ...(name && { name }),
       ...(facilities && {
         facilities:
-          typeof facilities === 'string' ? JSON.parse(facilities) : facilities,
+          typeof facilities === "string" ? JSON.parse(facilities) : facilities,
       }),
     };
 
     if (location) {
       updateData.location =
-        typeof location === 'string' ? JSON.parse(location) : location;
+        typeof location === "string" ? JSON.parse(location) : location;
     }
 
     Object.assign(updateData, rest);
@@ -109,19 +141,19 @@ export const updateOrganization = asyncHandler(
     const organization = await organizationService.updateOrganization(
       id,
       updateData,
-      newImages,
+      newImages
     );
 
     if (!organization) {
-      return next(new ErrorResponse('Organization not found', 404));
+      return next(new ErrorResponse("Organization not found", 404));
     }
 
     res.status(200).json({
       success: true,
       data: organization,
-      message: 'Organization updated successfully',
+      message: "Organization updated successfully",
     });
-  },
+  }
 );
 
 /**
@@ -136,14 +168,14 @@ export const deleteOrganization = asyncHandler(
     const result = await organizationService.deleteOrganization(id);
 
     if (result.deletedCount === 0) {
-      return next(new ErrorResponse('Organization not found', 404));
+      return next(new ErrorResponse("Organization not found", 404));
     }
 
     res.status(200).json({
       success: true,
-      message: 'Organization deleted successfully',
+      message: "Organization deleted successfully",
     });
-  },
+  }
 );
 
 /**
@@ -156,30 +188,30 @@ export const addUserToOrganization = asyncHandler(
     req: AuthenticatedRequest &
       Request<{ organizationid: string; userId: string }>,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     const { id } = req.params;
 
     if (!req.user) {
-      return next(new ErrorResponse('User not authenticated', 401));
+      return next(new ErrorResponse("User not authenticated", 401));
     }
     const { role, userId } = req.body;
 
     const organization = await organizationService.addUserToTurf(
       userId,
       role,
-      id,
+      id
     );
 
     if (!organization) {
-      return next(new ErrorResponse('Organization not found', 404));
+      return next(new ErrorResponse("Organization not found", 404));
     }
 
     res.status(200).json({
       success: true,
-      message: 'Added user to organization successfully',
+      message: "Added user to organization successfully",
     });
-  },
+  }
 );
 
 export const updateOrganizationPermissions = asyncHandler(
@@ -189,13 +221,13 @@ export const updateOrganizationPermissions = asyncHandler(
 
     // Check if user is authenticated
     if (!req.user) {
-      return next(new ErrorResponse('User not authenticated', 401));
+      return next(new ErrorResponse("User not authenticated", 401));
     }
 
     // Input validation
-    if (!permissions || typeof permissions !== 'object') {
+    if (!permissions || typeof permissions !== "object") {
       return next(
-        new ErrorResponse('Please provide valid permissions object', 400),
+        new ErrorResponse("Please provide valid permissions object", 400)
       );
     }
 
@@ -203,13 +235,13 @@ export const updateOrganizationPermissions = asyncHandler(
       await organizationService.updateOrganizationPermissions(
         id,
         req.user.id,
-        permissions,
+        permissions
       );
 
     res.status(200).json({
       success: true,
       data: updatedOrganization?.permissions,
-      message: 'Organization permissions updated successfully',
+      message: "Organization permissions updated successfully",
     });
-  },
+  }
 );

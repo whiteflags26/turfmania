@@ -18,15 +18,15 @@ class OrganizationService {
   public async createOrganization(
     name: string,
     facilities: string[],
-    // images: Express.Multer.File[],
+    images: Express.Multer.File[],
     location: IOrganization['location'],
     userId: string, // Add userId parameter
   ): Promise<IOrganization | null> {
     try {
       // Upload images to Cloudinary
-      // const imageUploads = images.map(image => uploadImage(image));
-      // const uploadedImages = await Promise.all(imageUploads);
-      // const imageUrls = uploadedImages.map(img => img.url);
+      const imageUploads = images.map(image => uploadImage(image));
+      const uploadedImages = await Promise.all(imageUploads);
+      const imageUrls = uploadedImages.map(img => img.url);
 
       // Set up default permissions and roles
       const defaultPermissions = new Map([
@@ -43,7 +43,7 @@ class OrganizationService {
       const organization = await Organization.create({
         name,
         facilities,
-        // images: imageUrls,
+        images: imageUrls,
         location,
         owner: userId,
         userRoles: [
