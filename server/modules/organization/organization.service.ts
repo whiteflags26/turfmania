@@ -2,8 +2,8 @@ import { DeleteResult } from 'mongodb';
 import { deleteImage, uploadImage } from '../../utils/cloudinary';
 import ErrorResponse from '../../utils/errorResponse';
 import { extractPublicIdFromUrl } from '../../utils/extractUrl';
-import Organization, { IOrganization } from './organization.model';
 import User from '../user/user.model';
+import Organization, { IOrganization } from './organization.model';
 
 class OrganizationService {
   /**
@@ -139,20 +139,25 @@ class OrganizationService {
       throw new ErrorResponse('Failed to delete organization', 500);
     }
   }
-  public async addUserToTurf(userId:string,role:string,organizationId:string):Promise<IOrganization | null>{
+  public async addUserToTurf(
+    userId: string,
+    role: string,
+    organizationId: string,
+  ): Promise<IOrganization | null> {
     try {
-      const[userToAdd,organization]=await Promise.all([
+      const [userToAdd, organization] = await Promise.all([
         User.findById(userId),
-        Organization.findById(organizationId)
-      ])
+        Organization.findById(organizationId),
+      ]);
       if (!organization) throw new ErrorResponse('Organization not found', 404);
       if (!userToAdd) throw new ErrorResponse('No user to add', 404);
 
-      const existingRole=organization.userRoles.find(
-        userRole=>userRole.user.toString()===userId.toString()
-      )
-      if (existingRole) throw new ErrorResponse('The user is already assigned to a role', 400);
-      const updatedOrganization=await Organization.findByIdAndUpdate(
+      const existingRole = organization.userRoles.find(
+        userRole => userRole.user.toString() === userId.toString(),
+      );
+      if (existingRole)
+        throw new ErrorResponse('The user is already assigned to a role', 400);
+      const updatedOrganization = await Organization.findByIdAndUpdate(
         organizationId,
         {
           $push: {
@@ -163,15 +168,60 @@ class OrganizationService {
           new: true,
           runValidators: true,
         },
-
-      )
+      );
       return updatedOrganization;
-
-      
     } catch (error) {
       console.error(error);
       throw new ErrorResponse('Failed to add user to turf', 500);
-      
+    }
+  }
+
+  public async updateOrganizationPermissions(
+    organizationId: string,
+    userId: string,
+    permissions: Record<string, string[]>,
+  ): Promise<IOrganization | null> {
+    try {
+      const organization = await Organization.findById(organizationId);
+      if (!organization) throw new ErrorResponse('Organization not found', 404);
+
+      // Verify ownership
+      if (organization.owner.toString() !== userId) {
+        throw new ErrorResponse('Not authorized to update permissions', 401);
+      }
+
+      // Validate and convert permissions to Map
+      const permissionsMap = new Map<string, string[]>();
+      for (const [action, roles] of Object.entries(permissions)) {
+        if (!Array.isArray(roles)) {
+          throw new ErrorResponse(`Roles for ${action} must be an array`, 400);
+        }
+
+        const validRoles = roles.every(role =>
+          ['owner', 'manager', 'staff'].includes(role),
+        );
+        if (!validRoles) {
+          throw new ErrorResponse(
+            'Invalid role specified. Roles must be owner, manager, or staff',
+            400,
+          );
+        }
+
+        permissionsMap.set(action, roles);
+      }
+
+      const updatedOrganization = await Organization.findByIdAndUpdate(
+        organizationId,
+        { permissions: permissionsMap },
+        { new: true, runValidators: true },
+      ).select('permissions');
+
+      return updatedOrganization;
+    } catch (error) {
+      console.error(error);
+      throw error instanceof ErrorResponse
+        ? error
+        : new ErrorResponse('Failed to update permissions', 500);
     }
   }
 }

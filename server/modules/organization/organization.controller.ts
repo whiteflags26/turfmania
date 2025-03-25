@@ -151,20 +151,22 @@ export const deleteOrganization = asyncHandler(
  * @desc    Add an user to organization
  * @access  Private (Admin only)
  */
-export const addUserToTurf = asyncHandler(
+export const addUserToOrganization = asyncHandler(
   async (
-    req: AuthenticatedRequest & Request<{ id: string }>,
+    req: AuthenticatedRequest &
+      Request<{ organizationid: string; userId: string }>,
     res: Response,
     next: NextFunction,
   ) => {
     const { id } = req.params;
+
     if (!req.user) {
       return next(new ErrorResponse('User not authenticated', 401));
     }
-    const role = req.body;
+    const { role, userId } = req.body;
 
     const organization = await organizationService.addUserToTurf(
-      req.user.id,
+      userId,
       role,
       id,
     );
@@ -176,6 +178,38 @@ export const addUserToTurf = asyncHandler(
     res.status(200).json({
       success: true,
       message: 'Added user to organization successfully',
+    });
+  },
+);
+
+export const updateOrganizationPermissions = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const { permissions } = req.body;
+    const { id } = req.params;
+
+    // Check if user is authenticated
+    if (!req.user) {
+      return next(new ErrorResponse('User not authenticated', 401));
+    }
+
+    // Input validation
+    if (!permissions || typeof permissions !== 'object') {
+      return next(
+        new ErrorResponse('Please provide valid permissions object', 400),
+      );
+    }
+
+    const updatedOrganization =
+      await organizationService.updateOrganizationPermissions(
+        id,
+        req.user.id,
+        permissions,
+      );
+
+    res.status(200).json({
+      success: true,
+      data: updatedOrganization?.permissions,
+      message: 'Organization permissions updated successfully',
     });
   },
 );
