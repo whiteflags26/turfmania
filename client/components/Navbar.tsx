@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import Link from "next/link";
-import { Search, Menu } from "lucide-react";
+import { Search, Menu, CircleUserRound, CircleChevronDown } from "lucide-react";
 import { NAV_LINKS } from "@/constants";
 import { Button } from "@/components/Button";
 import {
@@ -15,11 +15,15 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/contexts/authContext";
 
 const Navbar = () => {
   const [isHidden, setIsHidden] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { user, isLoading, logout } = useAuth();
+
   const { scrollY } = useScroll();
   const lastYRef = useRef(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -54,8 +58,55 @@ const Navbar = () => {
     setIsSearchExpanded(true);
     setTimeout(() => {
       searchInputRef.current?.focus();
-    }, 300); // Delay focus until after animation
+    }, 300);
   };
+
+  let userContent;
+
+  if (isLoading) {
+    userContent = (
+      <span className="text-lg text-gray-700">Loading User...</span>
+    );
+  } else if (user) {
+    userContent = (
+      <div className="relative">
+        <button
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="flex items-center gap-2 text-lg text-gray-700 hover:text-green-700"
+        >
+          <CircleUserRound className="w-8 h-8 text-gray-500" />
+          {user.first_name} {user.last_name}
+          <CircleChevronDown className="w-4 h-4" />
+        </button>
+        {dropdownOpen && (
+          <div className="absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white border border-gray-200">
+            <Link
+              href="/profile"
+              className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+            >
+              View Profile
+            </Link>
+            <button
+              onClick={logout}
+              className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  } else {
+    userContent = (
+      <Button
+        href="/sign-in"
+        variant="default"
+        className="hidden lg:inline-flex px-7"
+      >
+        Sign In
+      </Button>
+    );
+  }
 
   return (
     <motion.div
@@ -84,7 +135,6 @@ const Navbar = () => {
                 className="relative px-3 py-1 text-lg text-gray-700 transition-colors duration-300 hover:text-green-700"
               >
                 {link.label}
-                <span className="absolute bottom-0 left-0 h-0.5 w-full origin-left scale-x-0 transform bg-green-500 transition-transform duration-300 group-hover:scale-x-100"></span>
               </Link>
             ))}
           </div>
@@ -114,14 +164,11 @@ const Navbar = () => {
               />
             </motion.div>
           </div>
-          <Button variant="default" className="hidden lg:inline-flex px-7">
-            Sign In
-          </Button>
+          {userContent}
           <Sheet>
             <SheetTrigger asChild>
               <Button className="lg:hidden">
                 <Menu className="h-6 w-6" />
-                <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
@@ -133,19 +180,16 @@ const Navbar = () => {
                       <Link
                         key={link.key}
                         href={link.href}
-                        className="text-lg  text-gray-700 transition-colors duration-300 hover:text-green-700"
+                        className="text-lg text-gray-700 transition-colors duration-300 hover:text-green-700"
                       >
                         {link.label}
                       </Link>
                     ))}
-                    <div className="pt-4">
-                      <Input
-                        type="text"
-                        placeholder="Search..."
-                        className="w-full"
-                      />
-                    </div>
-                    <Button variant="default" className="w-full">
+                    <Button
+                      href="/sign-in"
+                      variant="default"
+                      className="w-full"
+                    >
                       Sign In
                     </Button>
                   </div>
