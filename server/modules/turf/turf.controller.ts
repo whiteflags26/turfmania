@@ -30,13 +30,14 @@ export default class turfController {
       const images = req.files as Express.Multer.File[];
 
       // Parse numeric fields
-      const parsedBasePrice = parseFloat(basePrice);
+      let parsedBasePrice: ITurf["basePrice"];
+      parsedBasePrice = parseFloat(basePrice);
       if (isNaN(parsedBasePrice)) {
         return next(new ErrorResponse("basePrice must be a valid number", 400));
       }
 
       // Parse sports (if sent as a JSON string)
-      let parsedSports: string[];
+      let parsedSports: ITurf["sports"];
       try {
         parsedSports = typeof sports === "string" ? JSON.parse(sports) : sports;
       } catch (error) {
@@ -44,7 +45,7 @@ export default class turfController {
       }
 
       // Parse operatingHours (if sent as a JSON string)
-      let parsedOperatingHours: { day: number; open: string; close: string }[];
+      let parsedOperatingHours: ITurf["operatingHours"];
       try {
         parsedOperatingHours =
           typeof operatingHours === "string"
