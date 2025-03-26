@@ -205,33 +205,66 @@ export default class TurfService {
     const query: any = {};
     const aggregatePipeline: any[] = [];
 
-    // Price filter
+    this.applyPriceFilter(query, minPrice, maxPrice);
+    this.applyTeamSizeFilter(query, teamSize);
+    this.applySportsFilter(query, sports);
+    this.applyTimePreferenceFilter(query, preferredDay, preferredTime);
+
+    const organizationIds = await this.findNearbyOrganizations(
+      query,
+      latitude,
+      longitude,
+      radius
+    );
+
+    this.applyFacilitiesFilter(aggregatePipeline, facilities);
+
+    return {
+      query,
+      aggregatePipeline,
+      page: Number(page),
+      limit: Number(limit),
+      organizationIds,
+    };
+  }
+
+  /**@desc utility function to apply price filter on buildFilterQuery function**/
+  private applyPriceFilter(query: any, minPrice?: string, maxPrice?: string) {
     if (minPrice !== undefined || maxPrice !== undefined) {
       query.basePrice = {};
       if (minPrice !== undefined) query.basePrice.$gte = Number(minPrice);
       if (maxPrice !== undefined) query.basePrice.$lte = Number(maxPrice);
     }
+  }
 
-    // Team size filter
+  /**@desc utility function to apply team size filter on buildFilterQuery function**/
+  private applyTeamSizeFilter(query: any, teamSize?: string) {
     if (teamSize !== undefined) {
       query.team_size = Number(teamSize);
     }
+  }
 
-    // Sports filter
+  /**@desc utility function to apply sports filter on buildFilterQuery function**/
+  private applySportsFilter(query: any, sports?: string | string[]) {
     if (sports) {
       const sportsList = Array.isArray(sports) ? sports : [sports];
       if (sportsList.length > 0) {
         query.sports = { $in: sportsList };
       }
     }
+  }
 
-    // Time preference filter
+  /**@desc utility function to apply time preference filter on buildFilterQuery function**/
+  private applyTimePreferenceFilter(
+    query: any,
+    preferredDay?: string,
+    preferredTime?: string
+  ) {
     if (preferredDay !== undefined && preferredTime !== undefined) {
       const day = Number(preferredDay);
 
       // Validate day is 0-6
       if (day >= 0 && day <= 6) {
-        // Find turfs that are open at the preferred time on the preferred day
         query.operatingHours = {
           $elemMatch: {
             day,
@@ -241,44 +274,57 @@ export default class TurfService {
         };
       }
     }
+  }
 
-    // Location radius filter
-    let organizationIds: mongoose.Types.ObjectId[] = [];
-    if (latitude && longitude && radius) {
-      // Convert radius from km to meters
-      const radiusInMeters = Number(radius) * 1000;
+  /**@desc utility function to find nearby organization for buildFilterQuery function**/
+  private async findNearbyOrganizations(
+    query: any,
+    latitude?: string,
+    longitude?: string,
+    radius?: string
+  ): Promise<mongoose.Types.ObjectId[]> {
+    if (!latitude || !longitude || !radius) return [];
 
-      // First find all organizations within the radius
-      const nearbyOrganizations = await Organization.find({
-        "location.coordinates": {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: [Number(longitude), Number(latitude)],
-            },
-            $maxDistance: radiusInMeters,
+    // Convert radius from km to meters
+    const radiusInMeters = Number(radius) * 1000;
+
+    // First find all organizations within the radius
+    const nearbyOrganizations = await Organization.find({
+      "location.coordinates": {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [Number(longitude), Number(latitude)],
           },
+          $maxDistance: radiusInMeters,
         },
-      }).select("_id");
+      },
+    }).select("_id");
 
-      interface OrgDocument {
-        _id: mongoose.Types.ObjectId;
-      }
-
-      organizationIds = nearbyOrganizations.map(
-        (org) => (org as unknown as OrgDocument)._id
-      );
-
-      // If organizations found, add to query
-      if (organizationIds.length > 0) {
-        query.organization = { $in: organizationIds };
-      } else {
-        // No organizations in radius, return empty query that will match nothing
-        query._id = { $exists: false };
-      }
+    interface OrgDocument {
+      _id: mongoose.Types.ObjectId;
     }
 
-    // Facilities filter (requires joining with Organization collection)
+    const organizationIds = nearbyOrganizations.map(
+      (org) => (org as unknown as OrgDocument)._id
+    );
+
+    // If organizations found, add to query
+    if (organizationIds.length > 0) {
+      query.organization = { $in: organizationIds };
+    } else {
+      // No organizations in radius, return empty query that will match nothing
+      query._id = { $exists: false };
+    }
+
+    return organizationIds;
+  }
+
+  /**@desc utility function to apply facilities filter on buildFilterQuery function**/
+  private applyFacilitiesFilter(
+    aggregatePipeline: any[],
+    facilities?: string | string[]
+  ) {
     if (facilities) {
       const facilitiesList = Array.isArray(facilities)
         ? facilities
@@ -302,13 +348,5 @@ export default class TurfService {
         });
       }
     }
-
-    return {
-      query,
-      aggregatePipeline,
-      page: Number(page),
-      limit: Number(limit),
-      organizationIds,
-    };
   }
 }
