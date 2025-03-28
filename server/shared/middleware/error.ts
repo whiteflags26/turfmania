@@ -38,7 +38,7 @@ const errorHandler = (
     error = new ErrorResponse(message, 400);
   }
 
-  res.status(error.statusCode || 500).json({
+  res.status(error.statusCode ?? 500).json({
     success: false,
     error: error.message || 'Server Error',
   });

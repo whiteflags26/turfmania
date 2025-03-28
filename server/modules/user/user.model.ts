@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import mongoose, { Document, Schema } from 'mongoose';
-import Organization from '../organization/organization.model';
+
 
 
 

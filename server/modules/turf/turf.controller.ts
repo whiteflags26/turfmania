@@ -7,7 +7,7 @@ import { ITurf } from "./turf.model";
 import { FilterOptions } from "../../types/filter.d";
 
 export default class TurfController {
-  private turfService: TurfService;
+  private readonly turfService: TurfService;
   constructor() {
     this.turfService = new TurfService();
   }
