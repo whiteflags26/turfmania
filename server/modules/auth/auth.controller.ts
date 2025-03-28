@@ -134,7 +134,7 @@ export const login = asyncHandler(
     }
 
     // Generate token
-    const token = await authService.generateToken(user);
+    const token =  authService.generateToken(user);
     console.log(token)
 
     // Remove sensitive data from response
