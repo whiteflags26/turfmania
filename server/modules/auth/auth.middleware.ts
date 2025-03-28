@@ -31,9 +31,8 @@ export const protect = async (
 
   // Check Authorization header as fallback
   else if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
+  req.headers.authorization?.startsWith('Bearer'))
+   {
     token = req.headers.authorization.split(' ')[1];
   }
 
@@ -61,7 +60,7 @@ export const protect = async (
 
 export const authorize = (...roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user || !req.user.user_roles) {
+    if (!req.user?.user_roles) {
       return next(new ErrorResponse('User role is not defined', 403));
     }
 
