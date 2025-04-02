@@ -7,7 +7,7 @@ interface AuthenticatedRequest extends Request {
     user?: { id: string }; // Define the user property with an id
   }
 export default class BookingController {
-  private bookingService: BookingService;
+  private readonly bookingService: BookingService;
 
   constructor() {
     this.bookingService = new BookingService();
