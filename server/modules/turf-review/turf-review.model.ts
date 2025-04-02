@@ -36,7 +36,7 @@ const TurfReviewSchema: Schema = new Schema(
       min: 1,
       max: 5,
       validate: {
-        validator: function (value: Number) {
+        validator: function (value: number) {
           return Number.isInteger(value);
         },
         message: "Turf rating must be an integer",

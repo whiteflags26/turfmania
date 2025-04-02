@@ -5,7 +5,7 @@ import { AuthenticatedRequest } from "../../types/request";
 import { getUserId } from "../../utils/getUserId";
 
 export default class TurfReviewController {
-  private turfReviewService: TurfReviewService;
+  private readonly turfReviewService: TurfReviewService;
 
   constructor() {
     this.turfReviewService = new TurfReviewService();

@@ -3,7 +3,7 @@ import React, { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { FiArrowUpRight } from "react-icons/fi";
 import { featureContents } from "@/constants";
-import {Button} from "@/components/Button";
+import { Button } from "@/components/Button";
 
 const IMG_PADDING = 10;
 
@@ -11,11 +11,7 @@ export const FeatureSection = () => {
   return (
     <div className="bg-white">
       {featureContents.map(({ id, imgPath, heading, content }) => (
-        <TextParallaxContent
-          key={id}
-          imgPath={imgPath}
-          heading={heading}
-        >
+        <TextParallaxContent key={id} imgPath={imgPath} heading={heading}>
           <ExampleContent content={content} />
         </TextParallaxContent>
       ))}
@@ -104,7 +100,10 @@ const ExampleContent = ({ content }) => (
     </h2>
     <div className="col-span-1 md:col-span-8">
       {content.description.map((desc, index) => (
-        <p key={index} className="mb-4 text-xl text-neutral-600 md:text-2xl">
+        <p
+          key={`${content.title}-desc-${index}`}
+          className="mb-4 text-xl text-neutral-600 md:text-2xl"
+        >
           {desc}
         </p>
       ))}
@@ -114,4 +113,3 @@ const ExampleContent = ({ content }) => (
     </div>
   </div>
 );
-

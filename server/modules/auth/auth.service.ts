@@ -7,7 +7,7 @@ import { sendEmail } from "../../utils/email";
 import ErrorResponse from "../../utils/errorResponse";
 
 class AuthService {
-  private JWT_SECRET: string;
+  private readonly JWT_SECRET: string;
 
   constructor() {
     if (!process.env.JWT_SECRET || !process.env.JWT_EXPIRE) {
