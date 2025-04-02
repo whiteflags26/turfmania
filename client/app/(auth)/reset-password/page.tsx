@@ -40,7 +40,7 @@ export default function ResetPasswordPage() {
         userId
       );
 
-      if (!response || !response.message) {
+      if (!response?.message) {
         throw new Error("Unexpected server response.");
       }
 
