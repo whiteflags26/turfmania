@@ -50,6 +50,75 @@ class OrganizationService {
     }
   }
 
+   /**
+   * Assign a user as the owner of an organization (Admin only)
+   * Creates the default 'Organization Owner' role for this org and assigns it.
+   * @param organizationId - The ID of the organization
+   * @param userId - The ID of the user to be assigned as owner
+   * @returns Promise<IOrganization> - Updated organization
+   */
+   public async assignOwnerToOrganization(organizationId: string, userId: string): Promise<IOrganization> {
+    // Permission check ('assign_organization_owner') should happen in the route middleware
+    try {
+       const organization = await Organization.findById(organizationId);
+       if (!organization) throw new ErrorResponse('Organization not found', 404);
+       if (organization.owner) throw new ErrorResponse('Organization already has an owner assigned', 400);
+
+       const user = await User.findById(userId);
+       if (!user) throw new ErrorResponse('User to assign as owner not found', 404);
+
+       // 1. Find or Create the 'Organization Owner' role for THIS organization
+       const ownerRoleName = 'Organization Owner';
+       let ownerRole = await Role.findOne({
+           name: ownerRoleName,
+           scope: PermissionScope.ORGANIZATION,
+           scopeId: organization._id
+       });
+
+       if (!ownerRole) {
+           // Find all permissions with 'organization' scope
+           const orgPermissions = await Permission.find({ scope: PermissionScope.ORGANIZATION }).select('_id');
+           ownerRole = await Role.create({
+               name: ownerRoleName,
+               scope: PermissionScope.ORGANIZATION,
+               scopeId: organization._id,
+               permissions: orgPermissions.map(p => p._id),
+               isDefault: true, // Mark as a default role
+           });
+       }
+
+       // 2. Assign the role to the user within the organization context
+       const existingAssignment = user.organizationRoles.find(
+           (assignment) => assignment.organizationId.equals(organization._id) // && assignment.role.equals(ownerRole._id) // User should only have one role per org initially? Or allow multiple? Let's assume one for owner.
+       );
+
+       if (existingAssignment) {
+           // Decide: Replace existing role or throw error? For owner, maybe replace.
+            console.warn(`User ${userId} already had a role in organization ${organizationId}. Replacing with Owner role.`);
+            // Remove previous assignment
+            user.organizationRoles = user.organizationRoles.filter(a => !a.organizationId.equals(organization._id));
+       }
+
+       user.organizationRoles.push({
+           organizationId: organization._id,
+           role: ownerRole._id,
+       });
+       await user.save();
+
+       // 3. Update the organization document with the owner ID
+       organization.owner = user._id;
+       await organization.save();
+
+       console.log(`User ${user.email} assigned as owner of organization ${organization.name}`);
+       return organization;
+
+    } catch (error: any) {
+       console.error("Error assigning organization owner:", error);
+       throw new ErrorResponse(error.message || 'Failed to assign owner', error.statusCode || 500);
+    }
+ }
+
+
   /**
    * Update an organization
    * @param id - Organization ID
@@ -127,43 +196,7 @@ class OrganizationService {
       throw new ErrorResponse('Failed to delete organization', 500);
     }
   }
-  public async addUserToTurf(
-    userId: string,
-    role: string,
-    organizationId: string,
-  ): Promise<IOrganization | null> {
-    try {
-      const [userToAdd, organization] = await Promise.all([
-        User.findById(userId),
-        Organization.findById(organizationId),
-      ]);
-      if (!organization) throw new ErrorResponse('Organization not found', 404);
-      if (!userToAdd) throw new ErrorResponse('No user to add', 404);
-
-      const existingRole = organization.userRoles.find(
-        userRole => userRole.user.toString() === userId.toString(),
-      );
-      if (existingRole)
-        throw new ErrorResponse('The user is already assigned to a role', 400);
-      const updatedOrganization = await Organization.findByIdAndUpdate(
-        organizationId,
-        {
-          $push: {
-            userRoles: { user: userId, role: role },
-          },
-        },
-        {
-          new: true,
-          runValidators: true,
-        },
-      );
-      return updatedOrganization;
-    } catch (error) {
-      console.error(error);
-      throw new ErrorResponse('Failed to add user to turf', 500);
-    }
-  }
-
+ 
   public async updateOrganizationPermissions(
     organizationId: string,
     userId: string,
