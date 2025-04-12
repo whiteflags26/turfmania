@@ -1,6 +1,7 @@
 import { ITurfReview, TurfReview } from "./turf-review.model";
 import { Turf } from "../turf/turf.model";
 import User from "../user/user.model";
+import mongoose from "mongoose";
 
 interface CreateReviewData {
   turfId: string;
@@ -16,19 +17,19 @@ interface UpdateReviewData {
   images?: string[];
 }
 
-interface ReviewFilterOptions {
+export interface ReviewFilterOptions {
   turfId?: string;
   userId?: string;
   minRating?: number;
   maxRating?: number;
   limit?: number;
-  skip?: number; //for pagination
+  skip?: number; 
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
 
 export default class TurfReviewService {
-  // create a new review
+  // Create a new review
   async createReview(data: CreateReviewData): Promise<ITurfReview> {
     const userExits = await User.exists({ _id: data.userId });
     if (!userExits) {
@@ -72,7 +73,7 @@ export default class TurfReviewService {
     return newReview;
   }
 
-  // update an exiting review
+  // Update an exiting review
   async updateReview(
     reviewId: string,
     userId: string,
@@ -94,7 +95,7 @@ export default class TurfReviewService {
     return await review.save();
   }
 
-  // delete a review
+  // Delete a review
   async deleteReview(reviewId: string, userId: string): Promise<boolean> {
     const review = await TurfReview.findById(reviewId);
 
@@ -119,4 +120,68 @@ export default class TurfReviewService {
 
     return true;
   }
+
+  // Get all reviews for a specific turf and their avarage rating and rating distribution
+  async getReviewsByTurf(
+    turfId: string,
+    options: ReviewFilterOptions = {}
+  ): Promise<{
+    reviews: ITurfReview[];
+    total: number;
+    averageRating: number;
+    ratingDistribution: { [rating: number]: number };
+  }> {
+    const filter: any = { turf: turfId };
+  
+    if (options.minRating) filter.rating = { $gte: options.minRating };
+    if (options.maxRating) {
+      filter.rating = { ...filter.rating, $lte: options.maxRating };
+    }
+  
+    const limit = options.limit || 10;
+    const skip = options.skip || 0;
+    const sort: any = {};
+    sort[options.sortBy || "createdAt"] = options.sortOrder === "asc" ? 1 : -1;
+  
+    const [reviews, total, ratingStats] = await Promise.all([
+      TurfReview.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .populate("user", "first_name last_name email isVerified")
+        .lean(),
+      TurfReview.countDocuments(filter),
+      TurfReview.aggregate([
+        { $match: { turf: new mongoose.Types.ObjectId(turfId) } },
+        {
+          $group: {
+            _id: "$rating",
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+  
+    let totalRatingsSum = 0;
+    let totalReviewsCount = 0;
+    const ratingDistribution: { [rating: number]: number } = {};
+  
+    for (const stat of ratingStats) {
+      const rating = stat._id;  
+      const count = stat.count; 
+      ratingDistribution[rating] = count;
+      totalRatingsSum += rating * count;
+      totalReviewsCount += count;
+    }
+  
+    const averageRating = totalReviewsCount > 0 ? totalRatingsSum / totalReviewsCount : 0;
+  
+    return {
+      reviews,
+      total,
+      averageRating,
+      ratingDistribution,
+    };
+  }
+  
 }

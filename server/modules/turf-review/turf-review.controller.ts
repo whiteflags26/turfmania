@@ -1,8 +1,9 @@
 import { Response } from "express";
 import asyncHandler from "../../shared/middleware/async";
-import TurfReviewService from "./turf-review.service";
+import TurfReviewService, { ReviewFilterOptions } from "./turf-review.service";
 import { AuthenticatedRequest } from "../../types/request";
 import { getUserId } from "../../utils/getUserId";
+import { AuthRequest } from "../auth/auth.middleware";
 
 export default class TurfReviewController {
   private readonly turfReviewService: TurfReviewService;
@@ -92,4 +93,56 @@ export default class TurfReviewController {
       });
     }
   );
+
+    /**
+   * @route   GET /api/v1/turf-review/turf/:turfId
+   * @desc    get all the reviews by turf and other filters and their average rating and rating distribution
+   * @access  Public
+   */
+
+  public GetReviewsByTurf = asyncHandler(
+    async (req: AuthRequest, res: Response): Promise<void> => {
+      const { turfId } = req.params;
+      
+      const options: ReviewFilterOptions = {
+        turfId,
+        minRating: req.query.minRating ? Number(req.query.minRating) : undefined,
+        maxRating: req.query.maxRating ? Number(req.query.maxRating) : undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        skip: req.query.page && req.query.limit
+          ? (parseInt(req.query.page as string) - 1) * parseInt(req.query.limit as string)
+          : undefined,
+        sortBy: req.query.sortBy as string || "createdAt",
+        sortOrder: req.query.sortOrder === "asc" ? "asc" : "desc",
+      };
+  
+      const result = await this.turfReviewService.getReviewsByTurf(turfId, options);
+  
+      // Calculate pagination details only if limit is provided
+      const page = options.limit && options.skip
+        ? Math.floor(options.skip / options.limit) + 1
+        : 1;
+      const pages = options.limit
+        ? Math.ceil(result.total / options.limit)
+        : 1;
+  
+      res.status(200).json({
+        success: true,
+        data: {
+          reviews: result.reviews,
+          averageRating: result.averageRating,
+          ratingDistribution: result.ratingDistribution,
+        },
+        meta: {
+          total: result.total,
+          ...(options.limit && { 
+            page,
+            limit: options.limit,
+            pages 
+          }),
+        },
+      });
+    }
+  );
+  
 }
