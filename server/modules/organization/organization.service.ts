@@ -2,10 +2,11 @@ import { DeleteResult } from 'mongodb';
 import { deleteImage, uploadImage } from '../../utils/cloudinary';
 import ErrorResponse from '../../utils/errorResponse';
 import { extractPublicIdFromUrl } from '../../utils/extractUrl';
-import User from '../user/user.model';
+import User, { UserDocument } from '../user/user.model';
 import Organization, { IOrganization } from './organization.model';
 import Role, { IRole } from '../role/role.model'; // Import Role model
 import Permission, { PermissionScope } from '../permission/permission.model'; // Import Permission model
+import mongoose from 'mongoose';
 
 class OrganizationService {
  /**
@@ -240,6 +241,57 @@ class OrganizationService {
     }
 }
 
+  /**
+   * Assign an organization role to a user (Requires 'assign_organization_roles')
+   * @param organizationId
+   * @param userId
+   * @param roleId - The ID of the role to assign (must be scoped to this organization)
+   */
+  public async assignRoleToUser(organizationId: string, userId: string, roleId: string): Promise<UserDocument> {
+    // Permission check ('assign_organization_roles') in middleware
+    try {
+        const [user, roleToAssign, organization] = await Promise.all([
+            User.findById(userId),
+            Role.findById(roleId),
+            Organization.findById(organizationId).select('_id') // Just check existence
+        ]);
+
+        if (!user) throw new ErrorResponse('User not found', 404);
+        if (!organization) throw new ErrorResponse('Organization not found', 404);
+        if (!roleToAssign) throw new ErrorResponse('Role not found', 404);
+
+        // Validate role scope
+        if (roleToAssign.scope !== PermissionScope.ORGANIZATION || !roleToAssign.scopeId?.equals(organizationId)) {
+            throw new ErrorResponse(`Role '${roleToAssign.name}' does not belong to this organization`, 400);
+        }
+
+        // Prevent assigning the default 'Organization Owner' role manually? (Optional)
+        // if (roleToAssign.isDefault && roleToAssign.name === 'Organization Owner') {
+        //     throw new ErrorResponse('Cannot manually assign the default Owner role. Use the "assign owner" function.', 400);
+        // }
+
+        // Check if user already has this specific role in this org
+        const alreadyHasRole = user.organizationRoles.some(
+            a => a.organizationId.equals(organizationId) && a.role.equals(roleId)
+        );
+        if (alreadyHasRole) {
+            throw new ErrorResponse(`User already has the role '${roleToAssign.name}' in this organization`, 400);
+        }
+
+        // Add the assignment
+        user.organizationRoles.push({
+            organizationId: new mongoose.Types.ObjectId(organizationId),
+            role: roleToAssign._id,
+        });
+
+        await user.save();
+        return user; // Return updated user document
+
+    } catch (error: any) {
+        console.error("Error assigning role to user:", error);
+        throw new ErrorResponse(error.message || 'Failed to assign role', error.statusCode || 500);
+    }
+ }
 
  
 
