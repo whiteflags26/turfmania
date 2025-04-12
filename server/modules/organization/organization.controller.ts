@@ -156,7 +156,7 @@ export const assignOwner = asyncHandler(
  */
 export const updateOrganization = asyncHandler(
   async (
-    req: Request<{ id: string }, {}, UpdateOrganizationBody>,
+    req: AuthRequest & { params: { id: string }, body: UpdateOrganizationBody },
     res: Response,
     next: NextFunction,
   ) => {
@@ -219,3 +219,29 @@ export const deleteOrganization = asyncHandler(
     });
   },
 );
+/**
+ * @route   POST /api/v1/organizations/:id/roles
+ * @desc    Create a new role within an organization
+ * @access  Private (Requires 'manage_organization_roles' permission for this organization)
+ */
+export const createOrganizationRole = asyncHandler(
+    async (req: AuthRequest & { params: { id: string }, body: CreateRoleBody }, res: Response, next: NextFunction) => {
+        const { id: organizationId } = req.params;
+        const { roleName, permissions } = req.body;
+
+        if (!roleName || !permissions || !Array.isArray(permissions) || permissions.length === 0) {
+            return next(new ErrorResponse("Role name and a non-empty array of permission names are required", 400));
+        }
+        if (!mongoose.Types.ObjectId.isValid(organizationId)) {
+            return next(new ErrorResponse("Invalid Organization ID", 400));
+        }
+
+
+        const newRole = await organizationService.createOrganizationRole(organizationId, roleName, permissions);
+
+        res.status(201).json({
+            success: true,
+            data: newRole,
+            message: `Role '${roleName}' created successfully for organization ${organizationId}`,
+        });
+    })
