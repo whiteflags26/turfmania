@@ -17,11 +17,7 @@ export interface IOrganization extends Document {
   name: string;
   facilities: string[];
   owner:mongoose.Types.ObjectId;
-  userRoles: Array<{
-    user: mongoose.Types.ObjectId;
-    role: 'owner' | 'manager' | 'staff';
-  }>;
-  permissions: Map<string, string[]>;
+
   images: string[];
   turfs: mongoose.Types.ObjectId[];
   location: ILocation;
@@ -38,25 +34,8 @@ const OrganizationSchema: Schema = new Schema(
       ref: 'User',
       required: true,
     },
-    userRoles: [
-      {
-        user: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'User',
-          required: true,
-        },
-        role: {
-          type: String,
-          enum: ['owner', 'manager', 'staff'],
-          required: true,
-        },
-      },
-    ],
-    permissions: {
-      type: Map,
-      of: [String],
-      default: () => new Map(),
-    },
+
+  
     location: {
       place_id: { type: String, required: true },
       address: { type: String, required: true },

@@ -1,20 +1,23 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import User from '../../modules/user/user.model';
+
 import ErrorResponse from '../../utils/errorResponse';
 import Organization from '../organization/organization.model';
-
+import Role from '../role/role.model';
+import Permission, { PermissionScope } from '../permission/permission.model';
+import User from '../../modules/user/user.model';
+import mongoose from 'mongoose';
+import { UserDocument } from '../user/user.model';
 interface JwtPayload {
-  id: string;
-  role: string[];
+ id:String
+ 
 }
 
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    user_roles: string[];
-    _id: string;
-  };
+  user?:UserDocument; // Attach the full Mongoose user document
+    // Add properties to hold context IDs if needed during the request lifecycle
+    organizationId?: string | mongoose.Types.ObjectId;
+    eventId?: string | mongoose.Types.ObjectId;
 }
 
 export const protect = async (
@@ -46,7 +49,21 @@ export const protect = async (
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
 
     // Fetch user and attach to request object excluding password
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id)
+    .populate({
+        path: 'globalRoles',
+        populate: { path: 'permissions', select: 'name scope' } // Populate permissions within roles
+    })
+    .populate({
+        path: 'organizationRoles.role',
+        populate: { path: 'permissions', select: 'name scope' }
+    })
+    .populate({
+        path: 'eventRoles.role',
+        populate: { path: 'permissions', select: 'name scope' }
+    })
+    .select('+password'); // Select password only if needed later (e.g., password change)
+
     if (!user) {
       return next(new ErrorResponse('User not found', 404));
     }
@@ -83,63 +100,85 @@ export const authorize = (...roles: string[]) => {
   };
 };
 
-export const authorizeOrganizationRoles = (action: string) => {
+export const checkPermission = (requiredPermissionName: string) => {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new ErrorResponse('User not authenticated', 401));
+    }
+
     try {
-      const organization = await Organization.findById(req.params.id);
-      if (!organization) {
-        return next(
-          new ErrorResponse(
-            `Organization not found with ID ${req.params.id}`,
-            404,
-          ),
-        );
-      }
+        
+        const requiredPermission = await Permission.findOne({ name: requiredPermissionName }).lean(); // Use lean for plain JS object
+        if (!requiredPermission) {
+             console.warn(`Permission check failed: Permission '${requiredPermissionName}' not found in database.`);
+             return next(new ErrorResponse(`Permission '${requiredPermissionName}' is not configured.`, 500));
+        }
 
-      // Ensure the user exists and has a role in the Organization
-      const userIdToCheck = req.user?._id;
-      if (!userIdToCheck) {
-        return next(new ErrorResponse('User Not Found', 404));
-      }
+        const userId = req.user._id;
+        let hasPermission = false;
 
-      const userRoleEntry = organization.userRoles.find(
-        userRole => userRole.user.toString() === userIdToCheck.toString(),
-      );
-      if (!userRoleEntry) {
-        return next(
-          new ErrorResponse(
-            `User is not assigned a role in this organization`,
-            403,
-          ),
-        );
-      }
+        
+        const scopeToCheck = requiredPermission.scope;
+        const organizationId = req.organizationId || req.params.id || req.params.organizationId; // Get org ID from request context
+        const eventId = req.eventId || req.params.eventId; // Get event ID
 
-      // Get permissible roles for the action
-      const permissibleRoles = organization.permissions?.get(action);
-      if (!permissibleRoles) {
-        return next(
-          new ErrorResponse(
-            `No permissions defined for action: ${action}`,
-            403,
-          ),
-        );
-      }
+       
+        if (scopeToCheck === PermissionScope.GLOBAL) {
+            for (const role of req.user.globalRoles as any[]) { // Cast to any[] if population structure is complex
+                if (role.permissions && role.permissions.some((p: any) => p.name === requiredPermissionName)) {
+                    hasPermission = true;
+                    break;
+                }
+            }
+        }
 
-      // Check if the user's role is authorized
-      const isAuthorized = permissibleRoles.includes(userRoleEntry.role);
-      if (!isAuthorized) {
-        return next(
-          new ErrorResponse(
-            `User role "${userRoleEntry.role}" is not authorized to perform action: ${action}`,
-            403,
-          ),
-        );
-      }
+       
+        if (!hasPermission && scopeToCheck === PermissionScope.ORGANIZATION) {
+            if (!organizationId) {
+                console.warn(`Permission check failed: Organization context required for permission '${requiredPermissionName}' but no organization ID found in request params (id or organizationId).`);
+                return next(new ErrorResponse(`Organization context required for this action.`, 400));
+            }
+            for (const orgRoleAssignment of req.user.organizationRoles) {
+                 
+                 if (orgRoleAssignment.organizationId.equals(organizationId)) {
+                     const role: any = orgRoleAssignment.role; // Role should be populated
+                     if (role && role.permissions && role.permissions.some((p: any) => p.name === requiredPermissionName)) {
+                        hasPermission = true;
+                        break;
+                    }
+                 }
+            }
+        }
 
-      // Proceed to the next middleware
-      next();
+        
+        if (!hasPermission && scopeToCheck === PermissionScope.EVENT) {
+             if (!eventId) {
+                console.warn(`Permission check failed: Event context required for permission '${requiredPermissionName}' but no event ID found in request params (eventId).`);
+                return next(new ErrorResponse(`Event context required for this action.`, 400));
+            }
+             for (const eventRoleAssignment of req.user.eventRoles) {
+                 if (eventRoleAssignment.eventId.equals(eventId)) {
+                     const role: any = eventRoleAssignment.role; // Role should be populated
+                     if (role && role.permissions && role.permissions.some((p: any) => p.name === requiredPermissionName)) {
+                        hasPermission = true;
+                        break;
+                    }
+                 }
+            }
+        }
+
+
+        // 4. Final Decision
+        if (hasPermission) {
+            next(); // User has the permission
+        } else {
+            console.log(`Authorization denied for user ${req.user.email} attempting action '${requiredPermissionName}' on scope '${scopeToCheck}' (Context IDs: Org=${organizationId}, Event=${eventId})`);
+            return next(new ErrorResponse(`User is not authorized to perform action: ${requiredPermissionName}`, 403));
+        }
+
     } catch (error) {
-      next(error);
+      console.error('Error during permission check:', error);
+      next(new ErrorResponse('Server error during authorization check', 500));
     }
   };
 };
