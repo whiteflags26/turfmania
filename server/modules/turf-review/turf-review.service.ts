@@ -35,7 +35,7 @@ export default class TurfReviewService {
     if (!userExits) {
       throw new Error("User not found");
     }
-    console.log("turfId", data.turfId);
+    
     const turfExits = await Turf.exists({ _id: data.turfId });
     if (!turfExits) {
       throw new Error("Turf not found");

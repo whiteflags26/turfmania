@@ -21,7 +21,6 @@ export default class TurfReviewController {
   public createTurfReview = asyncHandler(
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const { turfId, rating, review, images } = req.body;
-      console.log("Request body:", req.body); // Log the request body for debugging
 
       const userId = getUserId(req);
 
