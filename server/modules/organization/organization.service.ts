@@ -4,15 +4,17 @@ import ErrorResponse from '../../utils/errorResponse';
 import { extractPublicIdFromUrl } from '../../utils/extractUrl';
 import User from '../user/user.model';
 import Organization, { IOrganization } from './organization.model';
+import Role, { IRole } from '../role/role.model'; // Import Role model
+import Permission, { PermissionScope } from '../permission/permission.model'; // Import Permission model
 
 class OrganizationService {
-  /**
-   * Create a new organization
+ /**
+   * Create a new organization (Admin only)
+   * Called by an Admin. Owner is assigned in a separate step.
    * @param name - Organization name
    * @param facilities - List of facilities
-   * @param images - Array of image files (Express Multer files)
-   * @param location - Location object (from Barikoi API)
-   * @param userId - User ID of the organization owner
+   * @param images - Array of image files
+   * @param location - Location object
    * @returns Promise<IOrganization>
    */
   public async createOrganization(
@@ -20,7 +22,7 @@ class OrganizationService {
     facilities: string[],
     images: Express.Multer.File[],
     location: IOrganization['location'],
-    userId: string, // Add userId parameter
+   
   ): Promise<IOrganization | null> {
     try {
       // Upload images to Cloudinary
@@ -28,32 +30,18 @@ class OrganizationService {
       const uploadedImages = await Promise.all(imageUploads);
       const imageUrls = uploadedImages.map(img => img.url);
 
-      // Set up default permissions and roles
-      const defaultPermissions = new Map([
-        ['roleManage', ['owner']],
-        ['update', ['owner', 'manager']],
-        ['delete', ['owner']],
-        ['addStaff', ['owner', 'manager']],
-        ['removeStaff', ['owner', 'manager']],
-        ['viewReports', ['owner', 'manager']],
-        ['manageBookings', ['owner', 'manager', 'staff']],
-      ]);
+      
 
       // Create organization with owner and permissions
-      const organization = await Organization.create({
+      const organization = new Organization({
         name,
         facilities,
         images: imageUrls,
         location,
-        owner: userId,
-        userRoles: [
-          {
-            user: userId,
-            role: 'owner',
-          },
-        ],
-        permissions: defaultPermissions,
+       
       });
+
+      await organization.save();
 
       return organization;
     } catch (error) {
