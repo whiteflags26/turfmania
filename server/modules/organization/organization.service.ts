@@ -196,55 +196,53 @@ class OrganizationService {
       throw new ErrorResponse('Failed to delete organization', 500);
     }
   }
- 
-  public async updateOrganizationPermissions(
-    organizationId: string,
-    userId: string,
-    permissions: Record<string, string[]>,
-  ): Promise<IOrganization | null> {
+   /**
+   * Create a new role within an organization (Requires 'manage_organization_roles')
+   * @param organizationId
+   * @param roleName
+   * @param permissionNames - Array of permission NAMES (e.g., ['create_turf', 'view_organization_reports'])
+   */
+   public async createOrganizationRole(organizationId: string, roleName: string, permissionNames: string[]): Promise<IRole> {
+    // Permission check ('manage_organization_roles') in middleware
     try {
-      const organization = await Organization.findById(organizationId);
-      if (!organization) throw new ErrorResponse('Organization not found', 404);
+        const organization = await Organization.findById(organizationId);
+        if (!organization) throw new ErrorResponse('Organization not found', 404);
 
-      // Verify ownership
-      if (organization.owner.toString() !== userId) {
-        throw new ErrorResponse('Not authorized to update permissions', 401);
-      }
+        // Validate role name uniqueness within this org
+        const existingRole = await Role.findOne({ name: roleName, scope: PermissionScope.ORGANIZATION, scopeId: organizationId });
+        if (existingRole) throw new ErrorResponse(`Role '${roleName}' already exists in this organization`, 400);
 
-      // Validate and convert permissions to Map
-      const permissionsMap = new Map<string, string[]>();
-      for (const [action, roles] of Object.entries(permissions)) {
-        if (!Array.isArray(roles)) {
-          throw new ErrorResponse(`Roles for ${action} must be an array`, 400);
+        // Validate permissions exist and are correctly scoped
+        const permissions = await Permission.find({
+            name: { $in: permissionNames },
+            scope: PermissionScope.ORGANIZATION // Ensure only org-scoped permissions are assigned
+        }).select('_id name');
+
+        const foundPermissionNames = permissions.map(p => p.name);
+        const notFoundPermissions = permissionNames.filter(name => !foundPermissionNames.includes(name));
+        if (notFoundPermissions.length > 0) {
+            throw new ErrorResponse(`Invalid or non-organizational permissions specified: ${notFoundPermissions.join(', ')}`, 400);
         }
 
-        const validRoles = roles.every(role =>
-          ['owner', 'manager', 'staff'].includes(role),
-        );
-        if (!validRoles) {
-          throw new ErrorResponse(
-            'Invalid role specified. Roles must be owner, manager, or staff',
-            400,
-          );
-        }
+        const newRole = await Role.create({
+            name: roleName,
+            scope: PermissionScope.ORGANIZATION,
+            scopeId: organizationId,
+            permissions: permissions.map(p => p._id),
+            isDefault: false, // Custom roles are not default
+        });
 
-        permissionsMap.set(action, roles);
-      }
+        return newRole;
 
-      const updatedOrganization = await Organization.findByIdAndUpdate(
-        organizationId,
-        { permissions: permissionsMap },
-        { new: true, runValidators: true },
-      ).select('permissions');
-
-      return updatedOrganization;
-    } catch (error) {
-      console.error(error);
-      throw error instanceof ErrorResponse
-        ? error
-        : new ErrorResponse('Failed to update permissions', 500);
+    } catch (error: any) {
+        console.error("Error creating organization role:", error);
+        throw new ErrorResponse(error.message || 'Failed to create role', error.statusCode || 500);
     }
-  }
+}
+
+
+ 
+
 }
 
 export const organizationService = new OrganizationService();
