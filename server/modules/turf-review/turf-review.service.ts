@@ -35,7 +35,7 @@ export default class TurfReviewService {
     if (!userExits) {
       throw new Error("User not found");
     }
-
+    console.log("turfId", data.turfId);
     const turfExits = await Turf.exists({ _id: data.turfId });
     if (!turfExits) {
       throw new Error("Turf not found");
@@ -148,7 +148,7 @@ export default class TurfReviewService {
         .sort(sort)
         .skip(skip)
         .limit(limit)
-        .populate("user", "first_name last_name email isVerified")
+        .populate("user", "_id first_name last_name email isVerified")
         .lean(),
       TurfReview.countDocuments(filter),
       TurfReview.aggregate([
@@ -183,5 +183,13 @@ export default class TurfReviewService {
       ratingDistribution,
     };
   }
+
+    // Get a single review by ID
+    async getReviewById(reviewId: string): Promise<ITurfReview | null> {
+      return await TurfReview.findById(reviewId)
+        .populate("user", "_id first_name last_name email isVerified")
+        .populate("turf", "_id name organization sports team_size")
+        .lean();
+    }
   
 }

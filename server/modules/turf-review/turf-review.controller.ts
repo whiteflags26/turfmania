@@ -18,9 +18,10 @@ export default class TurfReviewController {
    * @access  Private
    */
 
-  public CreateTurfReview = asyncHandler(
+  public createTurfReview = asyncHandler(
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const { turfId, rating, review, images } = req.body;
+      console.log("Request body:", req.body); // Log the request body for debugging
 
       const userId = getUserId(req);
 
@@ -45,7 +46,7 @@ export default class TurfReviewController {
    * @access  Private
    */
 
-  public UpdateReview = asyncHandler(
+  public updateReview = asyncHandler(
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const { rating, review, images } = req.body;
       const { reviewId } = req.params;
@@ -72,12 +73,12 @@ export default class TurfReviewController {
    * @access  Private
    */
 
-  public DeleteTurfReview = asyncHandler(
+  public deleteTurfReview = asyncHandler(
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const userId = getUserId(req);
-      const { id } = req.params;
+      const { reviewId } = req.params;
 
-      if (!id) {
+      if (!reviewId) {
         res.status(400).json({
           success: false,
           message: "Review ID is required",
@@ -85,7 +86,7 @@ export default class TurfReviewController {
         return;
       }
 
-      await this.turfReviewService.deleteReview(id, userId);
+      await this.turfReviewService.deleteReview(reviewId, userId);
 
       res.status(200).json({
         success: true,
@@ -94,38 +95,48 @@ export default class TurfReviewController {
     }
   );
 
-    /**
+  /**
    * @route   GET /api/v1/turf-review/turf/:turfId
    * @desc    get all the reviews by turf and other filters and their average rating and rating distribution
    * @access  Public
    */
 
-  public GetReviewsByTurf = asyncHandler(
+  public getReviewsByTurf = asyncHandler(
     async (req: AuthRequest, res: Response): Promise<void> => {
       const { turfId } = req.params;
-      
+
       const options: ReviewFilterOptions = {
         turfId,
-        minRating: req.query.minRating ? Number(req.query.minRating) : undefined,
-        maxRating: req.query.maxRating ? Number(req.query.maxRating) : undefined,
-        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
-        skip: req.query.page && req.query.limit
-          ? (parseInt(req.query.page as string) - 1) * parseInt(req.query.limit as string)
+        minRating: req.query.minRating
+          ? Number(req.query.minRating)
           : undefined,
-        sortBy: req.query.sortBy as string || "createdAt",
+        maxRating: req.query.maxRating
+          ? Number(req.query.maxRating)
+          : undefined,
+        limit: req.query.limit
+          ? parseInt(req.query.limit as string)
+          : undefined,
+        skip:
+          req.query.page && req.query.limit
+            ? (parseInt(req.query.page as string) - 1) *
+              parseInt(req.query.limit as string)
+            : undefined,
+        sortBy: (req.query.sortBy as string) || "createdAt",
         sortOrder: req.query.sortOrder === "asc" ? "asc" : "desc",
       };
-  
-      const result = await this.turfReviewService.getReviewsByTurf(turfId, options);
-  
+
+      const result = await this.turfReviewService.getReviewsByTurf(
+        turfId,
+        options
+      );
+
       // Calculate pagination details only if limit is provided
-      const page = options.limit && options.skip
-        ? Math.floor(options.skip / options.limit) + 1
-        : 1;
-      const pages = options.limit
-        ? Math.ceil(result.total / options.limit)
-        : 1;
-  
+      const page =
+        options.limit && options.skip
+          ? Math.floor(options.skip / options.limit) + 1
+          : 1;
+      const pages = options.limit ? Math.ceil(result.total / options.limit) : 1;
+
       res.status(200).json({
         success: true,
         data: {
@@ -135,14 +146,32 @@ export default class TurfReviewController {
         },
         meta: {
           total: result.total,
-          ...(options.limit && { 
+          ...(options.limit && {
             page,
             limit: options.limit,
-            pages 
+            pages,
           }),
         },
       });
     }
   );
-  
+
+  /**
+   * @route   GET /api/v1/turf-review/review/:id
+   * @desc    get review by its id
+   * @access  Public
+   */
+  public getReviewById = asyncHandler(
+    async (req: AuthRequest, res: Response): Promise<void> => {
+      const { reviewId } = req.params;
+      const review = await this.turfReviewService.getReviewById(reviewId);
+
+      if (!review) {
+        res.status(404).json({ success: false, message: "Review not found" });
+        return;
+      }
+
+      res.status(200).json({ success: true, data: review });
+    }
+  );
 }
