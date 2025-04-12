@@ -119,8 +119,8 @@ export const checkPermission = (requiredPermissionName: string) => {
 
         
         const scopeToCheck = requiredPermission.scope;
-        const organizationId = req.organizationId || req.params.id || req.params.organizationId; // Get org ID from request context
-        const eventId = req.eventId || req.params.eventId; // Get event ID
+        const organizationId = req.params.organizationId; // Get org ID from request context
+        const eventId =  req.params.eventId; // Get event ID
 
        
         if (scopeToCheck === PermissionScope.GLOBAL) {

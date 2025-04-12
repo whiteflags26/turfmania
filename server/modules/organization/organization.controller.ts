@@ -245,3 +245,31 @@ export const createOrganizationRole = asyncHandler(
             message: `Role '${roleName}' created successfully for organization ${organizationId}`,
         });
     })
+/**
+ * @route   POST /api/v1/organizations/:organizationId/users/:userId/assign-role
+ * @desc    Assign an existing organization role to a user
+ * @access  Private (Requires 'assign_organization_roles' permission for this organization)
+ */
+export const assignOrganizationRoleToUser = asyncHandler(
+  async (req: AuthRequest & { params: { organizationId: string, userId: string }, body: AssignRoleBody }, res: Response, next: NextFunction) => {
+      const { organizationId, userId } = req.params;
+      const { roleId } = req.body;
+
+       if (!mongoose.Types.ObjectId.isValid(organizationId) || !mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(roleId) ) {
+          return next(new ErrorResponse("Invalid Organization ID, User ID, or Role ID", 400));
+      }
+       if (!roleId) {
+          return next(new ErrorResponse("Role ID is required in the request body", 400));
+      }
+
+
+      const updatedUser = await organizationService.assignRoleToUser(organizationId, userId, roleId);
+
+      res.status(200).json({
+          success: true,
+          // Decide what to return: updated user, or just success message
+          // data: updatedUser,
+          message: `Role assigned successfully to user ${userId} in organization ${organizationId}`,
+      });
+  }
+);
