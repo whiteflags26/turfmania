@@ -39,6 +39,33 @@ export default class TurfReviewController {
   );
 
   /**
+   * @route   PUT api/v1/turf-review/:reviewId
+   * @desc    update a review
+   * @access  Private
+   */
+
+  public UpdateReview = asyncHandler(
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const { rating, review, images } = req.body;
+      const { reviewId } = req.params;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        res.status(401).json({ message: "Authentication required" });
+        return;
+      }
+
+      const updatedReview = await this.turfReviewService.updateReview(
+        reviewId,
+        userId,
+        { rating, review, images }
+      );
+
+      res.status(200).json({ success: true, data: updatedReview });
+    }
+  );
+
+  /**
    * @route   DELETE /api/v1/turf-review/:id
    * @desc    delete a review
    * @access  Private

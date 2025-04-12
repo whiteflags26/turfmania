@@ -28,7 +28,7 @@ interface ReviewFilterOptions {
 }
 
 export default class TurfReviewService {
-  //create a new review
+  // create a new review
   async createReview(data: CreateReviewData): Promise<ITurfReview> {
     const userExits = await User.exists({ _id: data.userId });
     if (!userExits) {
@@ -72,7 +72,29 @@ export default class TurfReviewService {
     return newReview;
   }
 
-  //delete a review
+  // update an exiting review
+  async updateReview(
+    reviewId: string,
+    userId: string,
+    data: UpdateReviewData
+  ): Promise<ITurfReview | null> {
+    const review = await TurfReview.findOne({
+      _id: reviewId,
+      user: userId,
+    });
+
+    if (!review) {
+      throw new Error("Review not found or user not authorized");
+    }
+
+    if (data.rating !== undefined) review.rating = data.rating;
+    if (data.review !== undefined) review.review = data.review;
+    if (data.images !== undefined) review.images = data.images;
+
+    return await review.save();
+  }
+
+  // delete a review
   async deleteReview(reviewId: string, userId: string): Promise<boolean> {
     const review = await TurfReview.findById(reviewId);
 

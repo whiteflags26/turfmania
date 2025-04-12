@@ -7,6 +7,7 @@ const router = express.Router();
 // Protected routes
 const turfReviewController = new TurfReviewController();
 router.post('/', protect, turfReviewController.CreateTurfReview);
+router.put('/:reviewId', protect, turfReviewController.UpdateReview);
 router.delete('/:id', protect, turfReviewController.DeleteTurfReview);
 
 export default router;
