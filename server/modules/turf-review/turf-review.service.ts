@@ -2,19 +2,21 @@ import { ITurfReview, TurfReview } from "./turf-review.model";
 import { Turf } from "../turf/turf.model";
 import User from "../user/user.model";
 import mongoose from "mongoose";
+import { uploadImage, deleteImage } from "../../utils/cloudinary";
+import { extractPublicIdFromUrl } from "../../utils/extractUrl";
 
 interface CreateReviewData {
   turfId: string;
   userId: string;
   rating: number;
-  review: string;
-  images: string[];
+  review?: string;
+  images?: Express.Multer.File[];
 }
 
 interface UpdateReviewData {
   rating?: number;
   review?: string;
-  images?: string[];
+  images?: Express.Multer.File[];
 }
 
 export interface ReviewFilterOptions {
@@ -31,13 +33,13 @@ export interface ReviewFilterOptions {
 export default class TurfReviewService {
   // Create a new review
   async createReview(data: CreateReviewData): Promise<ITurfReview> {
-    const userExits = await User.exists({ _id: data.userId });
-    if (!userExits) {
+    const userExists = await User.exists({ _id: data.userId });
+    if (!userExists) {
       throw new Error("User not found");
     }
 
-    const turfExits = await Turf.exists({ _id: data.turfId });
-    if (!turfExits) {
+    const turfExists = await Turf.exists({ _id: data.turfId });
+    if (!turfExists) {
       throw new Error("Turf not found");
     }
 
@@ -50,12 +52,20 @@ export default class TurfReviewService {
       throw new Error("User has already reviewed this turf");
     }
 
+    // Upload images if provided
+    let imageUrls: string[] = [];
+    if (data.images && data.images.length > 0) {
+      const uploadPromises = data.images.map((image) => uploadImage(image));
+      const uploadedImages = await Promise.all(uploadPromises);
+      imageUrls = uploadedImages.map((img) => img.url);
+    }
+
     const turfReview = new TurfReview({
       turf: data.turfId,
       user: data.userId,
       rating: data.rating,
       review: data.review,
-      images: data.images || [],
+      images: imageUrls,
     });
 
     const newReview = await turfReview.save();
@@ -73,7 +83,7 @@ export default class TurfReviewService {
     return newReview;
   }
 
-  // Update an exiting review
+  // Update an existing review
   async updateReview(
     reviewId: string,
     userId: string,
@@ -88,11 +98,44 @@ export default class TurfReviewService {
       throw new Error("Review not found or user not authorized");
     }
 
-    if (data.rating !== undefined) review.rating = data.rating;
-    if (data.review !== undefined) review.review = data.review;
-    if (data.images !== undefined) review.images = data.images;
+    let newImageUrls: string[] | undefined;
 
-    return await review.save();
+    // Handle image updates
+    if (data.images && data.images.length > 0) {
+      // Upload new images
+      const uploadPromises = data.images.map((image) => uploadImage(image));
+      const uploadedImages = await Promise.all(uploadPromises);
+      newImageUrls = uploadedImages.map((img) => img.url);
+
+      // Delete old images if they exist
+      if (review.images && review.images.length > 0) {
+        await Promise.all(
+          review.images.map((imgUrl) => {
+            const publicId = extractPublicIdFromUrl(imgUrl);
+            return publicId ? deleteImage(publicId) : Promise.resolve();
+          })
+        );
+      }
+    }
+
+    // Prepare update payload
+    const updatePayload: any = {
+      rating: data.rating,
+      review: data.review,
+    };
+
+    if (newImageUrls) {
+      updatePayload.images = newImageUrls;
+    }
+
+    // Update the review
+    const updatedReview = await TurfReview.findByIdAndUpdate(
+      reviewId,
+      { $set: updatePayload },
+      { new: true, runValidators: true }
+    );
+
+    return updatedReview;
   }
 
   // Delete a review
@@ -104,6 +147,18 @@ export default class TurfReviewService {
     }
     if (review.user.toString() !== userId) {
       throw new Error("You are not authorized to delete this review");
+    }
+
+    // Delete images from Cloudinary
+    if (review.images && review.images.length > 0) {
+      await Promise.all(
+        review.images.map(async (imageUrl) => {
+          const publicId = extractPublicIdFromUrl(imageUrl);
+          if (publicId) {
+            await deleteImage(publicId);
+          }
+        })
+      );
     }
 
     await review.deleteOne();
@@ -121,7 +176,7 @@ export default class TurfReviewService {
     return true;
   }
 
-  // Get all reviews for a specific turf and their avarage rating and rating distribution
+  // Get all reviews for a specific turf and their average rating and rating distribution
   async getReviewsByTurf(
     turfId: string,
     options: ReviewFilterOptions = {}

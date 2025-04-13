@@ -4,6 +4,7 @@ import TurfReviewService, { ReviewFilterOptions } from "./turf-review.service";
 import { AuthenticatedRequest } from "../../types/request";
 import { getUserId } from "../../utils/getUserId";
 import { AuthRequest } from "../auth/auth.middleware";
+import ErrorResponse from "../../utils/errorResponse";
 
 export default class TurfReviewController {
   private readonly turfReviewService: TurfReviewService;
@@ -17,10 +18,15 @@ export default class TurfReviewController {
    * @desc    create a new review
    * @access  Private
    */
-
   public createTurfReview = asyncHandler(
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-      const { turfId, rating, review, images } = req.body;
+      const { turfId, rating, review } = req.body;
+      const images = req.files as Express.Multer.File[];
+
+      // Validate required fields
+      if (!turfId || !rating) {
+        throw new ErrorResponse("Turf ID and rating are required", 400);
+      }
 
       const userId = getUserId(req);
 
@@ -44,12 +50,12 @@ export default class TurfReviewController {
    * @desc    update a review
    * @access  Private
    */
-
   public updateReview = asyncHandler(
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-      const { rating, review, images } = req.body;
+      const { rating, review } = req.body;
       const { reviewId } = req.params;
       const userId = req.user?.id;
+      const images = req.files as Express.Multer.File[];
 
       if (!userId) {
         res.status(401).json({ message: "Authentication required" });
