@@ -191,4 +191,63 @@ export default class TurfReviewController {
       });
     }
   );
+
+  /**
+   * @route   GET /api/v1/turf-review/user/:userId
+   * @desc    Get all reviews by a specific user with average rating and rating distribution
+   * @access  Public
+   */
+  public getReviewsByUser = asyncHandler(
+    async (req: AuthRequest, res: Response): Promise<void> => {
+      const { userId } = req.params;
+
+      const options: ReviewFilterOptions = {
+        minRating: req.query.minRating
+          ? Number(req.query.minRating)
+          : undefined,
+        maxRating: req.query.maxRating
+          ? Number(req.query.maxRating)
+          : undefined,
+        limit: req.query.limit
+          ? parseInt(req.query.limit as string)
+          : undefined,
+        skip:
+          req.query.page && req.query.limit
+            ? (parseInt(req.query.page as string) - 1) *
+              parseInt(req.query.limit as string)
+            : undefined,
+        sortBy: (req.query.sortBy as string) || "createdAt",
+        sortOrder: req.query.sortOrder === "asc" ? "asc" : "desc",
+      };
+
+      const result = await this.turfReviewService.getReviewsByUser(
+        userId,
+        options
+      );
+
+      // Calculate pagination details only if limit is provided
+      const page =
+        options.limit && options.skip
+          ? Math.floor(options.skip / options.limit) + 1
+          : 1;
+      const pages = options.limit ? Math.ceil(result.total / options.limit) : 1;
+
+      res.status(200).json({
+        success: true,
+        data: {
+          reviews: result.reviews,
+          averageRating: result.averageRating,
+          ratingDistribution: result.ratingDistribution,
+        },
+        meta: {
+          total: result.total,
+          ...(options.limit && {
+            page,
+            limit: options.limit,
+            pages,
+          }),
+        },
+      });
+    }
+  );
 }
