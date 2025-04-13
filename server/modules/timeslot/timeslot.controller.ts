@@ -4,7 +4,7 @@ import ErrorResponse from '../../utils/errorResponse';
 import TimeSlotService from './timeslot.service';
 
 export default class TimeSlotController {
-  private timeSlotService: TimeSlotService;
+  private readonly timeSlotService: TimeSlotService;
 
   constructor() {
     this.timeSlotService = new TimeSlotService();

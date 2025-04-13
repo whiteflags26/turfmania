@@ -57,12 +57,11 @@ export const createOrganization = asyncHandler(
 
       // Validate location structure
       if (
-        !parsedLocation.place_id ||
-        !parsedLocation.address ||
-        !parsedLocation.coordinates ||
-        !parsedLocation.coordinates.type ||
-        !parsedLocation.coordinates.coordinates ||
-        !parsedLocation.city
+        !parsedLocation?.place_id ||
+        !parsedLocation?.address ||
+        !parsedLocation?.coordinates?.type ||
+        !parsedLocation?.coordinates?.coordinates ||
+        !parsedLocation?.city
       ) {
         throw new Error("Invalid location structure");
       }

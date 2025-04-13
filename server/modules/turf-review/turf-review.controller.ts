@@ -1,11 +1,13 @@
 import { Response } from "express";
 import asyncHandler from "../../shared/middleware/async";
-import TurfReviewService from "./turf-review.service";
+import TurfReviewService, { ReviewFilterOptions } from "./turf-review.service";
 import { AuthenticatedRequest } from "../../types/request";
 import { getUserId } from "../../utils/getUserId";
+import { AuthRequest } from "../auth/auth.middleware";
+import ErrorResponse from "../../utils/errorResponse";
 
 export default class TurfReviewController {
-  private turfReviewService: TurfReviewService;
+  private readonly turfReviewService: TurfReviewService;
 
   constructor() {
     this.turfReviewService = new TurfReviewService();
@@ -16,10 +18,15 @@ export default class TurfReviewController {
    * @desc    create a new review
    * @access  Private
    */
-
-  public CreateTurfReview = asyncHandler(
+  public createTurfReview = asyncHandler(
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-      const { turfId, rating, review, images } = req.body;
+      const { turfId, rating, review } = req.body;
+      const images = req.files as Express.Multer.File[];
+
+      // Validate required fields
+      if (!turfId || !rating) {
+        throw new ErrorResponse("Turf ID and rating are required", 400);
+      }
 
       const userId = getUserId(req);
 
@@ -39,17 +46,44 @@ export default class TurfReviewController {
   );
 
   /**
+   * @route   PUT api/v1/turf-review/:reviewId
+   * @desc    update a review
+   * @access  Private
+   */
+  public updateReview = asyncHandler(
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const { rating, review } = req.body;
+      const { reviewId } = req.params;
+      const userId = req.user?.id;
+      const images = req.files as Express.Multer.File[];
+
+      if (!userId) {
+        res.status(401).json({ message: "Authentication required" });
+        return;
+      }
+
+      const updatedReview = await this.turfReviewService.updateReview(
+        reviewId,
+        userId,
+        { rating, review, images }
+      );
+
+      res.status(200).json({ success: true, data: updatedReview });
+    }
+  );
+
+  /**
    * @route   DELETE /api/v1/turf-review/:id
    * @desc    delete a review
    * @access  Private
    */
 
-  public DeleteTurfReview = asyncHandler(
+  public deleteTurfReview = asyncHandler(
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const userId = getUserId(req);
-      const { id } = req.params;
+      const { reviewId } = req.params;
 
-      if (!id) {
+      if (!reviewId) {
         res.status(400).json({
           success: false,
           message: "Review ID is required",
@@ -57,11 +91,168 @@ export default class TurfReviewController {
         return;
       }
 
-      await this.turfReviewService.deleteReview(id, userId);
+      await this.turfReviewService.deleteReview(reviewId, userId);
 
       res.status(200).json({
         success: true,
         message: "Review deleted successfully",
+      });
+    }
+  );
+
+  /**
+   * @route   GET /api/v1/turf-review/turf/:turfId
+   * @desc    get all the reviews by turf and other filters and their average rating and rating distribution
+   * @access  Public
+   */
+
+  public getReviewsByTurf = asyncHandler(
+    async (req: AuthRequest, res: Response): Promise<void> => {
+      const { turfId } = req.params;
+
+      const options: ReviewFilterOptions = {
+        turfId,
+        minRating: req.query.minRating
+          ? Number(req.query.minRating)
+          : undefined,
+        maxRating: req.query.maxRating
+          ? Number(req.query.maxRating)
+          : undefined,
+        limit: req.query.limit
+          ? parseInt(req.query.limit as string)
+          : undefined,
+        skip:
+          req.query.page && req.query.limit
+            ? (parseInt(req.query.page as string) - 1) *
+              parseInt(req.query.limit as string)
+            : undefined,
+        sortBy: (req.query.sortBy as string) || "createdAt",
+        sortOrder: req.query.sortOrder === "asc" ? "asc" : "desc",
+      };
+
+      const result = await this.turfReviewService.getReviewsByTurf(
+        turfId,
+        options
+      );
+
+      // Calculate pagination details only if limit is provided
+      const page =
+        options.limit && options.skip
+          ? Math.floor(options.skip / options.limit) + 1
+          : 1;
+      const pages = options.limit ? Math.ceil(result.total / options.limit) : 1;
+
+      res.status(200).json({
+        success: true,
+        data: {
+          reviews: result.reviews,
+          averageRating: result.averageRating,
+          ratingDistribution: result.ratingDistribution,
+        },
+        meta: {
+          total: result.total,
+          ...(options.limit && {
+            page,
+            limit: options.limit,
+            pages,
+          }),
+        },
+      });
+    }
+  );
+
+  /**
+   * @route   GET /api/v1/turf-review/review/:id
+   * @desc    get review by its id
+   * @access  Public
+   */
+  public getReviewById = asyncHandler(
+    async (req: AuthRequest, res: Response): Promise<void> => {
+      const { reviewId } = req.params;
+      const review = await this.turfReviewService.getReviewById(reviewId);
+
+      if (!review) {
+        res.status(404).json({ success: false, message: "Review not found" });
+        return;
+      }
+
+      res.status(200).json({ success: true, data: review });
+    }
+  );
+
+  /**
+   * @route   GET /api/v1/turf-review/summary/:turfId
+   * @desc    get the average rating and rating count for a turf
+   * @access  Public
+   */
+
+  public getTurfReviewSummary = asyncHandler(
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const { turfId } = req.params;
+      const summary = await this.turfReviewService.getTurfReviewSummary(turfId);
+
+      res.status(200).json({
+        success: true,
+        data: summary,
+      });
+    }
+  );
+
+  /**
+   * @route   GET /api/v1/turf-review/user/:userId
+   * @desc    Get all reviews by a specific user with average rating and rating distribution
+   * @access  Public
+   */
+  public getReviewsByUser = asyncHandler(
+    async (req: AuthRequest, res: Response): Promise<void> => {
+      const { userId } = req.params;
+
+      const options: ReviewFilterOptions = {
+        minRating: req.query.minRating
+          ? Number(req.query.minRating)
+          : undefined,
+        maxRating: req.query.maxRating
+          ? Number(req.query.maxRating)
+          : undefined,
+        limit: req.query.limit
+          ? parseInt(req.query.limit as string)
+          : undefined,
+        skip:
+          req.query.page && req.query.limit
+            ? (parseInt(req.query.page as string) - 1) *
+              parseInt(req.query.limit as string)
+            : undefined,
+        sortBy: (req.query.sortBy as string) || "createdAt",
+        sortOrder: req.query.sortOrder === "asc" ? "asc" : "desc",
+      };
+
+      const result = await this.turfReviewService.getReviewsByUser(
+        userId,
+        options
+      );
+
+      // Calculate pagination details only if limit is provided
+      const page =
+        options.limit && options.skip
+          ? Math.floor(options.skip / options.limit) + 1
+          : 1;
+      const pages = options.limit ? Math.ceil(result.total / options.limit) : 1;
+
+      res.status(200).json({
+        success: true,
+        data: {
+          reviews: result.reviews,
+          averageRating: result.averageRating,
+          ratingDistribution: result.ratingDistribution,
+        },
+        meta: {
+          total: result.total,
+          ...(options.limit && {
+            page,
+            limit: options.limit,
+            pages,
+          }),
+        },
       });
     }
   );
