@@ -23,7 +23,7 @@ export interface ReviewFilterOptions {
   minRating?: number;
   maxRating?: number;
   limit?: number;
-  skip?: number; 
+  skip?: number;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
@@ -35,7 +35,7 @@ export default class TurfReviewService {
     if (!userExits) {
       throw new Error("User not found");
     }
-    
+
     const turfExits = await Turf.exists({ _id: data.turfId });
     if (!turfExits) {
       throw new Error("Turf not found");
@@ -132,17 +132,17 @@ export default class TurfReviewService {
     ratingDistribution: { [rating: number]: number };
   }> {
     const filter: any = { turf: turfId };
-  
+
     if (options.minRating) filter.rating = { $gte: options.minRating };
     if (options.maxRating) {
       filter.rating = { ...filter.rating, $lte: options.maxRating };
     }
-  
+
     const limit = options.limit || 10;
     const skip = options.skip || 0;
     const sort: any = {};
     sort[options.sortBy || "createdAt"] = options.sortOrder === "asc" ? 1 : -1;
-  
+
     const [reviews, total, ratingStats] = await Promise.all([
       TurfReview.find(filter)
         .sort(sort)
@@ -161,21 +161,22 @@ export default class TurfReviewService {
         },
       ]),
     ]);
-  
+
     let totalRatingsSum = 0;
     let totalReviewsCount = 0;
     const ratingDistribution: { [rating: number]: number } = {};
-  
+
     for (const stat of ratingStats) {
-      const rating = stat._id;  
-      const count = stat.count; 
+      const rating = stat._id;
+      const count = stat.count;
       ratingDistribution[rating] = count;
       totalRatingsSum += rating * count;
       totalReviewsCount += count;
     }
-  
-    const averageRating = totalReviewsCount > 0 ? totalRatingsSum / totalReviewsCount : 0;
-  
+
+    const averageRating =
+      totalReviewsCount > 0 ? totalRatingsSum / totalReviewsCount : 0;
+
     return {
       reviews,
       total,
@@ -184,12 +185,27 @@ export default class TurfReviewService {
     };
   }
 
-    // Get a single review by ID
-    async getReviewById(reviewId: string): Promise<ITurfReview | null> {
-      return await TurfReview.findById(reviewId)
-        .populate("user", "_id first_name last_name email isVerified")
-        .populate("turf", "_id name organization sports team_size")
-        .lean();
-    }
-  
+  // Get a single review by ID
+  async getReviewById(reviewId: string): Promise<ITurfReview | null> {
+    return await TurfReview.findById(reviewId)
+      .populate("user", "_id first_name last_name email isVerified")
+      .populate("turf", "_id name organization sports team_size")
+      .lean();
+  }
+
+  // Get a summary of reviews for a specific turf
+  async getTurfReviewSummary(turfId: string) {
+    const result = await TurfReview.aggregate([
+      { $match: { turf: new mongoose.Types.ObjectId(turfId) } },
+      {
+        $group: {
+          _id: "$turf",
+          averageRating: { $avg: "$rating" },
+          reviewCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    return result[0] || { averageRating: 0, reviewCount: 0 };
+  }
 }

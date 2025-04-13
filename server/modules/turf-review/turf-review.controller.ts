@@ -173,4 +173,22 @@ export default class TurfReviewController {
       res.status(200).json({ success: true, data: review });
     }
   );
+
+  /**
+   * @route   GET /api/v1/turf-review/summary/:turfId
+   * @desc    get the average rating and rating count for a turf
+   * @access  Public
+   */
+
+  public getTurfReviewSummary = asyncHandler(
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const { turfId } = req.params;
+      const summary = await this.turfReviewService.getTurfReviewSummary(turfId);
+
+      res.status(200).json({
+        success: true,
+        data: summary,
+      });
+    }
+  );
 }
