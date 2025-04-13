@@ -26,14 +26,19 @@ class OrganizationService {
   public async createOrganization(
     name: string,
     facilities: string[],
-    images: Express.Multer.File[],
     location: IOrganization['location'],
+    images?: Express.Multer.File[] // Make parameter optional
+   
   ): Promise<IOrganization | null> {
     try {
-      // Upload images to Cloudinary
-      const imageUploads = images.map(image => uploadImage(image));
-      const uploadedImages = await Promise.all(imageUploads);
-      const imageUrls = uploadedImages.map(img => img.url);
+      let imageUrls: string[] = [];
+
+      // Only process images if they exist
+      if (images && images.length > 0) {
+        const imageUploads = images.map(image => uploadImage(image));
+        const uploadedImages = await Promise.all(imageUploads);
+        imageUrls = uploadedImages.map(img => img.url);
+      }
 
       // Create organization with owner and permissions
       const organization = new Organization({
@@ -44,7 +49,6 @@ class OrganizationService {
       });
 
       await organization.save();
-
       return organization;
     } catch (error) {
       console.error(error);
