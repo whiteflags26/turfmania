@@ -296,8 +296,8 @@ class OrganizationService {
 
       // Validate role scope using orgObjectId
       if (
-        roleToAssign.scope !== PermissionScope.ORGANIZATION ||
-        !roleToAssign.scopeId?.equals(orgObjectId)
+        roleToAssign.scope !== PermissionScope.ORGANIZATION 
+        
       ) {
         throw new ErrorResponse(
           `Role '${roleToAssign.name}' does not belong to this organization`,

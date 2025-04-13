@@ -46,7 +46,7 @@ router.post(
 router.put(
     '/:id',
     protect,
-    checkPermission('update_organization_details'), // Organization-scoped permission check
+    checkPermission('update_organization'), // Organization-scoped permission check
     upload.array('images', 5), // Handle optional image updates
     updateOrganization
 );

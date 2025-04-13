@@ -153,6 +153,10 @@ export const checkPermission = (requiredPermissionName: string) => {
         },
       });
 
+      if(assignments.length>1){
+        return next(new ErrorResponse(`Got more than one role which is contradictory`, 500),)
+      }
+
       // 4. Check if any assigned role has the required permission
       let hasPermission = false;
       for (const assignment of assignments) {

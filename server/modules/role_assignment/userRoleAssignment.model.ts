@@ -40,7 +40,7 @@ const UserRoleAssignmentSchema: Schema = new Schema({
 }, { timestamps: true });
 
 // Ensure a user cannot be assigned the exact same role in the same scope/context twice
-UserRoleAssignmentSchema.index({ userId: 1, roleId: 1, scopeId: 1 }, { unique: true }); // scopeId can be null for global
+UserRoleAssignmentSchema.index({ userId: 1, scopeId: 1 }, { unique: true }); // scopeId can be null for global
 
 // Index for finding all assignments for a user
 UserRoleAssignmentSchema.index({ userId: 1, scope: 1, scopeId: 1 });
