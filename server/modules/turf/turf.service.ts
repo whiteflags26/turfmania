@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Organization from "../organization/organization.model";
 import { ITurf, Turf } from "./turf.model";
+import { TimeSlot } from "../timeslot/timeslot.model";
 import { uploadImage, deleteImage } from "../../utils/cloudinary";
 import ErrorResponse from "./../../utils/errorResponse";
 import { extractPublicIdFromUrl } from "../../utils/extractUrl";
@@ -192,8 +193,9 @@ export default class TurfService {
       teamSize,
       sports,
       facilities,
-      preferredDay,
-      preferredTime,
+      preferredDate,
+      preferredTimeStart,
+      preferredTimeEnd,
       latitude,
       longitude,
       radius = "5", // Default radius 5km
@@ -208,7 +210,11 @@ export default class TurfService {
     this.applyPriceFilter(query, minPrice, maxPrice);
     this.applyTeamSizeFilter(query, teamSize);
     this.applySportsFilter(query, sports);
-    this.applyTimePreferenceFilter(query, preferredDay, preferredTime);
+    const preferredTimeRange =
+      preferredTimeStart && preferredTimeEnd
+        ? { start: preferredTimeStart, end: preferredTimeEnd }
+        : undefined;
+    await this.applyTimeSlotFilter(query, preferredDate, preferredTimeRange);
 
     const organizationIds = await this.findNearbyOrganizations(
       query,
@@ -238,9 +244,13 @@ export default class TurfService {
   }
 
   /**@desc utility function to apply team size filter on buildFilterQuery function**/
-  private applyTeamSizeFilter(query: any, teamSize?: string) {
+  private applyTeamSizeFilter(query: any, teamSize?: string | string[]) {
     if (teamSize !== undefined) {
-      query.team_size = Number(teamSize);
+      const sizes = Array.isArray(teamSize) ? teamSize : [teamSize];
+      const parsedSizes = sizes.map((size) => Number(size));
+      if (parsedSizes.length > 0) {
+        query.team_size = { $in: parsedSizes };
+      }
     }
   }
 
@@ -255,25 +265,40 @@ export default class TurfService {
   }
 
   /**@desc utility function to apply time preference filter on buildFilterQuery function**/
-  private applyTimePreferenceFilter(
+  private async applyTimeSlotFilter(
     query: any,
-    preferredDay?: string,
-    preferredTime?: string
+    preferredDate?: string,
+    preferredTimeRange?: { start: string; end: string }
   ) {
-    if (preferredDay !== undefined && preferredTime !== undefined) {
-      const day = Number(preferredDay);
+    if (!preferredDate || !preferredTimeRange) return;
 
-      // Validate day is 0-6
-      if (day >= 0 && day <= 6) {
-        query.operatingHours = {
-          $elemMatch: {
-            day,
-            open: { $lte: preferredTime },
-            close: { $gte: preferredTime },
-          },
-        };
-      }
+    const date = new Date(preferredDate);
+    date.setHours(0, 0, 0, 0);
+
+    const [startHour, startMinute] = preferredTimeRange.start
+      .split(":")
+      .map(Number);
+    const [endHour, endMinute] = preferredTimeRange.end.split(":").map(Number);
+
+    const startDateTime = new Date(date);
+    startDateTime.setHours(startHour, startMinute, 0);
+
+    const endDateTime = new Date(date);
+    endDateTime.setHours(endHour, endMinute, 0);
+
+    const now = new Date();
+    if (endDateTime < now) {
+      query._id = { $in: [] }; // Entire time range is in the past, no need to query
+      return;
     }
+
+    const matchingSlots = await TimeSlot.find({
+      is_available: true,
+      start_time: { $gte: startDateTime },
+      end_time: { $lte: endDateTime },
+    }).distinct("turf");
+
+    query._id = { $in: matchingSlots };
   }
 
   /**@desc utility function to find nearby organization for buildFilterQuery function**/
@@ -331,21 +356,32 @@ export default class TurfService {
         : [facilities];
 
       if (facilitiesList.length > 0) {
-        // We need to use aggregation pipeline for this
-        aggregatePipeline.push({
-          $lookup: {
-            from: "organizations",
-            localField: "organization",
-            foreignField: "_id",
-            as: "organizationData",
+        aggregatePipeline.push(
+          {
+            $lookup: {
+              from: "organizations",
+              localField: "organization",
+              foreignField: "_id",
+              as: "organizationData",
+            },
           },
-        });
-
-        aggregatePipeline.push({
-          $match: {
-            "organizationData.facilities": { $all: facilitiesList },
+          {
+            $unwind: {
+              path: "$organizationData",
+              preserveNullAndEmptyArrays: true,
+            },
           },
-        });
+          {
+            $match: {
+              "organizationData.facilities": { $all: facilitiesList },
+            },
+          },
+          {
+            $set: {
+              organization: "$organizationData",
+            },
+          }
+        );
       }
     }
   }
