@@ -1,3 +1,4 @@
+import { IUserRoleAssignment } from './../role_assignment/userRoleAssignment.model';
 import { DeleteResult } from 'mongodb';
 import mongoose, { Types } from 'mongoose';
 import { deleteImage, uploadImage } from '../../utils/cloudinary';
@@ -7,6 +8,7 @@ import Permission, { PermissionScope } from '../permission/permission.model'; //
 import Role, { IRole } from '../role/role.model'; // Import Role model
 import User, { UserDocument } from '../user/user.model';
 import Organization, { IOrganization } from './organization.model';
+import UserRoleAssignment  from '../role_assignment/userRoleAssignment.model';
 
 export interface IOrganizationRoleAssignment {
   organizationId: Types.ObjectId;
@@ -63,89 +65,71 @@ class OrganizationService {
    * @param userId - The ID of the user to be assigned as owner
    * @returns Promise<IOrganization> - Updated organization
    */
-  public async assignOwnerToOrganization(
-    organizationId: string,
-    userId: string,
-  ): Promise<IOrganization> {
-    // Permission check ('assign_organization_owner') should happen in the route middleware
+  public async assignOwnerToOrganization(organizationId: string, userId: string): Promise<IOrganization> {
     try {
-      
-      const organization = await Organization.findById(organizationId);
-      console.log(organization)
-      if (!organization) throw new ErrorResponse('Organization not found', 404);
-      if (organization.owner)
-        throw new ErrorResponse(
-          'Organization already has an owner assigned',
-          400,
-        );
+       // ... (find org, find user) ...
+       const organization = await Organization.findById(organizationId);
+       if (!organization) throw new ErrorResponse('Organization not found', 404);
+       const user = await User.findById(userId);
+       if (!user) throw new ErrorResponse('User not found', 404);
+       // --- Start: Replacing the placeholder ---
 
-      const user = await User.findById(userId);
-      if (!user)
-        throw new ErrorResponse('User to assign as owner not found', 404);
+       // 1. Define the role name
+       const ownerRoleName = 'Organization Owner';
 
-      // 1. Find or Create the 'Organization Owner' role for THIS organization
-      const ownerRoleName = 'Organization Owner';
-      let ownerRole = await Role.findOne({
-        name: ownerRoleName,
-        scope: PermissionScope.ORGANIZATION,
-        scopeId: organization._id,
-      });
+       // 2. Get all organization-scoped permission IDs (needed if creating the role)
+       const orgPermissions = await Permission.find({ scope: PermissionScope.ORGANIZATION }).select('_id');
+       const orgPermissionIds = orgPermissions.map(p => p._id); // Extract just the IDs
 
-      if (!ownerRole) {
-        // Find all permissions with 'organization' scope
-        const orgPermissions = await Permission.find({
-          scope: PermissionScope.ORGANIZATION,
-        }).select('_id');
-        ownerRole = await Role.create({
-          name: ownerRoleName,
-          scope: PermissionScope.ORGANIZATION,
-          scopeId: organization._id,
-          permissions: orgPermissions.map(p => p._id),
-          isDefault: true, // Mark as a default role
-        });
-      }
+       // 3. Find the role OR create it if it doesn't exist (Upsert)
+       const ownerRole = await Role.findOneAndUpdate(
+         { // ---- Filter Criteria (to find the role) ----
+           name: ownerRoleName,
+           scope: PermissionScope.ORGANIZATION,
+           scopeId: organization._id // Crucial: links role to THIS organization
+         },
+         { // ---- Update/Insert Data ----
+           $set: { // Use $set to define all fields for update or insert
+             name: ownerRoleName,
+             scope: PermissionScope.ORGANIZATION,
+             scopeId: organization._id,
+             permissions: orgPermissionIds, // Assign all org permissions
+             isDefault: true
+           }
+           // $setOnInsert could be used for fields only set on creation, but $set works fine here
+         },
+         { // ---- Options ----
+           upsert: true,       // Create the document if it doesn't exist based on filter
+           new: true,          // Return the document after update/insert
+           runValidators: true // Ensure schema validations are run
+         }
+       );
+       // --- End: Replacing the placeholder ---
 
-      // 2. Assign the role to the user within the organization context
-      const existingAssignment = user.organizationRoles.find(
-        (assignment: IOrganizationRoleAssignment) =>
-          assignment.organizationId.equals(organization.id),
-      );
+       if (!ownerRole) {
+            // This should theoretically not happen with upsert:true unless there's a major DB issue
+            throw new ErrorResponse('Failed to find or create Organization Owner role', 500);
+       }
 
-      if (existingAssignment) {
-        // Decide: Replace existing role or throw error? For owner, maybe replace.
-        console.warn(
-          `User ${userId} already had a role in organization ${organizationId}. Replacing with Owner role.`,
-        );
-        // Remove previous assignment
-        user.organizationRoles = user.organizationRoles.filter(
-          (a: IOrganizationRoleAssignment) =>
-            !a.organizationId.equals(organization.id),
-        );
-      }
+       // 4. Create an assignment in the junction collection using ownerRole._id
+       await UserRoleAssignment.findOneAndUpdate(
+           { userId: user._id, roleId: ownerRole._id, scope: PermissionScope.ORGANIZATION, scopeId: organization._id },
+           { $set: { userId: user._id, roleId: ownerRole._id, scope: PermissionScope.ORGANIZATION, scopeId: organization._id } },
+           { upsert: true, runValidators: true }
+       );
 
-      user.organizationRoles.push({
-        organizationId: organization._id,
-        role: ownerRole._id,
-      });
-      await user.save();
+       // 5. Update the organization document with the owner ID
+       organization.owner = user._id;
+       await organization.save();
 
-      // 3. Update the organization document with the owner ID
-      organization.owner = user._id;
-      await organization.save();
+       console.log(`User ${user.email} assigned as owner of organization ${organization.name} (Role Assignment Created/Updated)`);
+       return organization;
 
-      console.log(
-        `User ${user.email} assigned as owner of organization ${organization.name}`,
-      );
-      return organization;
     } catch (error: any) {
-      console.error('Error assigning organization owner:', error);
-      throw new ErrorResponse(
-        error.message || 'Failed to assign owner',
-        error.statusCode || 500,
-      );
+        console.error("Error assigning organization owner:", error);
+        throw new ErrorResponse(error.message || 'Failed to assign owner', error.statusCode || 500);
     }
-  }
-
+ }
   /**
    * Update an organization
    * @param id - Organization ID

@@ -25,7 +25,7 @@ class AuthService {
     return jwt.sign(
       {
         id: user._id,
-        role: user.user_roles,
+       
       },
       this.JWT_SECRET,
       signOptions
