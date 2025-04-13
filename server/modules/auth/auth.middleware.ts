@@ -1,10 +1,11 @@
+import { PermissionScope } from './../permission/permission.model';
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 
 import ErrorResponse from '../../utils/errorResponse';
 import Organization from '../organization/organization.model';
 import Role from '../role/role.model';
-import Permission, { PermissionScope } from '../permission/permission.model';
+import Permission  from '../permission/permission.model';
 import User from '../../modules/user/user.model';
 import mongoose from 'mongoose';
 import { UserDocument } from '../user/user.model';
@@ -119,18 +120,21 @@ export const checkPermission = (requiredPermissionName: string) => {
 
         
         const scopeToCheck = requiredPermission.scope;
-        const organizationId = req.params.organizationId; // Get org ID from request context
+        const { id: organizationId } = req.params; // Get org ID from request context
         const eventId =  req.params.eventId; // Get event ID
 
        
         if (scopeToCheck === PermissionScope.GLOBAL) {
+          
             for (const role of req.user.globalRoles as any[]) { // Cast to any[] if population structure is complex
                 if (role.permissions && role.permissions.some((p: any) => p.name === requiredPermissionName)) {
+                  console.log(role.permissions.some((p: any) =>console.log(" hello"+p.name)))
                     hasPermission = true;
                     break;
                 }
             }
         }
+        console.log(req.user.globalRoles)
 
        
         if (!hasPermission && scopeToCheck === PermissionScope.ORGANIZATION) {

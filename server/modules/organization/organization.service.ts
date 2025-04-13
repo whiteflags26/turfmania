@@ -27,7 +27,7 @@ class OrganizationService {
     name: string,
     facilities: string[],
     location: IOrganization['location'],
-    images?: Express.Multer.File[] // Make parameter optional
+    images: Express.Multer.File[] // Make parameter optional
    
   ): Promise<IOrganization | null> {
     try {
@@ -69,7 +69,9 @@ class OrganizationService {
   ): Promise<IOrganization> {
     // Permission check ('assign_organization_owner') should happen in the route middleware
     try {
+      
       const organization = await Organization.findById(organizationId);
+      console.log(organization)
       if (!organization) throw new ErrorResponse('Organization not found', 404);
       if (organization.owner)
         throw new ErrorResponse(
