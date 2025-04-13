@@ -284,8 +284,9 @@ export default class TurfController {
         teamSize: req.query.teamSize as string,
         sports: req.query.sports as string | string[],
         facilities: req.query.facilities as string | string[],
-        preferredDay: req.query.preferredDay as string,
-        preferredTime: req.query.preferredTime as string,
+        preferredDate: req.query.preferredDate as string,
+        preferredTimeStart: req.query.preferredTimeStart as string, // NEW
+        preferredTimeEnd: req.query.preferredTimeEnd as string, // NEW
         latitude: req.query.latitude as string,
         longitude: req.query.longitude as string,
         radius: req.query.radius as string,
