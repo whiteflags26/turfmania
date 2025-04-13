@@ -30,6 +30,13 @@ export interface ReviewFilterOptions {
   sortOrder?: "asc" | "desc";
 }
 
+export interface ReviewSummary {
+  reviews: ITurfReview[];
+  total: number;
+  averageRating: number;
+  ratingDistribution: { [rating: number]: number };
+}
+
 export default class TurfReviewService {
   // Create a new review
   async createReview(data: CreateReviewData): Promise<ITurfReview> {
@@ -180,76 +187,15 @@ export default class TurfReviewService {
   async getReviewsByTurf(
     turfId: string,
     options: ReviewFilterOptions = {}
-  ): Promise<{
-    reviews: ITurfReview[];
-    total: number;
-    averageRating: number;
-    ratingDistribution: { [rating: number]: number };
-  }> {
-    const filter: any = { turf: turfId };
-
-    if (options.minRating) filter.rating = { $gte: options.minRating };
-    if (options.maxRating) {
-      filter.rating = { ...filter.rating, $lte: options.maxRating };
-    }
-
-    const limit = options.limit || 10;
-    const skip = options.skip || 0;
-    const sort: any = {};
-    sort[options.sortBy || "createdAt"] = options.sortOrder === "asc" ? 1 : -1;
-
-    // Build aggregation pipeline match stage with the same filters
-    const matchStage: any = { turf: new mongoose.Types.ObjectId(turfId) };
-    if (options.minRating !== undefined) {
-      matchStage.rating = { $gte: options.minRating };
-    }
-    if (options.maxRating !== undefined) {
-      matchStage.rating = { 
-        ...matchStage.rating, 
-        $lte: options.maxRating 
-      };
-    }
-
-    const [reviews, total, ratingStats] = await Promise.all([
-      TurfReview.find(filter)
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .populate("user", "_id first_name last_name email isVerified")
-        .lean(),
-      TurfReview.countDocuments(filter),
-      TurfReview.aggregate([
-        { $match: matchStage },
-        {
-          $group: {
-            _id: "$rating",
-            count: { $sum: 1 },
-          },
-        },
-      ]),
-    ]);
-
-    let totalRatingsSum = 0;
-    let totalReviewsCount = 0;
-    const ratingDistribution: { [rating: number]: number } = {};
-
-    for (const stat of ratingStats) {
-      const rating = stat._id;
-      const count = stat.count;
-      ratingDistribution[rating] = count;
-      totalRatingsSum += rating * count;
-      totalReviewsCount += count;
-    }
-
-    const averageRating =
-      totalReviewsCount > 0 ? totalRatingsSum / totalReviewsCount : 0;
-
-    return {
-      reviews,
-      total,
-      averageRating,
-      ratingDistribution,
-    };
+  ): Promise<ReviewSummary> {
+    const filter = { turf: turfId };
+    const matchStage = { turf: new mongoose.Types.ObjectId(turfId) };
+    
+    // Use the extracted common method
+    return this.getReviewsWithStats(filter, matchStage, options, {
+      populateField: "user",
+      populateSelect: "_id first_name last_name email isVerified"
+    });
   }
 
   // Get a single review by ID
@@ -280,41 +226,36 @@ export default class TurfReviewService {
   async getReviewsByUser(
     userId: string,
     options: ReviewFilterOptions = {}
-  ): Promise<{
-    reviews: ITurfReview[];
-    total: number;
-    averageRating: number;
-    ratingDistribution: { [rating: number]: number };
-  }> {
-    const filter: any = { user: userId };
-    if (options.minRating) filter.rating = { $gte: options.minRating };
-    if (options.maxRating) {
-      filter.rating = { ...filter.rating, $lte: options.maxRating };
-    }
+  ): Promise<ReviewSummary> {
+    const filter = { user: userId };
+    const matchStage = { user: new mongoose.Types.ObjectId(userId) };
     
-    const limit = options.limit || 10;
-    const skip = options.skip || 0;
-    const sort: any = {};
-    sort[options.sortBy || "createdAt"] = options.sortOrder === "asc" ? 1 : -1;
+    // Use the extracted common method
+    return this.getReviewsWithStats(filter, matchStage, options, {
+      populateField: "turf",
+      populateSelect: "_id name organization sports team_size"
+    });
+  }
 
-    // Build aggregation pipeline match stage with the same filters
-    const matchStage: any = { user: new mongoose.Types.ObjectId(userId) };
-    if (options.minRating !== undefined) {
-      matchStage.rating = { $gte: options.minRating };
-    }
-    if (options.maxRating !== undefined) {
-      matchStage.rating = { 
-        ...matchStage.rating, 
-        $lte: options.maxRating 
-      };
-    }
-
+  // Common method for retrieving reviews with stats
+  private async getReviewsWithStats(
+    filter: any,
+    matchStage: any,
+    options: ReviewFilterOptions = {},
+    populateOptions: { populateField: string; populateSelect: string }
+  ): Promise<ReviewSummary> {
+    // Apply rating filters
+    this.applyRatingFilters(filter, matchStage, options);
+    
+    // Get pagination and sorting options
+    const paginationSort = this.getPaginationAndSortOptions(options);
+    
     const [reviews, total, ratingStats] = await Promise.all([
       TurfReview.find(filter)
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .populate("turf", "_id name organization sports team_size")
+        .sort(paginationSort.sort)
+        .skip(paginationSort.skip)
+        .limit(paginationSort.limit)
+        .populate(populateOptions.populateField, populateOptions.populateSelect)
         .lean(),
       TurfReview.countDocuments(filter),
       TurfReview.aggregate([
@@ -328,6 +269,49 @@ export default class TurfReviewService {
       ]),
     ]);
 
+    return {
+      reviews,
+      total,
+      ...this.calculateRatingStats(ratingStats)
+    };
+  }
+
+  // Helper to apply rating filters to both filter object and match stage
+  private applyRatingFilters(
+    filter: any, 
+    matchStage: any, 
+    options: ReviewFilterOptions
+  ): void {
+    if (options.minRating !== undefined) {
+      filter.rating = { $gte: options.minRating };
+      matchStage.rating = { $gte: options.minRating };
+    }
+    
+    if (options.maxRating !== undefined) {
+      filter.rating = { ...filter.rating, $lte: options.maxRating };
+      matchStage.rating = { ...matchStage.rating, $lte: options.maxRating };
+    }
+  }
+
+  // Helper to get pagination and sort options
+  private getPaginationAndSortOptions(options: ReviewFilterOptions): {
+    limit: number;
+    skip: number;
+    sort: any;
+  } {
+    const limit = options.limit ?? 10;
+    const skip = options.skip ?? 0;
+    const sort: any = {};
+    sort[options.sortBy ?? "createdAt"] = options.sortOrder === "asc" ? 1 : -1;
+    
+    return { limit, skip, sort };
+  }
+
+  // Helper to calculate rating statistics from aggregation results
+  private calculateRatingStats(ratingStats: any[]): {
+    averageRating: number;
+    ratingDistribution: { [rating: number]: number };
+  } {
     let totalRatingsSum = 0;
     let totalReviewsCount = 0;
     const ratingDistribution: { [rating: number]: number } = {};
@@ -344,8 +328,6 @@ export default class TurfReviewService {
       totalReviewsCount > 0 ? totalRatingsSum / totalReviewsCount : 0;
 
     return {
-      reviews,
-      total,
       averageRating,
       ratingDistribution,
     };
