@@ -32,7 +32,7 @@ const OrganizationSchema: Schema = new Schema(
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      
+      unique:true
     },
 
   
