@@ -12,20 +12,11 @@ export interface UserDocument extends Document {
   email: string;
   password: string;
   phone_number?: string;
-  user_roles: string[];
+  
   isVerified: boolean;
   verificationToken: string;
   verificationTokenExpires: Date;
   reviews: mongoose.Types.ObjectId[];
-  globalRoles: Types.ObjectId[];
-  organizationRoles: Array<{ 
-      organizationId: Types.ObjectId;
-      role: Types.ObjectId; 
-  }>;
-  eventRoles: Array<{ 
-      eventId: Types.ObjectId;
-      role: Types.ObjectId; 
-  }>;
 }
 
 const UserSchema = new Schema<UserDocument>(
@@ -35,41 +26,12 @@ const UserSchema = new Schema<UserDocument>(
     email: { type: String, required: true, unique: true },
     password: { type: String, minlength: 6, select: false, required: true },
     phone_number: { type: String },
-    user_roles: { type: [String], required: true, default: ['user'] },
+   
     isVerified: { type: Boolean, default: false }, // Default to false
     verificationToken: { type: String }, // Token for email verification
     verificationTokenExpires: { type: Date }, 
     // Token expiration time
-    globalRoles: [{
-      type: Schema.Types.ObjectId,
-      ref: 'Role',
-  }],
-  organizationRoles: [{
-      _id: false, // Don't create a separate _id for this subdocument array element
-      organizationId: {
-          type: Schema.Types.ObjectId,
-          ref: 'Organization', // Optional: Reference the Organization model
-          required: true,
-      },
-      role: {
-          type: Schema.Types.ObjectId,
-          ref: 'Role',
-          required: true,
-      }
-  }],
-  eventRoles: [{
-      _id: false,
-      eventId: {
-          type: Schema.Types.ObjectId,
-          // ref: 'Event', // Optional: Reference your Event model if you have one
-          required: true,
-      },
-      role: {
-          type: Schema.Types.ObjectId,
-          ref: 'Role',
-          required: true,
-      }
-  }],
+
     reviews: [{
       type: Schema.Types.ObjectId,
       ref: "TurfReview",
