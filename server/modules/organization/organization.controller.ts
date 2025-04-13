@@ -131,7 +131,7 @@ export const createOrganization = asyncHandler(
 export const assignOwner = asyncHandler(
   async (req: AuthRequest & { params: { id: string }, body: AssignOwnerBody }, res: Response, next: NextFunction) => {
       const { id: organizationId } = req.params;
-      console.log(organizationId)
+      
       const { userId } = req.body;
 
       if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
