@@ -93,9 +93,7 @@ class RoleService {
         const permissions = await Permission.find({
           _id: { $in: updateData.permissions },
           scope: PermissionScope.ORGANIZATION,
-        })
-          .select('_id')
-          .lean<{ _id: Types.ObjectId }[]>();
+        }).select('_id').lean<{ _id: Types.ObjectId }[]>();
 
         if (permissions.length !== updateData.permissions.length) {
           throw new ErrorResponse(
