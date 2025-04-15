@@ -1,7 +1,7 @@
-// src/modules/organization/organization.routes.ts (Refactored)
+
 import express from 'express';
 import multer from 'multer';
-// Adjust paths as needed
+
 import { checkPermission, protect } from '../auth/auth.middleware';
 
 import {
