@@ -10,7 +10,7 @@ router.use(protect);
 // Get all roles for an organization
 router.get(
   '/organizations/:organizationId/roles',
-  checkPermission('view_organization_roles'),
+  checkPermission('view_roles'),
   getOrganizationRoles,
 );
 

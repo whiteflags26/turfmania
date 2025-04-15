@@ -13,6 +13,7 @@ import {
   assignOrganizationRoleToUser,
  
 } from './organization.controller';
+import { getOrganizationRoles } from '../role/role.controller';
 
 const router = express.Router();
 
@@ -78,7 +79,12 @@ router.post(
     checkPermission('assign_organization_roles'), // Organization-scoped
     assignOrganizationRoleToUser
 );
-
+router.get(
+  '/:organizationId/roles',
+  protect,
+  checkPermission('view_roles'),
+  getOrganizationRoles,
+);
 
 
 
