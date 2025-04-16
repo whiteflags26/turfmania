@@ -10,14 +10,11 @@ import organizationRouter from "./modules/organization/organization.route";
 import turfRoutes from './modules/turf/turf.route';
 import turfReviewRoutes from './modules/turf-review/turf-review.route';
 import timeslotRoutes from './modules/timeslot/timeslot.route';
-
-import bookingRoutes from './modules/booking/booking.route'
-
-
-
+import bookingRoutes from './modules/booking/booking.route';
+import userRoleAssignmentRoutes from './modules/role_assignment/userRoleAssignment.routes';
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT ?? 3000;
 
 connectDB();
 
@@ -27,7 +24,7 @@ app.use(ExpressMongoSanitize());
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3001",
+    origin: process.env.CLIENT_URL ?? "http://localhost:3001",
     credentials: true, // Important for cookies
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
@@ -41,8 +38,9 @@ app.use('/api/v1/auth', authRouter);
 app.use("/api/v1/organizations", organizationRouter);
 app.use('/api/v1/turf', turfRoutes);
 app.use('/api/v1/turf-review', turfReviewRoutes);
-app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/timeslot', timeslotRoutes);
-app.use('/api/v1/booking',bookingRoutes)
+app.use('/api/v1/booking', bookingRoutes);
+app.use('/api/v1/role-assignments', userRoleAssignmentRoutes);
 app.use(errorHandler);
+
 app.listen(port, () => console.log(`Server app listening on port ${port}!`));

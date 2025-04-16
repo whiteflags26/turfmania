@@ -141,8 +141,8 @@ class OrganizationService {
     } catch (error: any) {
       console.error('Error assigning organization owner:', error);
       throw new ErrorResponse(
-        error.message || 'Failed to assign owner',
-        error.statusCode || 500,
+        error.message ?? 'Failed to assign owner',
+        error.statusCode ?? 500,
       );
     }
   }
@@ -282,8 +282,8 @@ class OrganizationService {
     } catch (error: any) {
       console.error('Error creating organization role:', error);
       throw new ErrorResponse(
-        error.message || 'Failed to create role',
-        error.statusCode || 500,
+        error.message ?? 'Failed to create role',
+        error.statusCode ?? 500,
       );
     }
   }
@@ -342,8 +342,8 @@ class OrganizationService {
     } catch (error: any) {
       console.error('Error assigning role to user:', error);
       throw new ErrorResponse(
-        error.message || 'Failed to assign role',
-        error.statusCode || 500,
+        error.message ?? 'Failed to assign role',
+        error.statusCode ?? 500,
       );
     }
   }

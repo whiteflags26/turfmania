@@ -14,6 +14,7 @@ import {
  
 } from './organization.controller';
 import { getOrganizationRoles } from '../role/role.controller';
+import { assignOrganizationRole } from '../role_assignment/userRoleAssignmentController';
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ const router = express.Router();
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 5 }, // 5MB limit, up to 5 files
-  // TODO: Add file type validation (e.g., only images)
+  
 });
 
 // --- Organization CRUD ---
@@ -84,6 +85,12 @@ router.get(
   protect,
   checkPermission('view_roles'),
   getOrganizationRoles,
+);
+router.post(
+  '/:organizationId/users/:userId/assignments',
+  protect,
+  checkPermission('manage_organization_roles'),
+  assignOrganizationRole
 );
 
 
