@@ -11,7 +11,7 @@ import { IRole } from '../role/role.model';
 import { UserDocument } from '../user/user.model';
 
 interface JwtPayload {
-  id: String;
+  id: string;
 }
 
 export interface AuthRequest extends Request {

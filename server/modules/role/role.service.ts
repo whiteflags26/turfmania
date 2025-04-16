@@ -10,6 +10,12 @@ interface RoleUpdateData {
   permissions?: string[];
 }
 
+interface RoleData {
+  name: string;
+  permissions: string[];
+  isDefault?: boolean;
+}
+
 class RoleService {
   /**
    * Get all roles for an organization
@@ -46,8 +52,8 @@ class RoleService {
     } catch (error: any) {
       console.error('Error fetching organization roles:', error);
       throw new ErrorResponse(
-        error.message || 'Failed to fetch roles',
-        error.statusCode || 500,
+        error.message ?? 'Failed to fetch roles',
+        error.statusCode ?? 500,
       );
     }
   }
@@ -93,7 +99,9 @@ class RoleService {
         const permissions = await Permission.find({
           _id: { $in: updateData.permissions },
           scope: PermissionScope.ORGANIZATION,
-        }).select('_id').lean<{ _id: Types.ObjectId }[]>();
+        })
+          .select('_id')
+          .lean<{ _id: Types.ObjectId }[]>();
 
         if (permissions.length !== updateData.permissions.length) {
           throw new ErrorResponse(
@@ -128,8 +136,108 @@ class RoleService {
     } catch (error: any) {
       console.error('Error updating organization role:', error);
       throw new ErrorResponse(
-        error.message || 'Failed to update role',
-        error.statusCode || 500,
+        error.message ?? 'Failed to update role',
+        error.statusCode ?? 500,
+      );
+    }
+  }
+
+  /**
+   * Validate permissions exist and match the required scope
+   */
+  private async validatePermissions(
+    permissionIds: string[],
+    requiredScope: PermissionScope,
+  ): Promise<Types.ObjectId[]> {
+    const permissions = await Permission.find({
+      _id: { $in: permissionIds },
+      scope: requiredScope,
+    }).select('_id').lean<{ _id: Types.ObjectId }[]>();;
+
+    if (permissions.length !== permissionIds.length) {
+      throw new ErrorResponse(
+        `One or more permissions are invalid or do not match the ${requiredScope} scope`,
+        400,
+      );
+    }
+
+    return permissions.map(p => p._id);
+  }
+
+  /**
+   * Create a new global role
+   */
+  public async createGlobalRole(data: RoleData): Promise<IRole> {
+    if (!data.name || !data.permissions?.length) {
+      throw new ErrorResponse(
+        'Role name and permissions array are required',
+        400,
+      );
+    }
+
+    const validatedPermissionIds = await this.validatePermissions(
+      data.permissions,
+      PermissionScope.GLOBAL,
+    );
+
+    try {
+      const newRole = await Role.create({
+        name: data.name,
+        scope: PermissionScope.GLOBAL,
+        permissions: validatedPermissionIds,
+        isDefault: data.isDefault ?? false,
+      });
+
+      return newRole.populate('permissions', 'name scope');
+    } catch (error: any) {
+      if (error.code === 11000) {
+        throw new ErrorResponse(
+          `A global role named '${data.name}' already exists`,
+          409,
+        );
+      }
+      throw new ErrorResponse(
+        error.message ?? 'Failed to create global role',
+        500,
+      );
+    }
+  }
+
+  /**
+   * Create a new organization-scoped role
+   */
+  public async createOrganizationRole(data: RoleData): Promise<IRole> {
+    if (!data.name || !data.permissions?.length) {
+      throw new ErrorResponse(
+        'Role name and permissions array are required',
+        400,
+      );
+    }
+
+    const validatedPermissionIds = await this.validatePermissions(
+      data.permissions,
+      PermissionScope.ORGANIZATION,
+    );
+
+    try {
+      const newRole = await Role.create({
+        name: data.name,
+        scope: PermissionScope.ORGANIZATION,
+        permissions: validatedPermissionIds,
+        isDefault: data.isDefault ?? false,
+      });
+
+      return newRole.populate('permissions', 'name scope');
+    } catch (error: any) {
+      if (error.code === 11000) {
+        throw new ErrorResponse(
+          `An organization-scoped role named '${data.name}' already exists`,
+          409,
+        );
+      }
+      throw new ErrorResponse(
+        error.message ?? 'Failed to create organization role',
+        500,
       );
     }
   }
