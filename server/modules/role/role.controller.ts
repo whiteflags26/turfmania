@@ -10,6 +10,12 @@ interface UpdateRoleBody {
   permissions?: string[]; // Array of permission IDs
 }
 
+interface CreateRoleBody {
+  name: string;
+  permissions: string[];
+  isDefault?: boolean;
+}
+
 /**
  * @route   GET /api/v1/organizations/:organizationId/roles
  * @desc    Get all roles in an organization
@@ -77,6 +83,79 @@ export const updateOrganizationRole = asyncHandler(
       success: true,
       data: updatedRole,
       message: 'Role updated successfully',
+    });
+  },
+);
+
+/**
+ * @desc    Create a new global role
+ * @route   POST /api/v1/roles/global
+ * @access  Private (Requires 'manage_global_roles' permission)
+ */
+export const createGlobalRole = asyncHandler(
+  async (
+    req: AuthRequest & { body: CreateRoleBody },
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const { name, permissions, isDefault } = req.body;
+
+    // Validate request body
+    if (!name || !permissions?.length) {
+      return next(new ErrorResponse('Name and permissions are required', 400));
+    }
+
+    if (!permissions.every((id: string) => mongoose.Types.ObjectId.isValid(id))) {
+      return next(new ErrorResponse('Invalid permission ID(s) provided', 400));
+    }
+
+    const role = await roleService.createGlobalRole({
+      name,
+      permissions,
+      isDefault,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: role,
+      message: 'Global role created successfully',
+    });
+  },
+);
+
+/**
+ * @desc    Create a new organization role
+ * @route   POST /api/v1/roles/organization
+ * @access  Private (Requires 'manage_organization_roles' permission)
+ */
+export const createOrganizationRole = asyncHandler(
+  async (
+    req: AuthRequest & { body: CreateRoleBody },
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const { name, permissions, isDefault } = req.body;
+
+    // Validate request body
+    if (!name || !permissions?.length) {
+      return next(new ErrorResponse('Name and permissions are required', 400));
+    }
+
+    // Validate permission IDs
+    if (!permissions.every((id: string) => mongoose.Types.ObjectId.isValid(id))) {
+      return next(new ErrorResponse('Invalid permission ID(s) provided', 400));
+    }
+
+    const role = await roleService.createOrganizationRole({
+      name,
+      permissions,
+      isDefault,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: role,
+      message: 'Organization role created successfully',
     });
   },
 );
