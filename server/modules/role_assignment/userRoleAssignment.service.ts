@@ -8,7 +8,7 @@ import Organization from "../organization/organization.model";
 
 
 class UserRoleAssignmentService{
-    async assignROleTOUser(
+    async assignRoleToUser(
         userId:string,
         roleId:string,
         scope:PermissionScope,
