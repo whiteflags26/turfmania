@@ -24,6 +24,9 @@ const config: Config.InitialOptions = {
       statements: 50,
     },
   },
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1'
+  },
   verbose: true,
   setupFilesAfterEnv: ["./jest.setup.ts"],
 };
