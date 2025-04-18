@@ -3,6 +3,7 @@ import { checkPermission, protect } from '../auth/auth.middleware';
 import {
   createGlobalRole,
   createOrganizationRole,
+  deleteRole,
   getGlobalRoles,
   getOrganizationRoles,
   getRoleById,
@@ -49,4 +50,10 @@ router.get(
   getRoleById
 );
 
+// Delete role
+router.delete(
+  '/:roleId',
+  checkPermission('manage_user_global_roles'),
+  deleteRole
+);
 export default router;

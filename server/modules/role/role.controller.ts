@@ -202,3 +202,29 @@ export const getRoleById = asyncHandler(
     });
   }
 );
+
+/**
+ * @desc    Delete role by ID
+ * @route   DELETE /api/v1/roles/:roleId
+ * @access  Private (Requires appropriate scope permission)
+ */
+export const deleteRole = asyncHandler(
+  async (
+    req: AuthRequest & { params: { roleId: string } },
+    res: Response,
+    next: NextFunction
+  ) => {
+    const { roleId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(roleId)) {
+      return next(new ErrorResponse('Invalid Role ID', 400));
+    }
+
+    await roleService.deleteRole(roleId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Role deleted successfully'
+    });
+  }
+);
