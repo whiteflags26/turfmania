@@ -21,7 +21,7 @@ router.get(
 router.post(
   '/global',
   protect,
-  checkPermission('manage_global_roles'),
+  checkPermission('manage_user_global_roles'),
   createGlobalRole,
 );
 

@@ -12,6 +12,7 @@ import turfReviewRoutes from './modules/turf-review/turf-review.route';
 import timeslotRoutes from './modules/timeslot/timeslot.route';
 import bookingRoutes from './modules/booking/booking.route';
 import userRoleAssignmentRoutes from './modules/role_assignment/userRoleAssignment.routes';
+import roleRouter from './modules/role/role.routes'
 
 const app = express();
 const port = process.env.PORT ?? 3000;
@@ -41,6 +42,7 @@ app.use('/api/v1/turf-review', turfReviewRoutes);
 app.use('/api/v1/timeslot', timeslotRoutes);
 app.use('/api/v1/booking', bookingRoutes);
 app.use('/api/v1/role-assignments', userRoleAssignmentRoutes);
+app.use('/api/v1/role',roleRouter );
 app.use(errorHandler);
 
 app.listen(port, () => console.log(`Server app listening on port ${port}!`));
