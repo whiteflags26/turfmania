@@ -277,6 +277,51 @@ class RoleService {
   }
 }
 
+/**
+ * Delete role by ID and remove all associated assignments
+ */
+public async deleteRole(roleId: string): Promise<void> {
+  try {
+    const role = await Role.findById(roleId);
+    if (!role) {
+      throw new ErrorResponse('Role not found', 404);
+    }
+
+    if (role.isDefault) {
+      throw new ErrorResponse('Cannot delete default roles', 400);
+    }
+
+    // Use a session to ensure both operations succeed or fail together
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Delete all role assignments first
+      await UserRoleAssignment.deleteMany({ roleId: role._id }).session(session);
+
+      // Then delete the role itself
+      await Role.deleteOne({ _id: role._id }).session(session);
+
+      // Commit the transaction
+      await session.commitTransaction();
+    } catch (error) {
+      // If anything fails, rollback the transaction
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      // End the session
+      session.endSession();
+    }
+
+  } catch (error: any) {
+    console.error('Error deleting role:', error);
+    throw new ErrorResponse(
+      error.message ?? 'Failed to delete role',
+      error.statusCode ?? 500
+    );
+  }
+}
+
 }
 
 export const roleService = new RoleService();
