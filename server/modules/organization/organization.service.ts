@@ -28,7 +28,7 @@ class OrganizationService {
     name: string,
     facilities: string[],
     location: IOrganization['location'],
-    images: Express.Multer.File[], // Make parameter optional
+    images?: Express.Multer.File[], 
   ): Promise<IOrganization | null> {
     try {
       let imageUrls: string[] = [];

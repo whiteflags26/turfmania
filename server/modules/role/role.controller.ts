@@ -4,7 +4,6 @@ import asyncHandler from '../../shared/middleware/async';
 import ErrorResponse from '../../utils/errorResponse';
 import { AuthRequest } from '../auth/auth.middleware';
 import { roleService } from './role.service';
-import { PermissionScope } from '../permission/permission.model';
 
 interface UpdateRoleBody {
   name?: string;
@@ -106,7 +105,9 @@ export const createGlobalRole = asyncHandler(
       return next(new ErrorResponse('Name and permissions are required', 400));
     }
 
-    if (!permissions.every((id: string) => mongoose.Types.ObjectId.isValid(id))) {
+    if (
+      !permissions.every((id: string) => mongoose.Types.ObjectId.isValid(id))
+    ) {
       return next(new ErrorResponse('Invalid permission ID(s) provided', 400));
     }
 
@@ -143,7 +144,9 @@ export const createOrganizationRole = asyncHandler(
     }
 
     // Validate permission IDs
-    if (!permissions.every((id: string) => mongoose.Types.ObjectId.isValid(id))) {
+    if (
+      !permissions.every((id: string) => mongoose.Types.ObjectId.isValid(id))
+    ) {
       return next(new ErrorResponse('Invalid permission ID(s) provided', 400));
     }
 
@@ -173,9 +176,9 @@ export const getGlobalRoles = asyncHandler(
     res.status(200).json({
       success: true,
       count: roles.length,
-      data: roles
+      data: roles,
     });
-  }
+  },
 );
 
 /**
@@ -187,7 +190,7 @@ export const getRoleById = asyncHandler(
   async (
     req: AuthRequest & { params: { roleId: string } },
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) => {
     const { roleId } = req.params;
 
@@ -199,9 +202,9 @@ export const getRoleById = asyncHandler(
 
     res.status(200).json({
       success: true,
-      data: role
+      data: role,
     });
-  }
+  },
 );
 
 /**
@@ -213,7 +216,7 @@ export const deleteRole = asyncHandler(
   async (
     req: AuthRequest & { params: { roleId: string } },
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) => {
     const { roleId } = req.params;
 
@@ -225,7 +228,7 @@ export const deleteRole = asyncHandler(
 
     res.status(200).json({
       success: true,
-      message: 'Role deleted successfully'
+      message: 'Role deleted successfully',
     });
-  }
+  },
 );
