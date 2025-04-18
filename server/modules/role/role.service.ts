@@ -256,6 +256,27 @@ class RoleService {
       );
     }
   }
+ /**
+   * Get role by ID
+   */
+ public async getRoleById(roleId: string): Promise<IRole> {
+  try {
+    const role = await Role.findById(roleId)
+      .populate('permissions', 'name description scope');
+    
+    if (!role) {
+      throw new ErrorResponse('Role not found', 404);
+    }
+    
+    return role;
+  } catch (error: any) {
+    throw new ErrorResponse(
+      error.message ?? 'Failed to fetch role',
+      error.statusCode ?? 500
+    );
+  }
+}
+
 }
 
 export const roleService = new RoleService();
