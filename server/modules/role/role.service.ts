@@ -241,6 +241,21 @@ class RoleService {
       );
     }
   }
+   /**
+   * Get all global roles
+   */
+   public async getGlobalRoles(): Promise<IRole[]> {
+    try {
+      return await Role.find({ scope: PermissionScope.GLOBAL })
+        .populate('permissions', 'name description scope')
+        .lean();
+    } catch (error: any) {
+      throw new ErrorResponse(
+        error.message ?? 'Failed to fetch global roles',
+        500
+      );
+    }
+  }
 }
 
 export const roleService = new RoleService();
