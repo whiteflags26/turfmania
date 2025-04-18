@@ -9,6 +9,50 @@ import UserRoleAssignment, {
 } from './userRoleAssignment.model';
 
 class UserRoleAssignmentService {
+  private async validateIds(
+    userId: string,
+    roleId: string,
+  ): Promise<{ userObjectId: Types.ObjectId; roleObjectId: Types.ObjectId }> {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new ErrorResponse('Invalid User ID', 400);
+    }
+    if (!mongoose.Types.ObjectId.isValid(roleId)) {
+      throw new ErrorResponse('Invalid Role ID', 400);
+    }
+
+    return {
+      userObjectId: new Types.ObjectId(userId),
+      roleObjectId: new Types.ObjectId(roleId),
+    };
+  }
+
+  private async validateScopeContext(
+    scope: PermissionScope,
+    scopeId?: string,
+  ): Promise<Types.ObjectId | undefined> {
+    if (
+      scope !== PermissionScope.ORGANIZATION &&
+      scope !== PermissionScope.EVENT
+    ) {
+      return undefined;
+    }
+
+    if (!scopeId || !mongoose.Types.ObjectId.isValid(scopeId)) {
+      throw new ErrorResponse(`Valid ${scope} ID (scopeId) is required`, 400);
+    }
+
+    const contextObjectId = new Types.ObjectId(scopeId);
+
+    if (scope === PermissionScope.ORGANIZATION) {
+      const orgExists = await Organization.exists({ _id: contextObjectId });
+      if (!orgExists) {
+        throw new ErrorResponse('Organization context not found', 404);
+      }
+    }
+
+    return contextObjectId;
+  }
+
   public async assignRoleToUser(
     userId: string,
     roleId: string,
@@ -16,17 +60,11 @@ class UserRoleAssignmentService {
     scopeId?: string,
   ): Promise<IUserRoleAssignment> {
     try {
-      // Validate IDs
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        throw new ErrorResponse('Invalid User ID', 400);
-      }
-      if (!mongoose.Types.ObjectId.isValid(roleId)) {
-        throw new ErrorResponse('Invalid Role ID', 400);
-      }
-
-      const userObjectId = new Types.ObjectId(userId);
-      const roleObjectId = new Types.ObjectId(roleId);
-      let contextObjectId: Types.ObjectId | undefined;
+      // Validate IDs and get ObjectIds
+      const { userObjectId, roleObjectId } = await this.validateIds(
+        userId,
+        roleId,
+      );
 
       // Check user exists
       const userExists = await User.exists({ _id: userObjectId });
@@ -46,42 +84,24 @@ class UserRoleAssignmentService {
         );
       }
 
-      // Handle scope-specific validation
-      if (
-        scope === PermissionScope.ORGANIZATION ||
-        scope === PermissionScope.EVENT
-      ) {
-        if (!scopeId || !mongoose.Types.ObjectId.isValid(scopeId)) {
-          throw new ErrorResponse(
-            `Valid ${scope} ID (scopeId) is required`,
-            400,
-          );
-        }
-        contextObjectId = new Types.ObjectId(scopeId);
+      // Validate scope context
+      const contextObjectId = await this.validateScopeContext(scope, scopeId);
 
-        if (scope === PermissionScope.ORGANIZATION) {
-          const orgExists = await Organization.exists({ _id: contextObjectId });
-          if (!orgExists) {
-            throw new ErrorResponse('Organization context not found', 404);
-          }
-        }
-      }
-
-      const assignmentData = {
-        userId: userObjectId,
-        roleId: roleObjectId,
-        scope,
-        ...(contextObjectId && { scopeId: contextObjectId }),
-      };
-
-      // Use findOneAndUpdate with upsert to handle race conditions
+      // Create assignment
       const assignment = await UserRoleAssignment.findOneAndUpdate(
         {
           userId: userObjectId,
           roleId: roleObjectId,
-          scopeId: contextObjectId, // Will be undefined for global scope
+          scopeId: contextObjectId,
         },
-        { $setOnInsert: assignmentData },
+        {
+          $setOnInsert: {
+            userId: userObjectId,
+            roleId: roleObjectId,
+            scope,
+            ...(contextObjectId && { scopeId: contextObjectId }),
+          },
+        },
         { new: true, upsert: true, runValidators: true },
       );
 

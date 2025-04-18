@@ -322,21 +322,7 @@ public async deleteRole(roleId: string): Promise<void> {
   }
 }
 
-  /**
-   * Get all roles by scope
-   */
-  public async getRolesByScope(scope: PermissionScope): Promise<IRole[]> {
-    try {
-      return await Role.find({ scope })
-        .populate('permissions', 'name description scope')
-        .lean();
-    } catch (error: any) {
-      throw new ErrorResponse(
-        error.message ?? 'Failed to fetch roles',
-        500
-      );
-    }
-  }
+
 
 
 

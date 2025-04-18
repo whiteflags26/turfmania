@@ -4,6 +4,7 @@ import asyncHandler from '../../shared/middleware/async';
 import ErrorResponse from '../../utils/errorResponse';
 import { AuthRequest } from '../auth/auth.middleware';
 import { roleService } from './role.service';
+import { PermissionScope } from '../permission/permission.model';
 
 interface UpdateRoleBody {
   name?: string;
