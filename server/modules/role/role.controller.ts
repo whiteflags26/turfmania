@@ -176,3 +176,29 @@ export const getGlobalRoles = asyncHandler(
     });
   }
 );
+
+/**
+ * @desc    Get role by ID
+ * @route   GET /api/v1/roles/:roleId
+ * @access  Private (Requires 'view_roles' permission)
+ */
+export const getRoleById = asyncHandler(
+  async (
+    req: AuthRequest & { params: { roleId: string } },
+    res: Response,
+    next: NextFunction
+  ) => {
+    const { roleId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(roleId)) {
+      return next(new ErrorResponse('Invalid Role ID', 400));
+    }
+
+    const role = await roleService.getRoleById(roleId);
+
+    res.status(200).json({
+      success: true,
+      data: role
+    });
+  }
+);

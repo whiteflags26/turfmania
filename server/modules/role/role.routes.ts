@@ -5,6 +5,7 @@ import {
   createOrganizationRole,
   getGlobalRoles,
   getOrganizationRoles,
+  getRoleById,
 } from './role.controller';
 
 const router = express.Router({ mergeParams: true });
@@ -39,4 +40,13 @@ router.get(
   // checkPermission('view_global_roles'),
   getGlobalRoles
 );
+
+
+// Get role by ID
+router.get(
+  '/:roleId',
+  // checkPermission('view_roles'),
+  getRoleById
+);
+
 export default router;
