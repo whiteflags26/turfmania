@@ -159,3 +159,20 @@ export const createOrganizationRole = asyncHandler(
     });
   },
 );
+
+/**
+ * @desc    Get all global roles
+ * @route   GET /api/v1/roles/global
+ * @access  Private (Requires 'view_global_roles' permission)
+ */
+export const getGlobalRoles = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const roles = await roleService.getGlobalRoles();
+
+    res.status(200).json({
+      success: true,
+      count: roles.length,
+      data: roles
+    });
+  }
+);

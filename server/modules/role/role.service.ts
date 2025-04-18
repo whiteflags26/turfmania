@@ -332,7 +332,7 @@ public async deleteRole(roleId: string): Promise<void> {
         .lean();
     } catch (error: any) {
       throw new ErrorResponse(
-        error.message || 'Failed to fetch roles',
+        error.message ?? 'Failed to fetch roles',
         500
       );
     }

@@ -3,6 +3,7 @@ import { checkPermission, protect } from '../auth/auth.middleware';
 import {
   createGlobalRole,
   createOrganizationRole,
+  getGlobalRoles,
   getOrganizationRoles,
 } from './role.controller';
 
@@ -32,5 +33,10 @@ router.post(
   checkPermission('manage_organization_roles'),
   createOrganizationRole,
 );
-
+// Get all global roles
+router.get(
+  '/global',
+  // checkPermission('view_global_roles'),
+  getGlobalRoles
+);
 export default router;
