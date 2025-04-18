@@ -56,8 +56,7 @@ export const protect = async (
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
 
     // Fetch user and attach to request object excluding password
-    const user = await User.findById(decoded.id)
-      .select('+password'); // Select password only if needed later (e.g., password change)
+    const user = await User.findById(decoded.id).select('+password'); // Select password only if needed later (e.g., password change)
 
     if (!user) {
       return next(new ErrorResponse('User not found', 404));
@@ -70,24 +69,84 @@ export const protect = async (
   }
 };
 
+async function validateRequiredPermission(permissionName: string): Promise<{
+  permissionId: Types.ObjectId;
+  scope: PermissionScope;
+} | null> {
+  const permission = await Permission.findOne({ name: permissionName })
+    .select('_id name scope')
+    .lean();
+
+  if (!permission) {
+    console.warn(`Permission '${permissionName}' not found in database.`);
+    return null;
+  }
+
+  return {
+    permissionId: permission._id as Types.ObjectId,
+    scope: permission.scope,
+  };
+}
+
+function getScopeContext(
+  scope: PermissionScope,
+  req: AuthRequest,
+): Types.ObjectId | null {
+  const organizationId =
+    req.organizationId || req.params.id || req.params.organizationId;
+  const eventId = req.eventId || req.params.eventId;
+
+  if (scope === PermissionScope.ORGANIZATION && organizationId) {
+    return new mongoose.Types.ObjectId(organizationId as string);
+  }
+  if (scope === PermissionScope.EVENT && eventId) {
+    return new mongoose.Types.ObjectId(eventId as string);
+  }
+  return null;
+}
+
+async function checkUserPermission(
+  userId: Types.ObjectId,
+  permissionId: Types.ObjectId,
+  scope: PermissionScope,
+  contextId?: Types.ObjectId,
+): Promise<boolean> {
+  const query = {
+    userId,
+    scope,
+    ...(contextId && { scopeId: contextId }),
+  };
+
+  const assignments = await UserRoleAssignment.findOne(query).populate<{
+    roleId: IRole;
+  }>({
+    path: 'roleId',
+    select: 'permissions',
+    populate: {
+      path: 'permissions',
+      select: '_id',
+    },
+  });
+
+  if (!assignments?.roleId?.permissions) return false;
+
+  return assignments.roleId.permissions.some((p: { _id: Types.ObjectId }) =>
+    p._id.equals(permissionId),
+  );
+}
+
+// Main middleware with reduced complexity
 export const checkPermission = (requiredPermissionName: string) => {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(new ErrorResponse('User not authenticated', 401));
-    }
-
     try {
-      // 1. Find the required permission details with proper typing
-      const requiredPermission = await Permission.findOne({
-        name: requiredPermissionName,
-      })
-        .select('_id name scope')
-        .lean();
+      if (!req.user) {
+        return next(new ErrorResponse('User not authenticated', 401));
+      }
 
-      if (!requiredPermission) {
-        console.warn(
-          `Permission check failed: Permission '${requiredPermissionName}' not found in database.`,
-        );
+      const permissionData = await validateRequiredPermission(
+        requiredPermissionName,
+      );
+      if (!permissionData) {
         return next(
           new ErrorResponse(
             `Permission '${requiredPermissionName}' is not configured.`,
@@ -96,118 +155,42 @@ export const checkPermission = (requiredPermissionName: string) => {
         );
       }
 
-      const userId = req.user._id;
-      const requiredScope = requiredPermission.scope;
-      // Convert the _id to ObjectId explicitly
-      const requiredPermissionId = new Types.ObjectId(
-        requiredPermission._id.toString(),
-      );
-
-      // 2. Determine Context ID based on scope
-      let contextScopeId: Types.ObjectId | string | null | undefined = null;
-      const organizationId =
-        req.organizationId || req.params.id || req.params.organizationId;
-      const eventId = req.eventId || req.params.eventId;
-
-      if (requiredScope === PermissionScope.ORGANIZATION) {
-        if (!organizationId) {
-          return next(
-            new ErrorResponse(`Organization not found`, 400),
-          );
-        }
-        contextScopeId = new mongoose.Types.ObjectId(organizationId as string);
-      } else if (requiredScope === PermissionScope.EVENT) {
-        if (!eventId) {
-          return next(
-            new ErrorResponse(`Event not found`, 400),
-          );
-
-          
-        }
-        contextScopeId = new mongoose.Types.ObjectId(eventId as string);
-      }
-
-      // 3. Find relevant role assignments
-      const query: any = { userId: userId, scope: requiredScope };
-      if (contextScopeId) {
-        query.scopeId = contextScopeId;
-      } else if (requiredScope !== PermissionScope.GLOBAL) {
-        console.error(
-          `Scope ID missing for non-global permission check. Scope: ${requiredScope}`,
-        );
-        return next(
-          new ErrorResponse(`Context ID error during permission check.`, 500),
-        );
-      }
-
-      const assignments = await UserRoleAssignment.find(query).populate<{
-        roleId: IRole;
-      }>({
-        // Type the populated field
-        path: 'roleId',
-        select: 'permissions', // Select permissions array from Role
-        populate: {
-          // Populate items WITHIN the permissions array
-          path: 'permissions',
-          select: '_id', // Select ONLY _id from each Permission doc
-        },
-      });
-
-      if(assignments.length>1){
-        return next(new ErrorResponse(`Got more than one role which is contradictory`, 500),)
-      }
-
-      // 4. Check if any assigned role has the required permission
-      let hasPermission = false;
-      for (const assignment of assignments) {
-        // Check roleId and its permissions array exist after population
-        if (
-          assignment.roleId?.permissions &&
-          Array.isArray(assignment.roleId.permissions)
-        ) {
-          // FIX 2: Explicitly type the parameter 'p'
-          if (
-            assignment.roleId.permissions.some((p: { _id: Types.ObjectId }) =>
-              p._id.equals(requiredPermissionId),
-            )
-          ) {
-            hasPermission = true;
-            break;
-          }
-        }
-      }
-
-      // 5. Final Decision
-      if (hasPermission) {
-        next();
-      } else {
-        console.log(
-          `Authorization denied for user ${
-            req.user.email
-          } attempting action '${requiredPermissionName}' on scope '${requiredScope}' (Context ID: ${
-            contextScopeId || 'N/A'
-          })`,
-        );
+      const contextId = getScopeContext(permissionData.scope, req);
+      if (!contextId && permissionData.scope !== PermissionScope.GLOBAL) {
         return next(
           new ErrorResponse(
-            `User is not authorized to perform action: ${requiredPermissionName}`,
-            403,
+            `Context ID required for ${permissionData.scope} scope`,
+            400,
           ),
         );
       }
-    } catch (error: any) {
-      // ... (error handling remains same) ...
-      if (error instanceof mongoose.Error.CastError) {
-        console.error(
-          'Error casting context ID during permission check:',
-          error,
-        );
-        return next(
-          new ErrorResponse('Invalid ID format provided for context.', 400),
-        );
+
+      const hasPermission = await checkUserPermission(
+        req.user.id,
+        permissionData.permissionId,
+        permissionData.scope,
+        contextId || undefined,
+      );
+
+      if (hasPermission) {
+        return next();
       }
-      console.error('Error during permission check:', error);
-      next(new ErrorResponse('Server error during authorization check', 500));
+
+      console.log(
+        `Authorization denied for user ${req.user.email} - ${requiredPermissionName}`,
+      );
+      return next(
+        new ErrorResponse(
+          `Not authorized to perform: ${requiredPermissionName}`,
+          403,
+        ),
+      );
+    } catch (error: any) {
+      if (error instanceof mongoose.Error.CastError) {
+        return next(new ErrorResponse('Invalid ID format provided', 400));
+      }
+      console.error('Permission check error:', error);
+      return next(new ErrorResponse('Authorization check failed', 500));
     }
   };
 };
