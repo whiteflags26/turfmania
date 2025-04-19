@@ -1,43 +1,48 @@
-import AdminActionLog, { IAdminActionLog } from './adminActions.model';
 import { Request } from 'express';
 import { Types } from 'mongoose';
+import AdminActionLog, { IAdminActionLog } from './adminActions.model';
 
 export class AdminLoggerService {
   /**
    * Log an admin action
    */
-  static async logAction(
+  public async logAction(
     userId: Types.ObjectId | string,
     action: string,
     entityType: string,
     details: any = {},
     req?: Request,
-    entityId?: Types.ObjectId | string
+    entityId?: Types.ObjectId | string,
   ): Promise<IAdminActionLog> {
-    // Convert string IDs to ObjectIds if needed
-    const userObjectId = typeof userId === 'string' ? new Types.ObjectId(userId) : userId;
-    const entityObjectId = entityId && typeof entityId === 'string' ? new Types.ObjectId(entityId) : entityId;
-    
-    // Create log entry
+    const userObjectId =
+      typeof userId === 'string' ? new Types.ObjectId(userId) : userId;
+    const entityObjectId =
+      entityId && typeof entityId === 'string'
+        ? new Types.ObjectId(entityId)
+        : entityId;
+
     const log = new AdminActionLog({
       userId: userObjectId,
       action,
       entityType,
       entityId: entityObjectId,
       details,
-      ipAddress: req?.ip ?? req?.headers['x-forwarded-for'] ??'unknown',
+      ipAddress: req?.ip ?? req?.headers['x-forwarded-for'] ?? 'unknown',
       userAgent: req?.headers['user-agent'] ?? 'unknown',
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
-    // Save and return log
     return await log.save();
   }
 
   /**
    * Get logs for a specific user
    */
-  static async getLogsByUser(userId: Types.ObjectId | string, limit = 100, skip = 0): Promise<IAdminActionLog[]> {
+  public async getLogsByUser(
+    userId: Types.ObjectId | string,
+    limit = 100,
+    skip = 0,
+  ): Promise<IAdminActionLog[]> {
     return AdminActionLog.find({ userId })
       .sort({ timestamp: -1 })
       .skip(skip)
@@ -49,11 +54,11 @@ export class AdminLoggerService {
   /**
    * Get logs for a specific entity
    */
-  static async getLogsByEntity(
+  public async getLogsByEntity(
     entityType: string,
     entityId: Types.ObjectId | string,
     limit = 100,
-    skip = 0
+    skip = 0,
   ): Promise<IAdminActionLog[]> {
     return AdminActionLog.find({ entityType, entityId })
       .sort({ timestamp: -1 })
@@ -66,7 +71,11 @@ export class AdminLoggerService {
   /**
    * Get all admin action logs with pagination
    */
-  static async getAllLogs(limit = 100, skip = 0, filters = {}): Promise<IAdminActionLog[]> {
+  public async getAllLogs(
+    limit = 100,
+    skip = 0,
+    filters = {},
+  ): Promise<IAdminActionLog[]> {
     return AdminActionLog.find(filters)
       .sort({ timestamp: -1 })
       .skip(skip)

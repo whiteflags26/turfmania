@@ -9,7 +9,7 @@ import ErrorResponse from '../../utils/errorResponse';
 import Permission from '../permission/permission.model';
 import { IRole } from '../role/role.model';
 import { UserDocument } from '../user/user.model';
-import { AdminLoggerService } from '../admin_actions/adminActions.service';
+import { adminLoggerService } from '../admin_actions/adminActions.service';
 
 interface JwtPayload {
   id: string;
@@ -211,7 +211,7 @@ export const logAdminAction = (action: string, entityType: string) => {
         const entityId = req.params.id 
         
         // Log the action
-        AdminLoggerService.logAction(
+        adminLoggerService.logAction(
           req.user.id,
           action,
           entityType,
