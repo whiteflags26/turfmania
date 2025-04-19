@@ -1,18 +1,10 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/Button";
+import { IPagination, SetPagination } from "@/types/pagination";
 
 interface Props {
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-  };
-  setPagination: React.Dispatch<
-    React.SetStateAction<{
-      currentPage: number;
-      totalPages: number;
-      totalResults: number;
-    }>
-  >;
+  pagination: IPagination;
+  setPagination: SetPagination;
 }
 
 export default function TurfPagination({ pagination, setPagination }: Props) {
@@ -42,7 +34,7 @@ export default function TurfPagination({ pagination, setPagination }: Props) {
         size="sm"
         disabled={currentPage === 1}
         onClick={() =>
-          setPagination((prev) => ({
+          setPagination((prev: { currentPage: number; }) => ({
             ...prev,
             currentPage: prev.currentPage - 1,
           }))
@@ -54,16 +46,16 @@ export default function TurfPagination({ pagination, setPagination }: Props) {
 
       <div className="flex items-center gap-1">
         {getPageNumbers().map((page) => (
-          <Button
+            <Button
             key={page}
             variant={page === currentPage ? "default" : "outline"}
             size="sm"
             onClick={() =>
-              setPagination((prev) => ({ ...prev, currentPage: page }))
+              setPagination((prev: IPagination) => ({ ...prev, currentPage: page }))
             }
-          >
+            >
             {page}
-          </Button>
+            </Button>
         ))}
       </div>
 
@@ -72,9 +64,9 @@ export default function TurfPagination({ pagination, setPagination }: Props) {
         size="sm"
         disabled={currentPage === totalPages}
         onClick={() =>
-          setPagination((prev) => ({
-            ...prev,
-            currentPage: prev.currentPage + 1,
+          setPagination((prev: IPagination) => ({
+        ...prev,
+        currentPage: prev.currentPage + 1,
           }))
         }
         className="flex items-center gap-1"
