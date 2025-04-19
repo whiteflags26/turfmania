@@ -1,10 +1,10 @@
-import { NextFunction, Request, Response } from "express";
-import mongoose from "mongoose";
-import asyncHandler from "../../shared/middleware/async";
-import ErrorResponse from "../../utils/errorResponse";
-import TurfService from "./turf.service";
-import { ITurf } from "./turf.model";
-import { FilterOptions } from "../../types/filter.d";
+import { NextFunction, Request, Response } from 'express';
+import mongoose from 'mongoose';
+import asyncHandler from '../../shared/middleware/async';
+import { FilterOptions } from '../../types/filter.d';
+import ErrorResponse from '../../utils/errorResponse';
+import { ITurf } from './turf.model';
+import TurfService from './turf.service';
 
 export default class TurfController {
   private readonly turfService: TurfService;
@@ -30,29 +30,29 @@ export default class TurfController {
       const images = req.files as Express.Multer.File[];
 
       // Parse numeric fields
-      let parsedBasePrice: ITurf["basePrice"];
+      let parsedBasePrice: ITurf['basePrice'];
       parsedBasePrice = parseFloat(basePrice);
       if (isNaN(parsedBasePrice)) {
-        return next(new ErrorResponse("basePrice must be a valid number", 400));
+        return next(new ErrorResponse('basePrice must be a valid number', 400));
       }
 
       // Parse sports (if sent as a JSON string)
-      let parsedSports: ITurf["sports"];
+      let parsedSports: ITurf['sports'];
       try {
-        parsedSports = typeof sports === "string" ? JSON.parse(sports) : sports;
+        parsedSports = typeof sports === 'string' ? JSON.parse(sports) : sports;
       } catch (error) {
-        return next(new ErrorResponse("Invalid sports format", 400));
+        return next(new ErrorResponse('Invalid sports format', 400));
       }
 
       // Parse operatingHours (if sent as a JSON string)
-      let parsedOperatingHours: ITurf["operatingHours"];
+      let parsedOperatingHours: ITurf['operatingHours'];
       try {
         parsedOperatingHours =
-          typeof operatingHours === "string"
+          typeof operatingHours === 'string'
             ? JSON.parse(operatingHours)
             : operatingHours;
       } catch (error) {
-        return next(new ErrorResponse("Invalid operatingHours format", 400));
+        return next(new ErrorResponse('Invalid operatingHours format', 400));
       }
 
       // Validate parsed data
@@ -64,7 +64,7 @@ export default class TurfController {
         !organization ||
         !parsedOperatingHours
       ) {
-        return next(new ErrorResponse("All fields are required", 400));
+        return next(new ErrorResponse('All fields are required', 400));
       }
 
       // Create turf data object
@@ -83,9 +83,9 @@ export default class TurfController {
       res.status(201).json({
         success: true,
         data: turf,
-        message: "Turf created successfully",
+        message: 'Turf created successfully',
       });
-    }
+    },
   );
 
   /**
@@ -99,14 +99,14 @@ export default class TurfController {
       const filter = req.query;
       const turfs = await this.turfService.getTurfs(filter);
       if (!turfs) {
-        return next(new ErrorResponse("No turf found", 400));
+        return next(new ErrorResponse('No turf found', 400));
       }
 
       res.status(200).json({
         success: true,
         data: turfs,
       });
-    }
+    },
   );
 
   /**
@@ -119,18 +119,18 @@ export default class TurfController {
     async (req: Request, res: Response, next: NextFunction) => {
       const { id } = req.params;
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        return next(new ErrorResponse("Invalid Turf ID format", 404));
+        return next(new ErrorResponse('Invalid Turf ID format', 404));
       }
       const turf = await this.turfService.getTurfById(id);
       if (!turf) {
-        return next(new ErrorResponse("No turf found", 404));
+        return next(new ErrorResponse('No turf found', 404));
       }
 
       res.status(200).json({
         success: true,
         data: turf,
       });
-    }
+    },
   );
 
   /**
@@ -146,99 +146,133 @@ export default class TurfController {
       const newImages = req.files as Express.Multer.File[];
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        return next(new ErrorResponse("Invalid Turf ID format", 404));
+        return next(new ErrorResponse('Invalid Turf ID format', 404));
       }
 
       try {
         const updateData = await this.validateAndParseUpdateData(
           { basePrice, operatingHours, sports, ...rest },
-          next
+          next,
         );
         if (!updateData) return;
 
         const turf = await this.turfService.updateTurf(
           id,
           updateData,
-          newImages
+          newImages,
         );
-        if (!turf) return next(new ErrorResponse("No turf found", 404));
+        if (!turf) return next(new ErrorResponse('No turf found', 404));
 
         res.status(200).json({
           success: true,
           data: turf,
-          message: "Turf updated successfully",
+          message: 'Turf updated successfully',
         });
       } catch (error) {
         next(error);
       }
-    }
+    },
   );
 
   private async validateAndParseUpdateData(
     data: any,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<Partial<ITurf> | void> {
-    const updateData: Partial<ITurf> = {};
-    const { basePrice, operatingHours, sports, team_size, ...rest } = data;
+    try {
+      const { basePrice, operatingHours, sports, team_size, ...rest } = data;
+      const updateData: Partial<ITurf> = {};
 
-    // Copy simple fields
-    Object.assign(updateData, rest);
+      // Validate and parse all fields simultaneously
+      const [
+        basePriceResult,
+        sportsResult,
+        operatingHoursResult,
+        teamSizeResult,
+      ] = await Promise.all([
+        this.parseBasePrice(basePrice),
+        this.parseSports(sports),
+        this.parseOperatingHours(operatingHours),
+        this.parseTeamSize(team_size),
+      ]);
 
-    // Parse and validate individual fields
-    const parsers = [
-      this.parseBasePrice(basePrice, next),
-      this.parseSports(sports, next),
-      this.parseOperatingHours(operatingHours, next),
-      this.parseTeamSize(team_size, next),
-    ];
+      // Check for validation errors
+      const validationResults = [
+        basePriceResult,
+        sportsResult,
+        operatingHoursResult,
+        teamSizeResult,
+      ];
 
-    // Check for any parser errors
-    for (const result of parsers) {
-      if (result.error) return next(result.error);
-      Object.assign(updateData, result.data);
+      // Find first error, if any
+      const error = validationResults.find(result => result.error);
+      if (error) {
+        return next(error.error);
+      }
+
+      // Merge all valid results
+      const parsedData = validationResults.reduce(
+        (acc, result) => ({
+          ...acc,
+          ...result.data,
+        }),
+        {},
+      );
+
+      // Merge with rest of the data
+      return {
+        ...updateData,
+        ...parsedData,
+        ...rest,
+      };
+    } catch (error) {
+      console.error('Error validating turf update data:', error);
+      return next(
+        new ErrorResponse(
+          `Error processing update data: ${(error as Error).message}`,
+          400,
+        ),
+      );
     }
-
-    return updateData;
   }
 
-  // Field-specific parser functions
-  private parseBasePrice(value: any, next: NextFunction) {
+  // Update parser functions to not require next parameter
+  private parseBasePrice(value: any) {
     if (!value) return { data: {} };
     const parsed = parseFloat(value);
     return isNaN(parsed)
-      ? { error: new ErrorResponse("basePrice must be a valid number", 400) }
+      ? { error: new ErrorResponse('basePrice must be a valid number', 400) }
       : { data: { basePrice: parsed } };
   }
 
-  private parseSports(value: any, next: NextFunction) {
+  private parseSports(value: any) {
     if (!value) return { data: {} };
     try {
       return {
-        data: { sports: typeof value === "string" ? JSON.parse(value) : value },
+        data: { sports: typeof value === 'string' ? JSON.parse(value) : value },
       };
     } catch {
-      return { error: new ErrorResponse("Invalid sports format", 400) };
+      return { error: new ErrorResponse('Invalid sports format', 400) };
     }
   }
 
-  private parseOperatingHours(value: any, next: NextFunction) {
+  private parseOperatingHours(value: any) {
     if (!value) return { data: {} };
     try {
       return {
         data: {
-          operatingHours: typeof value === "string" ? JSON.parse(value) : value,
+          operatingHours: typeof value === 'string' ? JSON.parse(value) : value,
         },
       };
     } catch {
-      return { error: new ErrorResponse("Invalid operatingHours format", 400) };
+      return { error: new ErrorResponse('Invalid operatingHours format', 400) };
     }
   }
 
-  private parseTeamSize(value: any, next: NextFunction) {
+  private parseTeamSize(value: any) {
     if (!value) return { data: {} };
     const parsed = parseInt(value);
     return isNaN(parsed)
-      ? { error: new ErrorResponse("team_size must be a valid integer", 400) }
+      ? { error: new ErrorResponse('team_size must be a valid integer', 400) }
       : { data: { team_size: parsed } };
   }
 
@@ -252,21 +286,21 @@ export default class TurfController {
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        return next(new ErrorResponse("Invalid Turf ID format", 404));
+        return next(new ErrorResponse('Invalid Turf ID format', 404));
       }
 
       const turf = await this.turfService.deleteTurf(id);
 
       if (!turf) {
-        return next(new ErrorResponse("No turf found", 404));
+        return next(new ErrorResponse('No turf found', 404));
       }
 
       res.status(200).json({
         success: true,
         data: turf,
-        message: "Turf deleted successfully",
+        message: 'Turf deleted successfully',
       });
-    }
+    },
   );
 
   /**
@@ -296,6 +330,6 @@ export default class TurfController {
       const result = await this.turfService.filterTurfs(filterOptions);
 
       res.status(200).json(result);
-    }
+    },
   );
 }
