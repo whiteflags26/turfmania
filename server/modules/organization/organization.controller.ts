@@ -77,10 +77,10 @@ export const createOrganization = asyncHandler(
 
       // Validate location structure
       if (
-        !parsedLocation?.place_id ||
-        !parsedLocation?.address ||
-        !parsedLocation?.coordinates?.type ||
-        !parsedLocation?.coordinates?.coordinates ||
+        !parsedLocation?.place_id ??
+        !parsedLocation?.address ??
+        !parsedLocation?.coordinates?.type ??
+        !parsedLocation?.coordinates?.coordinates ??
         !parsedLocation?.city
       ) {
         throw new Error('Invalid location structure');
@@ -100,7 +100,7 @@ export const createOrganization = asyncHandler(
     }
 
     // Input validation
-    if (!name || !parsedFacilities || !location) {
+    if (!name ?? !parsedFacilities ?? !location) {
       return next(
         new ErrorResponse('All fields except images are required', 400),
       );
@@ -134,7 +134,7 @@ export const assignOwner = asyncHandler(
       
       const { userId } = req.body;
 
-      if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      if (!userId ?? !mongoose.Types.ObjectId.isValid(userId)) {
           return next(new ErrorResponse("Valid User ID is required in the request body", 400));
       }
        if (!mongoose.Types.ObjectId.isValid(organizationId)) {
@@ -231,7 +231,7 @@ export const createOrganizationRole = asyncHandler(
         const { id: organizationId } = req.params;
         const { roleName, permissions } = req.body;
 
-        if (!roleName || !permissions || !Array.isArray(permissions) || permissions.length === 0) {
+        if (!roleName ?? !permissions ?? !Array.isArray(permissions) ?? permissions.length === 0) {
             return next(new ErrorResponse("Role name and a non-empty array of permission names are required", 400));
         }
         if (!mongoose.Types.ObjectId.isValid(organizationId)) {
@@ -257,7 +257,7 @@ export const assignOrganizationRoleToUser = asyncHandler(
       const { organizationId, userId } = req.params;
       const { roleId } = req.body;
 
-       if (!mongoose.Types.ObjectId.isValid(organizationId) || !mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(roleId) ) {
+       if (!mongoose.Types.ObjectId.isValid(organizationId) ?? !mongoose.Types.ObjectId.isValid(userId) ?? !mongoose.Types.ObjectId.isValid(roleId) ) {
           return next(new ErrorResponse("Invalid Organization ID, User ID, or Role ID", 400));
       }
        if (!roleId) {

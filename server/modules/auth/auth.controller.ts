@@ -37,13 +37,13 @@ export const register = asyncHandler(
   ) => {
     let { first_name, last_name, email, password, role } = req.body;
     // Trim and sanitize inputs
-    first_name = validator.trim(first_name || '');
-    last_name = validator.trim(last_name || '');
-    email = validator.trim(email || '').toLowerCase();
-    password = validator.trim(password || '');
+    first_name = validator.trim(first_name ?? '');
+    last_name = validator.trim(last_name ?? '');
+    email = validator.trim(email ?? '').toLowerCase();
+    password = validator.trim(password ?? '');
 
     // Input validation
-    if (!first_name || !last_name || !email || !password) {
+    if (!first_name ?? !last_name ?? !email ?? !password) {
       return next(new ErrorResponse('All fields are required', 400));
     }
 
@@ -68,7 +68,7 @@ export const register = asyncHandler(
       last_name,
       email,
       password, // Password will be hashed by the model's pre-save hook
-      role: role || 'user',
+      role: role ?? 'user',
     });
 
     // Send verification email
@@ -100,11 +100,11 @@ export const login = asyncHandler(
   ) => {
     let { email, password } = req.body;
     // Trim and sanitize inputs
-    email = validator.trim(email || '').toLowerCase();
-    password = validator.trim(password || '');
+    email = validator.trim(email ?? '').toLowerCase();
+    password = validator.trim(password ?? '');
 
     // Input validation
-    if (!email || !password) {
+    if (!email ?? !password) {
       return next(
         new ErrorResponse('Please provide an email and password', 400),
       );
@@ -250,7 +250,7 @@ export const resetPassword = asyncHandler(
       const { token, id } = req.query;
       const { password } = req.body;
 
-      if (!token || !id || !password) {
+      if (!token ?? !id ?? !password) {
         return next(
           new ErrorResponse('Invalid request. Missing parameters.', 400),
         );
@@ -281,7 +281,7 @@ export const verifyEmail = asyncHandler(
     const { token, id } = req.query;
 
     // Check if token and ID are provided
-    if (!token || !id) {
+    if (!token ?? !id) {
       return next(new ErrorResponse('Invalid verification link', 400));
     }
 
@@ -293,7 +293,7 @@ export const verifyEmail = asyncHandler(
 
     // Check if the token matches and is not expired
     if (
-      user.verificationToken !== token ||
+      user.verificationToken !== token ??
       new Date() > user.verificationTokenExpires
     ) {
       return next(new ErrorResponse('Invalid or expired token', 400));

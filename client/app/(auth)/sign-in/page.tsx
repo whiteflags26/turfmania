@@ -37,7 +37,7 @@ export default function SignInPage() {
       reset(); // Clear form
       router.push("/");
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign in");
+      toast.error(error.message ?? "Failed to sign in");
     } finally {
       setIsLoading(false);
     }
