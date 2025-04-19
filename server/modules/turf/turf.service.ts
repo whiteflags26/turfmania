@@ -44,7 +44,7 @@ export default class TurfService {
 
   /**@desc Retrieve turf by ID **/
   async getTurfById(id: string): Promise<ITurf | null> {
-    return await Turf.findById(id);
+    return await Turf.findById(id).populate('organization');
   }
 
   /**@desc Update turf by ID with image upload and data validation **/
