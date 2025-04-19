@@ -103,6 +103,6 @@ export default class TimeSlotService {
 
   async deleteTimeSlots(filters = {}): Promise<{ deletedCount: number }> {
     const result = await TimeSlot.deleteMany(filters);
-    return { deletedCount: result.deletedCount || 0 };
+    return { deletedCount: result.deletedCount ?? 0 };
   }
 }

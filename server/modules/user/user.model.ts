@@ -1,7 +1,9 @@
 import bcrypt from 'bcryptjs';
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Types,Document, Schema } from 'mongoose';
 
-
+export interface IRoleAssignment {
+  role: Types.ObjectId; 
+}
 
 
 export interface UserDocument extends Document {
@@ -10,7 +12,7 @@ export interface UserDocument extends Document {
   email: string;
   password: string;
   phone_number?: string;
-  user_roles: string[];
+  
   isVerified: boolean;
   verificationToken: string;
   verificationTokenExpires: Date;
@@ -24,10 +26,12 @@ const UserSchema = new Schema<UserDocument>(
     email: { type: String, required: true, unique: true },
     password: { type: String, minlength: 6, select: false, required: true },
     phone_number: { type: String },
-    user_roles: { type: [String], required: true, default: ['user'] },
+   
     isVerified: { type: Boolean, default: false }, // Default to false
     verificationToken: { type: String }, // Token for email verification
-    verificationTokenExpires: { type: Date }, // Token expiration time
+    verificationTokenExpires: { type: Date }, 
+    // Token expiration time
+
     reviews: [{
       type: Schema.Types.ObjectId,
       ref: "TurfReview",
@@ -50,6 +54,6 @@ UserSchema.pre<UserDocument>('save', async function (next) {
 });
 
 const User =
-  mongoose.models.User || mongoose.model<UserDocument>('User', UserSchema);
+  mongoose.models.User ?? mongoose.model<UserDocument>('User', UserSchema);
 
 export default User;
