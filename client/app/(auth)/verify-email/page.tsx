@@ -16,7 +16,7 @@ const VerifyEmailPage = () => {
     const token = queryParams.get("token");
     const userId = queryParams.get("id");
 
-    if (!token ?? !userId) {
+    if (!token || !userId) {
       setMessage("Invalid verification link.");
       return;
     }
