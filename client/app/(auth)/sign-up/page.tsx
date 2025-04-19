@@ -54,7 +54,7 @@ export default function SignUpPage() {
       reset(); // Clear form
       router.push('/'); // Redirect to login page
     } catch (error: any) {
-      toast.error(error.message || 'Failed to register');
+      toast.error(error.message ?? 'Failed to register');
     } finally {
       setIsLoading(false);
     }
@@ -199,7 +199,7 @@ export default function SignUpPage() {
                 {...register('retypePassword', {
                   required: 'Please retype your password',
                   validate: value =>
-                    value === password || 'Passwords do not match',
+                    value === password ?? 'Passwords do not match',
                 })}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm"
                 placeholder="Re-type your password"

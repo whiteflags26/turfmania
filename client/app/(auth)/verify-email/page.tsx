@@ -16,7 +16,7 @@ const VerifyEmailPage = () => {
     const token = queryParams.get("token");
     const userId = queryParams.get("id");
 
-    if (!token || !userId) {
+    if (!token ?? !userId) {
       setMessage("Invalid verification link.");
       return;
     }
@@ -29,7 +29,7 @@ const VerifyEmailPage = () => {
         setIsVerified(true);
       } catch (error: any) {
         setMessage(
-          error.message || "An error occurred. Please try again later."
+          error.message ?? "An error occurred. Please try again later."
         );
       }
     };
