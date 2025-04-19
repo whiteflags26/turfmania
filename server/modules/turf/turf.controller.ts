@@ -29,64 +29,94 @@ export default class TurfController {
       } = req.body;
       const images = req.files as Express.Multer.File[];
 
-      // Parse numeric fields
-      let parsedBasePrice: ITurf['basePrice'];
-      parsedBasePrice = parseFloat(basePrice);
-      if (isNaN(parsedBasePrice)) {
-        return next(new ErrorResponse('basePrice must be a valid number', 400));
-      }
-
-      // Parse sports (if sent as a JSON string)
-      let parsedSports: ITurf['sports'];
       try {
-        parsedSports = typeof sports === 'string' ? JSON.parse(sports) : sports;
+        // Parse and validate all fields
+        const parsedFields = await this.validateAndParseCreateData({
+          name,
+          sports,
+          basePrice,
+          team_size,
+          organization,
+          operatingHours,
+        });
+
+        if (!parsedFields) {
+          return next(new ErrorResponse('Failed to parse turf data', 400));
+        }
+
+        // Create turf
+        const turf = await this.turfService.createTurf(parsedFields, images);
+
+        res.status(201).json({
+          success: true,
+          data: turf,
+          message: 'Turf created successfully',
+        });
       } catch (error) {
-        return next(new ErrorResponse('Invalid sports format', 400));
+        console.error('Error creating turf:', error);
+        return next(
+          new ErrorResponse(
+            `Failed to create turf: ${(error as Error).message}`,
+            400,
+          ),
+        );
       }
-
-      // Parse operatingHours (if sent as a JSON string)
-      let parsedOperatingHours: ITurf['operatingHours'];
-      try {
-        parsedOperatingHours =
-          typeof operatingHours === 'string'
-            ? JSON.parse(operatingHours)
-            : operatingHours;
-      } catch (error) {
-        return next(new ErrorResponse('Invalid operatingHours format', 400));
-      }
-
-      // Validate parsed data
-      if (
-        !name ||
-        !parsedSports ||
-        !parsedBasePrice ||
-        !team_size ||
-        !organization ||
-        !parsedOperatingHours
-      ) {
-        return next(new ErrorResponse('All fields are required', 400));
-      }
-
-      // Create turf data object
-      const turfData: Partial<ITurf> = {
-        name,
-        sports: parsedSports,
-        basePrice: parsedBasePrice,
-        team_size,
-        organization,
-        operatingHours: parsedOperatingHours,
-      };
-
-      // Call service to create turf
-      const turf = await this.turfService.createTurf(turfData, images);
-
-      res.status(201).json({
-        success: true,
-        data: turf,
-        message: 'Turf created successfully',
-      });
     },
   );
+
+  private async validateAndParseCreateData(data: {
+    name: string;
+    sports: any;
+    basePrice: string | number;
+    team_size: string | number;
+    organization: string;
+    operatingHours: any;
+  }): Promise<Partial<ITurf> | null> {
+    try {
+      // Validate required fields
+      if (!data.name || !data.organization) {
+        throw new Error('Name and organization are required');
+      }
+
+      // Parse and validate fields using existing parser functions
+      const [
+        basePriceResult,
+        sportsResult,
+        operatingHoursResult,
+        teamSizeResult,
+      ] = await Promise.all([
+        this.parseBasePrice(data.basePrice),
+        this.parseSports(data.sports),
+        this.parseOperatingHours(data.operatingHours),
+        this.parseTeamSize(data.team_size),
+      ]);
+
+      // Check for validation errors
+      const results = [
+        basePriceResult,
+        sportsResult,
+        operatingHoursResult,
+        teamSizeResult,
+      ];
+      const error = results.find(result => result.error);
+      if (error) {
+        throw error.error;
+      }
+
+      // Combine all parsed data
+      return {
+        name: data.name,
+        organization: new mongoose.Types.ObjectId(data.organization),
+        ...basePriceResult.data,
+        ...sportsResult.data,
+        ...operatingHoursResult.data,
+        ...teamSizeResult.data,
+      };
+    } catch (error) {
+      console.error('Error validating turf data:', error);
+      throw error;
+    }
+  }
 
   /**
    * @route GET /api/v1/turfs
