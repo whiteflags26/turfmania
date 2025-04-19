@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
-import { sendResetPasswordRequest } from "@/lib/server-apis/password-api";
+import { sendResetPasswordRequest } from "@/lib/server-apis/authentication/password-api";
 import toast from "react-hot-toast";
 
 interface ResetPasswordFormData {
