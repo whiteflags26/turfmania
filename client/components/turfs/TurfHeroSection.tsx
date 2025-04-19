@@ -11,7 +11,7 @@ export default function TurfHeroSection() {
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
           Find Your Perfect Turf
         </h1>
-        <p className="text-slate-200 max-w-2xl mx-auto text-base sm:text-lg text-black">
+        <p className="text-slate-200 max-w-2xl mx-auto text-base sm:text-lg">
           Discover and book the best sports turfs in your area. Filter by sport,
           price, and location to find the perfect match for your game.
         </p>
