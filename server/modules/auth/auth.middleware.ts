@@ -1,20 +1,32 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
+import { IPermission, PermissionScope } from './../permission/permission.model';
+
+import mongoose, { Types } from 'mongoose';
 import User from '../../modules/user/user.model';
 import ErrorResponse from '../../utils/errorResponse';
-import Organization from '../organization/organization.model';
+import Permission from '../permission/permission.model';
+import { IRole } from '../role/role.model';
+import { UserDocument } from '../user/user.model';
 
 interface JwtPayload {
   id: string;
-  role: string[];
 }
 
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    user_roles: string[];
-    _id: string;
-  };
+  user?: UserDocument; // Attach the full Mongoose user document
+  // Add properties to hold context IDs if needed during the request lifecycle
+  organizationId?: string | mongoose.Types.ObjectId;
+  eventId?: string | mongoose.Types.ObjectId;
+}
+
+// Update the interface to extend IPermission
+interface IPermissionDocument extends IPermission {
+  _id: Types.ObjectId;
+  name: string;
+  scope: PermissionScope;
+  __v?: number;
 }
 
 export const protect = async (
@@ -30,9 +42,7 @@ export const protect = async (
   }
 
   // Check Authorization header as fallback
-  else if (
-  req.headers.authorization?.startsWith('Bearer'))
-   {
+  else if (req.headers.authorization?.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
   }
 
@@ -46,7 +56,8 @@ export const protect = async (
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
 
     // Fetch user and attach to request object excluding password
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id).select('+password'); // Select password only if needed later (e.g., password change)
+
     if (!user) {
       return next(new ErrorResponse('User not found', 404));
     }
@@ -58,88 +69,128 @@ export const protect = async (
   }
 };
 
-export const authorize = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user?.user_roles) {
-      return next(new ErrorResponse('User role is not defined', 403));
-    }
+async function validateRequiredPermission(permissionName: string): Promise<{
+  permissionId: Types.ObjectId;
+  scope: PermissionScope;
+} | null> {
+  const permission = await Permission.findOne({ name: permissionName })
+    .select('_id name scope')
+    .lean();
 
-    const isAuthorized = req.user.user_roles.some(userRole =>
-      roles.includes(userRole),
-    );
+  if (!permission) {
+    console.warn(`Permission '${permissionName}' not found in database.`);
+    return null;
+  }
 
-    if (!isAuthorized) {
+  return {
+    permissionId: permission._id as Types.ObjectId,
+    scope: permission.scope,
+  };
+}
+
+function getScopeContext(
+  scope: PermissionScope,
+  req: AuthRequest,
+): Types.ObjectId | null {
+  const organizationId =
+    req.organizationId || req.params.id || req.params.organizationId;
+  const eventId = req.eventId || req.params.eventId;
+
+  if (scope === PermissionScope.ORGANIZATION && organizationId) {
+    return new mongoose.Types.ObjectId(organizationId as string);
+  }
+  if (scope === PermissionScope.EVENT && eventId) {
+    return new mongoose.Types.ObjectId(eventId as string);
+  }
+  return null;
+}
+
+async function checkUserPermission(
+  userId: Types.ObjectId,
+  permissionId: Types.ObjectId,
+  scope: PermissionScope,
+  contextId?: Types.ObjectId,
+): Promise<boolean> {
+  const query = {
+    userId,
+    scope,
+    ...(contextId && { scopeId: contextId }),
+  };
+
+  const assignments = await UserRoleAssignment.findOne(query).populate<{
+    roleId: IRole;
+  }>({
+    path: 'roleId',
+    select: 'permissions',
+    populate: {
+      path: 'permissions',
+      select: '_id',
+    },
+  });
+
+  if (!assignments?.roleId?.permissions) return false;
+
+  return assignments.roleId.permissions.some((p: { _id: Types.ObjectId }) =>
+    p._id.equals(permissionId),
+  );
+}
+
+// Main middleware with reduced complexity
+export const checkPermission = (requiredPermissionName: string) => {
+  return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) {
+        return next(new ErrorResponse('User not authenticated', 401));
+      }
+
+      const permissionData = await validateRequiredPermission(
+        requiredPermissionName,
+      );
+      if (!permissionData) {
+        return next(
+          new ErrorResponse(
+            `Permission '${requiredPermissionName}' is not configured.`,
+            500,
+          ),
+        );
+      }
+
+      const contextId = getScopeContext(permissionData.scope, req);
+      if (!contextId && permissionData.scope !== PermissionScope.GLOBAL) {
+        return next(
+          new ErrorResponse(
+            `Context ID required for ${permissionData.scope} scope`,
+            400,
+          ),
+        );
+      }
+
+      const hasPermission = await checkUserPermission(
+        req.user.id,
+        permissionData.permissionId,
+        permissionData.scope,
+        contextId || undefined,
+      );
+
+      if (hasPermission) {
+        return next();
+      }
+
+      console.log(
+        `Authorization denied for user ${req.user.email} - ${requiredPermissionName}`,
+      );
       return next(
         new ErrorResponse(
-          `User role ${req.user.user_roles.join(
-            ', ',
-          )} is not authorized to access this route`,
+          `Not authorized to perform: ${requiredPermissionName}`,
           403,
         ),
       );
-    }
-
-    next();
-  };
-};
-
-export const authorizeOrganizationRoles = (action: string) => {
-  return async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-      const organization = await Organization.findById(req.params.id);
-      if (!organization) {
-        return next(
-          new ErrorResponse(
-            `Organization not found with ID ${req.params.id}`,
-            404,
-          ),
-        );
+    } catch (error: any) {
+      if (error instanceof mongoose.Error.CastError) {
+        return next(new ErrorResponse('Invalid ID format provided', 400));
       }
-
-      // Ensure the user exists and has a role in the Organization
-      const userIdToCheck = req.user?._id;
-      if (!userIdToCheck) {
-        return next(new ErrorResponse('User Not Found', 404));
-      }
-
-      const userRoleEntry = organization.userRoles.find(
-        userRole => userRole.user.toString() === userIdToCheck.toString(),
-      );
-      if (!userRoleEntry) {
-        return next(
-          new ErrorResponse(
-            `User is not assigned a role in this organization`,
-            403,
-          ),
-        );
-      }
-
-      // Get permissible roles for the action
-      const permissibleRoles = organization.permissions?.get(action);
-      if (!permissibleRoles) {
-        return next(
-          new ErrorResponse(
-            `No permissions defined for action: ${action}`,
-            403,
-          ),
-        );
-      }
-
-      // Check if the user's role is authorized
-      const isAuthorized = permissibleRoles.includes(userRoleEntry.role);
-      if (!isAuthorized) {
-        return next(
-          new ErrorResponse(
-            `User role "${userRoleEntry.role}" is not authorized to perform action: ${action}`,
-            403,
-          ),
-        );
-      }
-
-      // Proceed to the next middleware
-      next();
-    } catch (error) {
-      next(error);
+      console.error('Permission check error:', error);
+      return next(new ErrorResponse('Authorization check failed', 500));
     }
   };
 };

@@ -41,3 +41,6 @@ seed.ts
 
 # TypeScript compilation outputs (if using TypeScript)
 *.tsbuildinfo
+
+# Coverage directory used by tools 
+coverage/
