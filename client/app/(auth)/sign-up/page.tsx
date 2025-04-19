@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/lib/contexts/authContext";
-import { registerUser } from "@/lib/server-apis/register-api";
+import { registerUser } from "@/lib/server-apis/authentication/register-api";
 
 interface SignUpFormData {
   first_name: string;
