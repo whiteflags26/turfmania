@@ -1,13 +1,5 @@
 export interface ITurf {
   _id: string;
-  organization: {
-    _id: string;
-    name: string;
-    location: {
-      address: string;
-      city: string;
-    };
-  };
   name: string;
   basePrice: number;
   sports: string[];
@@ -18,4 +10,16 @@ export interface ITurf {
     open: string;
     close: string;
   }>;
+  organization: {
+    _id: string;
+    name: string;
+    facilities: string[];
+    location: {
+      address: string;
+      city: string;
+      coordinates: [number, number];
+    };
+    createdAt?: string;
+    updatedAt?: string;
+  };
 }
