@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/Button";
-import { sendForgotPasswordRequest } from "@/lib/server-apis/password-api";
+import { sendForgotPasswordRequest } from "@/lib/server-apis/authentication/password-api";
 import toast from "react-hot-toast";
 
 interface ForgotPasswordFormData {
