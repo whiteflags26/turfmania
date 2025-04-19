@@ -163,6 +163,13 @@ export const featureContents = [
   },
 ];
 
+// Venues Hero Section Slider Images
+export const VENUES_SLIDER_IMAGES = [
+  "/images/VenuesHeroSection-id1.avif", 
+  "/images/VenuesHeroSection-id2.avif",  
+  "/images/VenuesHeroSection-id3.avif"   
+];
+
 //layout.tsx conditional render for Navbar:
 export const authRoutes=[
   "/sign-in",
