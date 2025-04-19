@@ -1,10 +1,10 @@
-import { NextFunction, Request, Response } from 'express';
-import asyncHandler from '../../shared/middleware/async';
-import ErrorResponse from '../../utils/errorResponse';
-import { IOrganization } from './organization.model';
-import { organizationService } from './organization.service';
-import { AuthRequest } from '../auth/auth.middleware';
-import mongoose from 'mongoose';
+import { NextFunction, Request, Response } from "express";
+import asyncHandler from "../../shared/middleware/async";
+import ErrorResponse from "../../utils/errorResponse";
+import { IOrganization } from "./organization.model";
+import { organizationService } from "./organization.service";
+import { AuthRequest } from "../auth/auth.middleware";
+import mongoose from "mongoose";
 
 interface CreateOrganizationBody {
   name: string;
@@ -13,7 +13,7 @@ interface CreateOrganizationBody {
     place_id: string;
     address: string;
     coordinates: {
-      type: 'Point';
+      type: "Point";
       coordinates: [number, number];
     };
     area?: string;
@@ -28,7 +28,7 @@ interface AssignOwnerBody {
 }
 // Interface for Update Organization Body
 interface UpdateOrganizationBody
-  extends Omit<Partial<CreateOrganizationBody>, 'facilities'> {
+  extends Omit<Partial<CreateOrganizationBody>, "facilities"> {
   facilities?: string | string[];
   imagesToKeep?: string[];
 }
@@ -53,25 +53,25 @@ export const createOrganization = asyncHandler(
   async (
     req: AuthRequest & { body: CreateOrganizationBody },
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     const { name, facilities } = req.body;
 
-    let parsedFacilities: IOrganization['facilities'];
+    let parsedFacilities: IOrganization["facilities"];
 
     // Parse facilities (if sent as a JSON string)
     try {
       parsedFacilities =
-        typeof facilities === 'string' ? JSON.parse(facilities) : facilities;
+        typeof facilities === "string" ? JSON.parse(facilities) : facilities;
     } catch (error) {
-      return next(new ErrorResponse('Invalid facilities format', 400));
+      return next(new ErrorResponse("Invalid facilities format", 400));
     }
 
     // parse and validate location
-    let location: IOrganization['location'];
+    let location: IOrganization["location"];
     try {
       const parsedLocation =
-        typeof req.body.location === 'string'
+        typeof req.body.location === "string"
           ? JSON.parse(req.body.location)
           : req.body.location;
 
@@ -83,26 +83,26 @@ export const createOrganization = asyncHandler(
         !parsedLocation?.coordinates?.coordinates ||
         !parsedLocation?.city
       ) {
-        throw new Error('Invalid location structure');
+        throw new Error("Invalid location structure");
       }
 
       location = parsedLocation;
     } catch (error) {
       return next(
-        new ErrorResponse('Invalid location format or structure', 400),
+        new ErrorResponse("Invalid location format or structure", 400)
       );
     }
     const images = req.files as Express.Multer.File[];
 
     // Check if user is authenticated
     if (!req.user) {
-      return next(new ErrorResponse('User not authenticated', 401));
+      return next(new ErrorResponse("User not authenticated", 401));
     }
 
     // Input validation
     if (!name || !parsedFacilities || !location) {
       return next(
-        new ErrorResponse('All fields except images are required', 400),
+        new ErrorResponse("All fields except images are required", 400)
       );
     }
 
@@ -110,18 +110,16 @@ export const createOrganization = asyncHandler(
     const organization = await organizationService.createOrganization(
       name,
       parsedFacilities,
-     
       location,
       images
-      
     );
 
     res.status(201).json({
       success: true,
       data: organization,
-      message: 'Organization created successfully',
+      message: "Organization created successfully",
     });
-  },
+  }
 );
 /**
  * @route   POST /api/v1/organizations/:id/assign-owner
@@ -129,25 +127,35 @@ export const createOrganization = asyncHandler(
  * @access  Private (Requires 'assign_organization_owner' permission)
  */
 export const assignOwner = asyncHandler(
-  async (req: AuthRequest & { params: { id: string }, body: AssignOwnerBody }, res: Response, next: NextFunction) => {
-      const { id: organizationId } = req.params;
-      
-      const { userId } = req.body;
+  async (
+    req: AuthRequest & { params: { id: string }; body: AssignOwnerBody },
+    res: Response,
+    next: NextFunction
+  ) => {
+    const { id: organizationId } = req.params;
 
-      if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-          return next(new ErrorResponse("Valid User ID is required in the request body", 400));
-      }
-       if (!mongoose.Types.ObjectId.isValid(organizationId)) {
-          return next(new ErrorResponse("Invalid Organization ID", 400));
-      }
+    const { userId } = req.body;
 
-      const updatedOrganization = await organizationService.assignOwnerToOrganization(organizationId, userId);
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return next(
+        new ErrorResponse("Valid User ID is required in the request body", 400)
+      );
+    }
+    if (!mongoose.Types.ObjectId.isValid(organizationId)) {
+      return next(new ErrorResponse("Invalid Organization ID", 400));
+    }
 
-      res.status(200).json({
-          success: true,
-          data: updatedOrganization,
-          message: `User ${userId} assigned as owner successfully`,
-      });
+    const updatedOrganization =
+      await organizationService.assignOwnerToOrganization(
+        organizationId,
+        userId
+      );
+
+    res.status(200).json({
+      success: true,
+      data: updatedOrganization,
+      message: `User ${userId} assigned as owner successfully`,
+    });
   }
 );
 
@@ -158,9 +166,9 @@ export const assignOwner = asyncHandler(
  */
 export const updateOrganization = asyncHandler(
   async (
-    req: AuthRequest & { params: { id: string }, body: UpdateOrganizationBody },
+    req: AuthRequest & { params: { id: string }; body: UpdateOrganizationBody },
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     const { id } = req.params;
     const { name, facilities, location, ...rest } = req.body;
@@ -171,13 +179,13 @@ export const updateOrganization = asyncHandler(
       ...(name && { name }),
       ...(facilities && {
         facilities:
-          typeof facilities === 'string' ? JSON.parse(facilities) : facilities,
+          typeof facilities === "string" ? JSON.parse(facilities) : facilities,
       }),
     };
 
     if (location) {
       updateData.location =
-        typeof location === 'string' ? JSON.parse(location) : location;
+        typeof location === "string" ? JSON.parse(location) : location;
     }
 
     Object.assign(updateData, rest);
@@ -185,19 +193,19 @@ export const updateOrganization = asyncHandler(
     const organization = await organizationService.updateOrganization(
       id,
       updateData,
-      newImages,
+      newImages
     );
 
     if (!organization) {
-      return next(new ErrorResponse('Organization not found', 404));
+      return next(new ErrorResponse("Organization not found", 404));
     }
 
     res.status(200).json({
       success: true,
       data: organization,
-      message: 'Organization updated successfully',
+      message: "Organization updated successfully",
     });
-  },
+  }
 );
 
 /**
@@ -212,14 +220,14 @@ export const deleteOrganization = asyncHandler(
     const result = await organizationService.deleteOrganization(id);
 
     if (result.deletedCount === 0) {
-      return next(new ErrorResponse('Organization not found', 404));
+      return next(new ErrorResponse("Organization not found", 404));
     }
 
     res.status(200).json({
       success: true,
-      message: 'Organization deleted successfully',
+      message: "Organization deleted successfully",
     });
-  },
+  }
 );
 /**
  * @route   POST /api/v1/organizations/:id/roles
@@ -227,51 +235,109 @@ export const deleteOrganization = asyncHandler(
  * @access  Private (Requires 'manage_organization_roles' permission for this organization)
  */
 export const createOrganizationRole = asyncHandler(
-    async (req: AuthRequest & { params: { id: string }, body: CreateRoleBody }, res: Response, next: NextFunction) => {
-        const { id: organizationId } = req.params;
-        const { roleName, permissions } = req.body;
+  async (
+    req: AuthRequest & { params: { id: string }; body: CreateRoleBody },
+    res: Response,
+    next: NextFunction
+  ) => {
+    const { id: organizationId } = req.params;
+    const { roleName, permissions } = req.body;
 
-        if (!roleName || !permissions || !Array.isArray(permissions) || permissions.length === 0) {
-            return next(new ErrorResponse("Role name and a non-empty array of permission names are required", 400));
-        }
-        if (!mongoose.Types.ObjectId.isValid(organizationId)) {
-            return next(new ErrorResponse("Invalid Organization ID", 400));
-        }
+    if (
+      !roleName ||
+      !permissions ||
+      !Array.isArray(permissions) ||
+      permissions.length === 0
+    ) {
+      return next(
+        new ErrorResponse(
+          "Role name and a non-empty array of permission names are required",
+          400
+        )
+      );
+    }
+    if (!mongoose.Types.ObjectId.isValid(organizationId)) {
+      return next(new ErrorResponse("Invalid Organization ID", 400));
+    }
 
+    const newRole = await organizationService.createOrganizationRole(
+      organizationId,
+      roleName,
+      permissions
+    );
 
-        const newRole = await organizationService.createOrganizationRole(organizationId, roleName, permissions);
-
-        res.status(201).json({
-            success: true,
-            data: newRole,
-            message: `Role '${roleName}' created successfully for organization ${organizationId}`,
-        });
-    })
+    res.status(201).json({
+      success: true,
+      data: newRole,
+      message: `Role '${roleName}' created successfully for organization ${organizationId}`,
+    });
+  }
+);
 /**
  * @route   POST /api/v1/organizations/:organizationId/users/:userId/assign-role
  * @desc    Assign an existing organization role to a user
  * @access  Private (Requires 'assign_organization_roles' permission for this organization)
  */
 export const assignOrganizationRoleToUser = asyncHandler(
-  async (req: AuthRequest & { params: { organizationId: string, userId: string }, body: AssignRoleBody }, res: Response, next: NextFunction) => {
-      const { organizationId, userId } = req.params;
-      const { roleId } = req.body;
+  async (
+    req: AuthRequest & {
+      params: { organizationId: string; userId: string };
+      body: AssignRoleBody;
+    },
+    res: Response,
+    next: NextFunction
+  ) => {
+    const { organizationId, userId } = req.params;
+    const { roleId } = req.body;
 
-       if (!mongoose.Types.ObjectId.isValid(organizationId) || !mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(roleId) ) {
-          return next(new ErrorResponse("Invalid Organization ID, User ID, or Role ID", 400));
-      }
-       if (!roleId) {
-          return next(new ErrorResponse("Role ID is required in the request body", 400));
-      }
+    if (
+      !mongoose.Types.ObjectId.isValid(organizationId) ||
+      !mongoose.Types.ObjectId.isValid(userId) ||
+      !mongoose.Types.ObjectId.isValid(roleId)
+    ) {
+      return next(
+        new ErrorResponse("Invalid Organization ID, User ID, or Role ID", 400)
+      );
+    }
+    if (!roleId) {
+      return next(
+        new ErrorResponse("Role ID is required in the request body", 400)
+      );
+    }
 
+    const updatedUser = await organizationService.assignRoleToUser(
+      organizationId,
+      userId,
+      roleId
+    );
 
-      const updatedUser = await organizationService.assignRoleToUser(organizationId, userId, roleId);
-
-      res.status(200).json({
-          success: true,
-          // Decide what to return: updated user, or just success message
-          // data: updatedUser,
-          message: `Role assigned successfully to user ${userId} in organization ${organizationId}`,
-      });
+    res.status(200).json({
+      success: true,
+      // Decide what to return: updated user, or just success message
+      // data: updatedUser,
+      message: `Role assigned successfully to user ${userId} in organization ${organizationId}`,
+    });
   }
 );
+
+/**
+ * @route   GET /api/organizations/:organizationId/other-turfs/:turfId
+ * @desc    Fetch other turfs from the same organization excluding the current turf
+ * @access  Public
+ */
+export const fetchOtherTurfs = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { organizationId, turfId } = req.params;
+    const turfs = await organizationService.getOtherTurfsByOrganization(
+      organizationId,
+      turfId
+    );
+    res.status(200).json({ success: true, data: turfs });
+  } catch (error) {
+    next(error);
+  }
+};
