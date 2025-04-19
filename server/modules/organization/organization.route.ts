@@ -10,7 +10,7 @@ import {
   updateOrganization,
   deleteOrganization,
   createOrganizationRole,
-  assignOrganizationRoleToUser,
+ 
  
 } from './organization.controller';
 import { getOrganizationRoles } from '../role/role.controller';
@@ -72,14 +72,7 @@ router.post(
     createOrganizationRole
 );
 
-// Assign a Role to a User within an Organization
-router.post(
-   
-    '/:organizationId/users/:userId/assign-role',
-    protect,
-    checkPermission('assign_organization_roles'), // Organization-scoped
-    assignOrganizationRoleToUser
-);
+
 router.get(
   '/:organizationId/roles',
   protect,

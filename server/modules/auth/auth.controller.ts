@@ -37,10 +37,10 @@ export const register = asyncHandler(
   ) => {
     let { first_name, last_name, email, password, role } = req.body;
     // Trim and sanitize inputs
-    first_name = validator.trim(first_name || '');
-    last_name = validator.trim(last_name || '');
-    email = validator.trim(email || '').toLowerCase();
-    password = validator.trim(password || '');
+    first_name = validator.trim(first_name ?? '');
+    last_name = validator.trim(last_name ?? '');
+    email = validator.trim(email ?? '').toLowerCase();
+    password = validator.trim(password ?? '');
 
     // Input validation
     if (!first_name || !last_name || !email || !password) {
@@ -68,7 +68,7 @@ export const register = asyncHandler(
       last_name,
       email,
       password, // Password will be hashed by the model's pre-save hook
-      role: role || 'user',
+      role: role ?? 'user',
     });
 
     // Send verification email
@@ -100,8 +100,8 @@ export const login = asyncHandler(
   ) => {
     let { email, password } = req.body;
     // Trim and sanitize inputs
-    email = validator.trim(email || '').toLowerCase();
-    password = validator.trim(password || '');
+    email = validator.trim(email ?? '').toLowerCase();
+    password = validator.trim(password ?? '');
 
     // Input validation
     if (!email || !password) {
@@ -134,8 +134,8 @@ export const login = asyncHandler(
     }
 
     // Generate token
-    const token =  authService.generateToken(user);
-    console.log(token)
+    const token = authService.generateToken(user);
+    console.log(token);
 
     // Remove sensitive data from response
     const userWithoutPassword = user.toObject();
@@ -185,7 +185,7 @@ export const logout = asyncHandler(
  */
 export const getMe = asyncHandler(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    console.log("in me controller")
+    console.log('in me controller');
     if (!req.user) {
       return next(new ErrorResponse('User not authenticated', 401));
     }
@@ -222,6 +222,7 @@ export const forgotPassword = asyncHandler(
     if (!user) {
       return next(new ErrorResponse('User not found', 404));
     }
+
     let token = await Token.findOne({ userId: user._id });
     if (token) {
       await token.deleteOne();
@@ -230,9 +231,26 @@ export const forgotPassword = asyncHandler(
     try {
       const result = await authService.sendPasswordResetEmail(user);
       res.status(200).json(result);
-    } catch (error) {
+    } catch (error: unknown) {
+      // Log the error for debugging
+      console.error('Password reset email error:', error);
+
+      // Determine if it's a known error type
+      if (error instanceof Error) {
+        return next(
+          new ErrorResponse(
+            `Failed to send password reset email: ${error.message}`,
+            500,
+          ),
+        );
+      }
+
+      // Generic error for unknown error types
       return next(
-        new ErrorResponse('An error occured sending reset email.', 500),
+        new ErrorResponse(
+          'An unexpected error occurred while sending reset email',
+          500,
+        ),
       );
     }
   },
