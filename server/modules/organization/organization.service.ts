@@ -238,7 +238,9 @@ class OrganizationService {
     try {
       const organization = await Organization.findById(organizationId);
       if (!organization) throw new ErrorResponse('Organization not found', 404);
-
+      if (typeof roleName !== 'string' || !(/^[a-zA-Z0-9\s-_]+$/.exec(roleName))) {
+        throw new ErrorResponse('Role name contains invalid characters', 400);
+      }
       // Validate role name uniqueness within this org
       const existingRole = await Role.findOne({
         name: roleName,
