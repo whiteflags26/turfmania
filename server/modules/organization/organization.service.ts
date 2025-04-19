@@ -1,13 +1,14 @@
-import { DeleteResult } from 'mongodb';
-import mongoose, { Types } from 'mongoose';
-import { deleteImage, uploadImage } from '../../utils/cloudinary';
-import ErrorResponse from '../../utils/errorResponse';
-import { extractPublicIdFromUrl } from '../../utils/extractUrl';
-import Permission, { PermissionScope } from '../permission/permission.model'; // Import Permission model
-import Role, { IRole } from '../role/role.model'; // Import Role model
-import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
-import User, { UserDocument } from '../user/user.model';
-import Organization, { IOrganization } from './organization.model';
+import { DeleteResult } from "mongodb";
+import mongoose, { Types } from "mongoose";
+import { deleteImage, uploadImage } from "../../utils/cloudinary";
+import ErrorResponse from "../../utils/errorResponse";
+import { extractPublicIdFromUrl } from "../../utils/extractUrl";
+import Permission, { PermissionScope } from "../permission/permission.model"; 
+import Role, { IRole } from "../role/role.model"; 
+import UserRoleAssignment from "../role_assignment/userRoleAssignment.model";
+import User, { UserDocument } from "../user/user.model";
+import Organization, { IOrganization } from "./organization.model";
+import {Turf} from "../turf/turf.model"; 
 
 export interface IOrganizationRoleAssignment {
   organizationId: Types.ObjectId;
@@ -27,17 +28,17 @@ class OrganizationService {
   public async createOrganization(
     name: string,
     facilities: string[],
-    location: IOrganization['location'],
-    images?: Express.Multer.File[], 
+    location: IOrganization["location"],
+    images?: Express.Multer.File[]
   ): Promise<IOrganization | null> {
     try {
       let imageUrls: string[] = [];
 
       // Only process images if they exist
       if (images && images.length > 0) {
-        const imageUploads = images.map(image => uploadImage(image));
+        const imageUploads = images.map((image) => uploadImage(image));
         const uploadedImages = await Promise.all(imageUploads);
-        imageUrls = uploadedImages.map(img => img.url);
+        imageUrls = uploadedImages.map((img) => img.url);
       }
 
       // Create organization with owner and permissions
@@ -52,7 +53,7 @@ class OrganizationService {
       return organization;
     } catch (error) {
       console.error(error);
-      throw new ErrorResponse('Failed to create organization', 500);
+      throw new ErrorResponse("Failed to create organization", 500);
     }
   }
 
@@ -65,20 +66,20 @@ class OrganizationService {
    */
   public async assignOwnerToOrganization(
     organizationId: string,
-    userId: string,
+    userId: string
   ): Promise<IOrganization> {
     try {
       const organization = await Organization.findById(organizationId);
-      if (!organization) throw new ErrorResponse('Organization not found', 404);
+      if (!organization) throw new ErrorResponse("Organization not found", 404);
 
       const user = await User.findById(userId);
-      if (!user) throw new ErrorResponse('User not found', 404);
+      if (!user) throw new ErrorResponse("User not found", 404);
 
       // 1. Define the role name and get permissions
-      const ownerRoleName = 'Organization Owner';
+      const ownerRoleName = "Organization Owner";
       const orgPermissions = await Permission.find({
         scope: PermissionScope.ORGANIZATION,
-      }).select('_id');
+      }).select("_id");
 
       // 2. Find or create the owner role (without scopeId)
       const ownerRole = await Role.findOneAndUpdate(
@@ -90,7 +91,7 @@ class OrganizationService {
           $set: {
             name: ownerRoleName,
             scope: PermissionScope.ORGANIZATION,
-            permissions: orgPermissions.map(p => p._id),
+            permissions: orgPermissions.map((p) => p._id),
             isDefault: true,
           },
         },
@@ -98,13 +99,13 @@ class OrganizationService {
           upsert: true,
           new: true,
           runValidators: true,
-        },
+        }
       );
 
       if (!ownerRole) {
         throw new ErrorResponse(
-          'Failed to find or create Organization Owner role',
-          500,
+          "Failed to find or create Organization Owner role",
+          500
         );
       }
 
@@ -127,7 +128,7 @@ class OrganizationService {
         {
           upsert: true,
           runValidators: true,
-        },
+        }
       );
 
       // 4. Update organization with owner
@@ -135,14 +136,14 @@ class OrganizationService {
       await organization.save();
 
       console.log(
-        `User ${user.email} assigned as owner of organization ${organization.name}`,
+        `User ${user.email} assigned as owner of organization ${organization.name}`
       );
       return organization;
     } catch (error: any) {
-      console.error('Error assigning organization owner:', error);
+      console.error("Error assigning organization owner:", error);
       throw new ErrorResponse(
-        error.message ?? 'Failed to assign owner',
-        error.statusCode ?? 500,
+        error.message ?? "Failed to assign owner",
+        error.statusCode ?? 500
       );
     }
   }
@@ -156,26 +157,26 @@ class OrganizationService {
   public async updateOrganization(
     id: string,
     updateData: Partial<IOrganization>,
-    newImages?: Express.Multer.File[],
+    newImages?: Express.Multer.File[]
   ): Promise<IOrganization | null> {
     try {
       const organization = await Organization.findById(id);
-      if (!organization) throw new ErrorResponse('Organization not found', 404);
+      if (!organization) throw new ErrorResponse("Organization not found", 404);
 
       // Handle image updates
       if (newImages && newImages.length > 0) {
         // Upload new images
-        const newImageUploads = newImages.map(image => uploadImage(image));
+        const newImageUploads = newImages.map((image) => uploadImage(image));
         const uploadedNewImages = await Promise.all(newImageUploads);
-        const newImageUrls = uploadedNewImages.map(img => img.url);
+        const newImageUrls = uploadedNewImages.map((img) => img.url);
 
         // Delete old images from Cloudinary
         if (organization.images.length > 0) {
           await Promise.all(
-            organization.images.map(imgUrl => {
+            organization.images.map((imgUrl) => {
               const publicId = extractPublicIdFromUrl(imgUrl);
               return publicId ? deleteImage(publicId) : Promise.resolve();
-            }),
+            })
           );
         }
 
@@ -186,13 +187,13 @@ class OrganizationService {
       const updatedOrganization = await Organization.findByIdAndUpdate(
         id,
         updateData,
-        { new: true, runValidators: true },
+        { new: true, runValidators: true }
       );
 
       return updatedOrganization;
     } catch (error) {
       console.error(error);
-      throw new ErrorResponse('Failed to update organization', 500);
+      throw new ErrorResponse("Failed to update organization", 500);
     }
   }
 
@@ -204,15 +205,15 @@ class OrganizationService {
   public async deleteOrganization(id: string): Promise<DeleteResult> {
     try {
       const organization = await Organization.findById(id);
-      if (!organization) throw new ErrorResponse('Organization not found', 404);
+      if (!organization) throw new ErrorResponse("Organization not found", 404);
 
       // Delete images from Cloudinary
       if (organization.images.length > 0) {
         await Promise.all(
-          organization.images.map(imgUrl => {
+          organization.images.map((imgUrl) => {
             const publicId = extractPublicIdFromUrl(imgUrl);
             return publicId ? deleteImage(publicId) : Promise.resolve();
-          }),
+          })
         );
       }
 
@@ -220,7 +221,7 @@ class OrganizationService {
       return await Organization.deleteOne({ _id: id });
     } catch (error) {
       console.error(error);
-      throw new ErrorResponse('Failed to delete organization', 500);
+      throw new ErrorResponse("Failed to delete organization", 500);
     }
   }
   /**
@@ -232,12 +233,12 @@ class OrganizationService {
   public async createOrganizationRole(
     organizationId: string,
     roleName: string,
-    permissionNames: string[],
+    permissionNames: string[]
   ): Promise<IRole> {
     // Permission check ('manage_organization_roles') in middleware
     try {
       const organization = await Organization.findById(organizationId);
-      if (!organization) throw new ErrorResponse('Organization not found', 404);
+      if (!organization) throw new ErrorResponse("Organization not found", 404);
 
       // Validate role name uniqueness within this org
       const existingRole = await Role.findOne({
@@ -248,25 +249,25 @@ class OrganizationService {
       if (existingRole)
         throw new ErrorResponse(
           `Role '${roleName}' already exists in this organization`,
-          400,
+          400
         );
 
       // Validate permissions exist and are correctly scoped
       const permissions = await Permission.find({
         name: { $in: permissionNames },
         scope: PermissionScope.ORGANIZATION, // Ensure only org-scoped permissions are assigned
-      }).select('_id name');
+      }).select("_id name");
 
-      const foundPermissionNames = permissions.map(p => p.name);
+      const foundPermissionNames = permissions.map((p) => p.name);
       const notFoundPermissions = permissionNames.filter(
-        name => !foundPermissionNames.includes(name),
+        (name) => !foundPermissionNames.includes(name)
       );
       if (notFoundPermissions.length > 0) {
         throw new ErrorResponse(
           `Invalid or non-organizational permissions specified: ${notFoundPermissions.join(
-            ', ',
+            ", "
           )}`,
-          400,
+          400
         );
       }
 
@@ -274,16 +275,16 @@ class OrganizationService {
         name: roleName,
         scope: PermissionScope.ORGANIZATION,
         scopeId: organizationId,
-        permissions: permissions.map(p => p._id),
+        permissions: permissions.map((p) => p._id),
         isDefault: false, // Custom roles are not default
       });
 
       return newRole;
     } catch (error: any) {
-      console.error('Error creating organization role:', error);
+      console.error("Error creating organization role:", error);
       throw new ErrorResponse(
-        error.message ?? 'Failed to create role',
-        error.statusCode ?? 500,
+        error.message ?? "Failed to create role",
+        error.statusCode ?? 500
       );
     }
   }
@@ -294,7 +295,7 @@ class OrganizationService {
   public async assignRoleToUser(
     organizationId: string,
     userId: string,
-    roleId: string,
+    roleId: string
   ): Promise<UserDocument> {
     try {
       // Convert string IDs to ObjectIds
@@ -303,31 +304,31 @@ class OrganizationService {
       const [user, roleToAssign, organization] = await Promise.all([
         User.findById(userId),
         Role.findById(roleId),
-        Organization.findById(orgObjectId).select('_id'),
+        Organization.findById(orgObjectId).select("_id"),
       ]);
 
-      if (!user) throw new ErrorResponse('User not found', 404);
-      if (!organization) throw new ErrorResponse('Organization not found', 404);
-      if (!roleToAssign) throw new ErrorResponse('Role not found', 404);
+      if (!user) throw new ErrorResponse("User not found", 404);
+      if (!organization) throw new ErrorResponse("Organization not found", 404);
+      if (!roleToAssign) throw new ErrorResponse("Role not found", 404);
 
       // Validate role scope using orgObjectId
       if (roleToAssign.scope !== PermissionScope.ORGANIZATION) {
         throw new ErrorResponse(
           `Role '${roleToAssign.name}' does not belong to this organization`,
-          400,
+          400
         );
       }
 
       // Check if user already has this specific role using orgObjectId
       const alreadyHasRole = user.organizationRoles.some(
         (a: IOrganizationRoleAssignment) =>
-          a.organizationId.equals(orgObjectId) && a.role.equals(roleId),
+          a.organizationId.equals(orgObjectId) && a.role.equals(roleId)
       );
 
       if (alreadyHasRole) {
         throw new ErrorResponse(
           `User already has the role '${roleToAssign.name}' in this organization`,
-          400,
+          400
         );
       }
 
@@ -340,13 +341,37 @@ class OrganizationService {
       await user.save();
       return user;
     } catch (error: any) {
-      console.error('Error assigning role to user:', error);
+      console.error("Error assigning role to user:", error);
       throw new ErrorResponse(
-        error.message ?? 'Failed to assign role',
-        error.statusCode ?? 500,
+        error.message ?? "Failed to assign role",
+        error.statusCode ?? 500
       );
     }
   }
+
+  /**
+   * Fetch other turfs from the same organization excluding the current turf
+   * @param organizationId - The ID of the organization
+   * @param excludeTurfId - The ID of the turf to exclude
+   */
+  getOtherTurfsByOrganization = async (
+    organizationId: string,
+    excludeTurfId: string
+  ) => {
+    if (
+      !mongoose.Types.ObjectId.isValid(organizationId) ||
+      !mongoose.Types.ObjectId.isValid(excludeTurfId)
+    ) {
+      throw new Error("Invalid organization or turf ID.");
+    }
+
+    return await Turf.find({
+      organization: organizationId,
+      _id: { $ne: excludeTurfId },
+    })
+    .limit(6)
+    .populate('organization');
+  };
 }
 
 export const organizationService = new OrganizationService();
