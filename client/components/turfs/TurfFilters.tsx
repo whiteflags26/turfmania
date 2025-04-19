@@ -5,22 +5,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Filter, MapPin, Users, Lightbulb, Clock, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Turf } from "@/app/(explore-turf)/venues/page";
 import { DualRangeSlider } from "@/components/ui/dual-range-slider";
 import TimeFilterCard from "@/components/turfs/TimeFilterCard";
 import { autocomplete } from "barikoiapis";
 import { useEffect, useState } from "react";
 import "@/lib/config/barikoiConfig";
+import { ITurf } from "@/types/turf";
+import { ITurfFilters } from "@/types/turfFilter";
+import { SetPagination } from "@/types/pagination";
+
 
 interface Props {
-  turfs: Turf[];
-  filters: any;
-  setFilters: Dispatch<SetStateAction<any>>;
+  turfs: ITurf[];
+  filters: ITurfFilters;
+  setFilters: Dispatch<SetStateAction<ITurfFilters>>;
   showFilters: boolean;
   setShowFilters: Dispatch<SetStateAction<boolean>>;
   activeTab: string;
   setActiveTab: Dispatch<SetStateAction<string>>;
-  setPagination: Dispatch<SetStateAction<any>>;
+  setPagination:SetPagination;
 }
 
 const filterVariants = {
@@ -56,7 +59,10 @@ export default function TurfFilters({
   const handleSportFilter = (sport: string) => {
     setActiveTab(sport.toLowerCase());
     setFilters({ ...filters, sports: sport === "all" ? [] : [sport] });
-    setPagination((prev: any) => ({ ...prev, currentPage: 1 }));
+    setPagination((prev: { currentPage: number; totalPages: number }) => ({
+      ...prev,
+      currentPage: 1,
+    }));
   };
 
   const uniqueFacilities = Array.from(
@@ -190,7 +196,12 @@ export default function TurfFilters({
                     longitude: "",
                     radius: "",
                   });
-                  setPagination((prev: any) => ({ ...prev, currentPage: 1 }));
+                  setPagination(
+                    (prev: { currentPage: number; totalPages: number }) => ({
+                      ...prev,
+                      currentPage: 1,
+                    })
+                  );
                   setQuery("");
                   setSuggestions([]);
                 }}
@@ -259,10 +270,15 @@ export default function TurfFilters({
                               ...filters,
                               teamSize: newTeamSize,
                             });
-                            setPagination((prev: any) => ({
-                              ...prev,
-                              currentPage: 1,
-                            }));
+                            setPagination(
+                              (prev: {
+                                currentPage: number;
+                                totalPages: number;
+                              }) => ({
+                                ...prev,
+                                currentPage: 1,
+                              })
+                            );
                           }}
                         >
                           {size}v{size}
@@ -299,10 +315,15 @@ export default function TurfFilters({
                               ...filters,
                               facilities: updatedFacilities,
                             });
-                            setPagination((prev: any) => ({
-                              ...prev,
-                              currentPage: 1,
-                            }));
+                            setPagination(
+                              (prev: {
+                                currentPage: number;
+                                totalPages: number;
+                              }) => ({
+                                ...prev,
+                                currentPage: 1,
+                              })
+                            );
                           }}
                         >
                           {facility}
