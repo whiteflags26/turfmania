@@ -39,7 +39,12 @@ export default class TurfController {
       // Parse sports (if sent as a JSON string)
       let parsedSports: ITurf["sports"];
       try {
-        parsedSports = typeof sports === "string" ? JSON.parse(sports) : sports;
+        const rawSports =
+          typeof sports === "string" ? JSON.parse(sports) : sports;
+        parsedSports = rawSports.map(
+          (sport: string) =>
+            sport.charAt(0).toUpperCase() + sport.slice(1).toLowerCase()
+        );
       } catch (error) {
         return next(new ErrorResponse("Invalid sports format", 400));
       }
@@ -285,8 +290,8 @@ export default class TurfController {
         sports: req.query.sports as string | string[],
         facilities: req.query.facilities as string | string[],
         preferredDate: req.query.preferredDate as string,
-        preferredTimeStart: req.query.preferredTimeStart as string, // NEW
-        preferredTimeEnd: req.query.preferredTimeEnd as string, // NEW
+        preferredTimeStart: req.query.preferredTimeStart as string,
+        preferredTimeEnd: req.query.preferredTimeEnd as string,
         latitude: req.query.latitude as string,
         longitude: req.query.longitude as string,
         radius: req.query.radius as string,
