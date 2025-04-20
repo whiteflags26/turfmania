@@ -157,6 +157,79 @@ export const login = asyncHandler(
 );
 
 /**
+ * @route   POST /api/v1/auth/admin/login
+ * @desc    Admin Login with dashboard access check
+ * @access  Public
+ */
+export const adminLogin = asyncHandler(
+  async (
+    req: Request<{}, {}, LoginBody>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    let { email, password } = req.body;
+    // Trim and sanitize inputs
+    email = validator.trim(email ?? '').toLowerCase();
+    password = validator.trim(password ?? '');
+
+    // Input validation
+    if (!email || !password) {
+      return next(
+        new ErrorResponse('Please provide an email and password', 400),
+      );
+    }
+
+    // Validate email format
+    if (!validator.isEmail(email)) {
+      return next(new ErrorResponse('Invalid email format', 400));
+    }
+
+    // Find user with case-insensitive email match
+    const user = await User.findOne({ email })
+      .collation({ locale: 'en', strength: 2 })
+      .select('+password');
+
+    if (!user) {
+      return next(new ErrorResponse('Invalid credentials', 401));
+    }
+
+    // Check password
+    const isMatched = await authService.matchPassword(password, user);
+
+    if (!isMatched) {
+      return next(new ErrorResponse('Invalid credentials', 401));
+    }
+
+    // Check for admin dashboard access permission
+    const hasAdminAccess = await authService.checkAdminAccess(user._id);
+    if (!hasAdminAccess) {
+      return next(
+        new ErrorResponse('Unauthorized access to admin dashboard', 403),
+      );
+    }
+
+    // Generate token
+    const token = authService.generateToken(user);
+
+    // Remove sensitive data from response
+    const userWithoutPassword = user.toObject();
+    delete userWithoutPassword.password;
+
+    // Set token in cookie
+    res.cookie('admin_token', token, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      sameSite: 'lax',
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { user: userWithoutPassword, token },
+    });
+  },
+);
+
+/**
  * @route   POST /api/v1/auth/logout
  * @desc    Logout current user
  * @access  Public
