@@ -94,8 +94,8 @@ function getScopeContext(
   req: AuthRequest,
 ): Types.ObjectId | null {
   const organizationId =
-    req.organizationId || req.params.id || req.params.organizationId;
-  const eventId = req.eventId || req.params.eventId;
+    req.organizationId ?? req.params.id ?? req.params.organizationId;
+  const eventId = req.eventId ?? req.params.eventId;
 
   if (scope === PermissionScope.ORGANIZATION && organizationId) {
     return new mongoose.Types.ObjectId(organizationId as string);
@@ -170,7 +170,7 @@ export const checkPermission = (requiredPermissionName: string) => {
         req.user.id,
         permissionData.permissionId,
         permissionData.scope,
-        contextId || undefined,
+        contextId ?? undefined,
       );
 
       if (hasPermission) {

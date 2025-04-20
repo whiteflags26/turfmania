@@ -1,12 +1,12 @@
 import { DeleteResult } from 'mongodb';
-import mongoose, { Types } from 'mongoose';
+import { Types } from 'mongoose';
 import { deleteImage, uploadImage } from '../../utils/cloudinary';
 import ErrorResponse from '../../utils/errorResponse';
 import { extractPublicIdFromUrl } from '../../utils/extractUrl';
 import Permission, { PermissionScope } from '../permission/permission.model'; // Import Permission model
 import Role, { IRole } from '../role/role.model'; // Import Role model
 import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
-import User, { UserDocument } from '../user/user.model';
+import User from '../user/user.model';
 import Organization, { IOrganization } from './organization.model';
 
 export interface IOrganizationRoleAssignment {
@@ -28,7 +28,7 @@ class OrganizationService {
     name: string,
     facilities: string[],
     location: IOrganization['location'],
-    images?: Express.Multer.File[], 
+    images?: Express.Multer.File[],
   ): Promise<IOrganization | null> {
     try {
       let imageUrls: string[] = [];
@@ -238,7 +238,12 @@ class OrganizationService {
     try {
       const organization = await Organization.findById(organizationId);
       if (!organization) throw new ErrorResponse('Organization not found', 404);
-
+      if (
+        typeof roleName !== 'string' ||
+        !/^[a-zA-Z0-9\s-_]+$/.exec(roleName)
+      ) {
+        throw new ErrorResponse('Role name contains invalid characters', 400);
+      }
       // Validate role name uniqueness within this org
       const existingRole = await Role.findOne({
         name: roleName,
@@ -283,66 +288,6 @@ class OrganizationService {
       console.error('Error creating organization role:', error);
       throw new ErrorResponse(
         error.message ?? 'Failed to create role',
-        error.statusCode ?? 500,
-      );
-    }
-  }
-
-  /**
-   * Assign an organization role to a user (Requires 'assign_organization_roles')
-   */
-  public async assignRoleToUser(
-    organizationId: string,
-    userId: string,
-    roleId: string,
-  ): Promise<UserDocument> {
-    try {
-      // Convert string IDs to ObjectIds
-      const orgObjectId = new mongoose.Types.ObjectId(organizationId);
-
-      const [user, roleToAssign, organization] = await Promise.all([
-        User.findById(userId),
-        Role.findById(roleId),
-        Organization.findById(orgObjectId).select('_id'),
-      ]);
-
-      if (!user) throw new ErrorResponse('User not found', 404);
-      if (!organization) throw new ErrorResponse('Organization not found', 404);
-      if (!roleToAssign) throw new ErrorResponse('Role not found', 404);
-
-      // Validate role scope using orgObjectId
-      if (roleToAssign.scope !== PermissionScope.ORGANIZATION) {
-        throw new ErrorResponse(
-          `Role '${roleToAssign.name}' does not belong to this organization`,
-          400,
-        );
-      }
-
-      // Check if user already has this specific role using orgObjectId
-      const alreadyHasRole = user.organizationRoles.some(
-        (a: IOrganizationRoleAssignment) =>
-          a.organizationId.equals(orgObjectId) && a.role.equals(roleId),
-      );
-
-      if (alreadyHasRole) {
-        throw new ErrorResponse(
-          `User already has the role '${roleToAssign.name}' in this organization`,
-          400,
-        );
-      }
-
-      // Add the assignment using orgObjectId
-      user.organizationRoles.push({
-        organizationId: orgObjectId,
-        role: roleToAssign._id,
-      });
-
-      await user.save();
-      return user;
-    } catch (error: any) {
-      console.error('Error assigning role to user:', error);
-      throw new ErrorResponse(
-        error.message ?? 'Failed to assign role',
         error.statusCode ?? 500,
       );
     }
