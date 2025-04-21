@@ -7,6 +7,7 @@ import timeslotRoutes from '../modules/timeslot/timeslot.route';
 import bookingRoutes from '../modules/booking/booking.route';
 import userRoleAssignmentRoutes from '../modules/role_assignment/userRoleAssignment.routes';
 import roleRouter from '../modules/role/role.routes';
+import userRouter from '../modules/user/user.routes';
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use('/api/v1/timeslot', timeslotRoutes);
 router.use('/api/v1/booking', bookingRoutes);
 router.use('/api/v1/role-assignments', userRoleAssignmentRoutes);
 router.use('/api/v1/role', roleRouter);
+router.use('/api/v1/user',userRouter)
 
 export default router;
