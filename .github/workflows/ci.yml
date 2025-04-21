@@ -1,74 +1,11 @@
-name: Full CI with SonarQube
+name: CI
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
-  test-server:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./server
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'server/package-lock.json'
-
-      - name: Install server dependencies
-        run: npm ci
-
-      - name: Run server tests with coverage
-        run: npm run test:ci
-        timeout-minutes: 5
-
-      - name: Verify server coverage file
-        run: |
-          ls -la coverage/
-          [ -f coverage/lcov.info ] || exit 1
-          echo "Server coverage file exists with $(wc -l < coverage/lcov.info) lines"
-
-  test-client:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./client
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'client/package-lock.json'
-
-      - name: Install client dependencies
-        run: npm ci
-
-      - name: Run client tests with coverage
-        run: npm run test:ci
-        timeout-minutes: 5
-
-      - name: Verify client coverage file
-        run: |
-          ls -la coverage/
-          [ -f coverage/lcov.info ] || exit 1
-          echo "Client coverage file exists with $(wc -l < coverage/lcov.info) lines"
-
-  sonarcloud:
-    needs: [test-server, test-client]
+  test-and-analyze:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,9 +13,47 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      # Server test setup
+      - name: Install server dependencies
+        run: npm ci
+        working-directory: ./server
+        
+      - name: Run server tests with coverage
+        run: npm run test:ci
+        working-directory: ./server
+        
+      - name: Verify server coverage file
+        run: |
+          ls -la coverage/
+          [ -f coverage/lcov.info ] || exit 1
+          echo "Server coverage file exists with $(wc -l < coverage/lcov.info) lines"
+        working-directory: ./server
+        
+      # Client test setup
+      - name: Install client dependencies
+        run: npm ci
+        working-directory: ./client
+        
+      - name: Run client tests with coverage
+        run: npm run test:ci
+        working-directory: ./client
+        
+      - name: Verify client coverage file
+        run: |
+          ls -la coverage/
+          [ -f coverage/lcov.info ] || exit 1
+          echo "Client coverage file exists with $(wc -l < coverage/lcov.info) lines"
+        working-directory: ./client
+
+      # SonarCloud scan
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
+  
