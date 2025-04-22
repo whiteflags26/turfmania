@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
-import { verifyEmail } from "@/lib/server-apis/verifyEmail-api";
+import { verifyEmail } from "@/lib/server-apis/authentication/verifyEmail-api";
 
 const VerifyEmailPage = () => {
   const router = useRouter();
