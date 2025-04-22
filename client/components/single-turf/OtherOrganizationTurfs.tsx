@@ -87,7 +87,7 @@ export default function OtherOrganizationTurfs({
                           <Badge
                             key={sport}
                             variant="secondary"
-                            className="bg-green-50 text-green-700 hover:bg-green-100 text-xs"
+                            className="bg-green-50 text-green-600 hover:bg-green-100 text-xs"
                           >
                             {sport}
                           </Badge>
