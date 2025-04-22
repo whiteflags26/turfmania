@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, Users, Clock, Search, Star } from "lucide-react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { fetchTurfReviewSummary } from "@/lib/server-apis/single-turf/turfReviewSummary-api";
+import { fetchTurfReviewSummary } from "@/lib/server-apis/single-turf/fetchTurfReviewSummary-api";
 import { IPagination } from "@/types/pagination";
 import { ITurfFilters } from "@/types/turfFilter";
 import Link from "next/link";
