@@ -145,7 +145,7 @@ export default function TurfGrid({ loading, turfs, resetFilters }: Props) {
                         <Badge
                           key={sport}
                           variant="secondary"
-                          className="bg-green-50 text-green-700"
+                          className="bg-green-50 text-green-600"
                         >
                           {sport}
                         </Badge>
