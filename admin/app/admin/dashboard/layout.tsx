@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import AdminSidebar from './AdminSideBar';
-import MobileMenu from './MobileMenu';
+import AdminSidebar from '../AdminSideBar';
+import MobileMenu from '../MobileMenu';
 
 interface NavigationItem {
   readonly name: string;
@@ -37,8 +37,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const initNavigation = async () => {
       const allNavItems: NavigationItem[] = [
         { name: 'Dashboard', href: '/admin/dashboard' },
-        { name: 'Users', href: '/admin/users', permission: 'view_users' },
-        { name: 'Roles', href: '/admin/roles', permission: 'view_roles' },
+        { name: 'Users', href: '/admin/dashboard/users', permission: 'view_users' },
+        { name: 'Roles', href: '/admin/dashboard/roles', permission: 'view_roles' },
         {
           name: 'Organizations',
           href: '/admin/organizations',

@@ -1,23 +1,16 @@
 import { Permission } from './types';
 
-interface Props {
+interface CreateRoleModalProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly onSubmit: (form: {
-    readonly name: string;
-    readonly scope: string;
-    readonly permissionIds: readonly string[];
-    readonly isDefault: boolean;
-  }) => void;
+  readonly onSubmit: () => void;
   readonly permissions: readonly Permission[];
-  readonly scope: string;
-  readonly onScopeChange: (value: string) => void;
   readonly selectedPermissions: readonly string[];
   readonly togglePermission: (id: string) => void;
   readonly name: string;
-  readonly setName: (value: string) => void;
+  readonly setName: (name: string) => void;
   readonly isDefault: boolean;
-  readonly setIsDefault: (value: boolean) => void;
+  readonly setIsDefault: (isDefault: boolean) => void;
 }
 
 export default function CreateRoleModal({
@@ -25,20 +18,19 @@ export default function CreateRoleModal({
   onClose,
   onSubmit,
   permissions,
-  scope,
-  onScopeChange,
   selectedPermissions,
   togglePermission,
   name,
   setName,
   isDefault,
   setIsDefault,
-}: Props) {
+}: Readonly<CreateRoleModalProps>) {
   if (!isOpen) return null;
 
-  const filteredPermissions = permissions.filter(
-    p => p.scope === scope || p.scope === 'global',
-  );
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit();
+  };
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
@@ -46,17 +38,7 @@ export default function CreateRoleModal({
         <h3 className="text-lg font-medium text-gray-900 mb-4">
           Create New Role
         </h3>
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            onSubmit({
-              name,
-              scope,
-              permissionIds: selectedPermissions,
-              isDefault,
-            });
-          }}
-        >
+        <form onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
               <label
@@ -75,30 +57,12 @@ export default function CreateRoleModal({
               />
             </div>
             <div>
-              <label
-                htmlFor="roleScope"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Scope
-              </label>
-              <select
-                id="roleScope"
-                value={scope}
-                onChange={e => onScopeChange(e.target.value)}
-                className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              >
-                <option value="global">Global</option>
-                <option value="organization">Organization</option>
-                <option value="event">Event</option>
-              </select>
-            </div>
-            <div>
               <fieldset>
                 <legend className="text-sm font-medium text-gray-700">
                   Permissions
                 </legend>
                 <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
-                  {filteredPermissions.map(permission => (
+                  {permissions.map(permission => (
                     <div key={permission._id} className="flex items-start">
                       <input
                         id={`permission-${permission._id}`}

@@ -13,18 +13,21 @@ const app = express();
 
 // CORS configuration
 const corsOptions = {
-  origin: ['http://localhost:3001', 'http://localhost:3000'],
+  origin: ['http://localhost:3001', 'http://localhost:3002'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   exposedHeaders: ['set-cookie'],
 };
 
 app.use(express.json());
+
+// Use the same corsOptions configuration consistently
+app.use(cors(corsOptions));
+
 app.use(cookieParser());
 app.use(ExpressMongoSanitize());
 app.use(helmet());
-app.use(cors(corsOptions));
 
 // Add pre-flight handling for all routes
 app.options('*', cors(corsOptions));

@@ -135,7 +135,7 @@ export const login = asyncHandler(
 
     // Generate token
     const token = authService.generateToken(user);
-    console.log(token);
+    
 
     // Remove sensitive data from response
     const userWithoutPassword = user.toObject();
@@ -215,16 +215,27 @@ export const adminLogin = asyncHandler(
     const userWithoutPassword = user.toObject();
     delete userWithoutPassword.password;
 
-    // Set token in cookie
+    // Set admin token cookie
     res.cookie('admin_token', token, {
       httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
+    // Set regular token cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
     res.status(200).json({
       success: true,
-      data: { user: userWithoutPassword, token },
+      data: { user: userWithoutPassword },
     });
   },
 );
@@ -243,6 +254,12 @@ export const logout = asyncHandler(
       //secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
     });
+    res.cookie('admin_token', '', {
+      httpOnly: true,
+      expires: new Date(0), // set the cookie to expire immediately
+      //secure: process.env.NODE_ENV === 'production', // Uncomment for production
+      sameSite: 'lax',
+    });
 
     res.status(200).json({
       success: true,
@@ -258,15 +275,24 @@ export const logout = asyncHandler(
  */
 export const getMe = asyncHandler(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    console.log('in me controller');
-    if (!req.user) {
+    if (!req.user?.id) {
       return next(new ErrorResponse('User not authenticated', 401));
     }
-    console.log('user', req.user.id);
-    const user = await User.findById(req.user.id).select('-password');
+
+    const user = await User.findById(req.user.id).select(
+      '-password -verificationToken -verificationTokenExpires',
+    );
 
     if (!user) {
       return next(new ErrorResponse('User not found', 404));
+    }
+
+    // If it's an admin request, check admin access
+    if (req.cookies.admin_token) {
+      const hasAdminAccess = await authService.checkAdminAccess(user._id);
+      if (!hasAdminAccess) {
+        return next(new ErrorResponse('Not authorized as admin', 403));
+      }
     }
 
     res.status(200).json({

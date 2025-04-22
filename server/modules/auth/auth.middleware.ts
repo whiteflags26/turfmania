@@ -6,18 +6,19 @@ import { IPermission, PermissionScope } from './../permission/permission.model';
 import mongoose, { Types } from 'mongoose';
 import User from '../../modules/user/user.model';
 import ErrorResponse from '../../utils/errorResponse';
+import { adminLoggerService } from '../admin_actions/adminActions.service';
 import Permission from '../permission/permission.model';
 import { IRole } from '../role/role.model';
-import { UserDocument } from '../user/user.model';
-import { adminLoggerService } from '../admin_actions/adminActions.service';
 
 interface JwtPayload {
   id: string;
 }
 
 export interface AuthRequest extends Request {
-  user?: UserDocument; // Attach the full Mongoose user document
-  // Add properties to hold context IDs if needed during the request lifecycle
+  user?: {
+    id: string;
+    isAdmin?: boolean;
+  };
   organizationId?: string | mongoose.Types.ObjectId;
   eventId?: string | mongoose.Types.ObjectId;
 }
@@ -35,38 +36,44 @@ export const protect = async (
   res: Response,
   next: NextFunction,
 ) => {
-  let token;
-
-  // Get token from cookies
-  if (req.cookies.token) {
-    token = req.cookies.token;
-  }
-
-  // Check Authorization header as fallback
-  else if (req.headers.authorization?.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  }
-
-  // If no token is found, deny access
-  if (!token) {
-    return next(new ErrorResponse('Not authorized, no token found', 401));
-  }
-
   try {
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    const token = req.cookies.token;
+    const adminToken = req.cookies.admin_token;
+   
 
-    // Fetch user and attach to request object excluding password
-    const user = await User.findById(decoded.id).select('+password'); // Select password only if needed later (e.g., password change)
-
-    if (!user) {
-      return next(new ErrorResponse('User not found', 404));
+    if (!token && !adminToken) {
+      return next(
+        new ErrorResponse('Not authorized to access this route', 401),
+      );
     }
 
-    req.user = user; // Attach user to request
-    next();
+    try {
+      // Try admin token first, then regular token
+      const activeToken = adminToken ?? token;
+      const decoded = jwt.verify(
+        activeToken,
+        process.env.JWT_SECRET!,
+      ) as JwtPayload;
+
+      const user = await User.findById(decoded.id).select('-password');
+      if (!user) {
+        return next(new ErrorResponse('User not found', 404));
+      }
+
+      // Set user on request
+      req.user = {
+        id: user._id.toString(),
+        isAdmin: Boolean(adminToken), // Set isAdmin based on which token was used
+      };
+
+      next();
+    } catch (error) {
+      return next(
+        new ErrorResponse('Not authorized to access this route', 401),
+      );
+    }
   } catch (error) {
-    return next(new ErrorResponse('Not authorized, invalid token', 401));
+    return next(new ErrorResponse('Authorization error', 500));
   }
 };
 
@@ -167,7 +174,7 @@ export const checkPermission = (requiredPermissionName: string) => {
       }
 
       const hasPermission = await checkUserPermission(
-        req.user.id,
+        new mongoose.Types.ObjectId(req.user.id),
         permissionData.permissionId,
         permissionData.scope,
         contextId ?? undefined,
@@ -177,9 +184,7 @@ export const checkPermission = (requiredPermissionName: string) => {
         return next();
       }
 
-      console.log(
-        `Authorization denied for user ${req.user.email} - ${requiredPermissionName}`,
-      );
+   
       return next(
         new ErrorResponse(
           `Not authorized to perform: ${requiredPermissionName}`,
@@ -200,38 +205,40 @@ export const logAdminAction = (action: string, entityType: string) => {
   return async (req: AuthRequest, res: Response, next: NextFunction) => {
     // Store original send method
     const originalSend = res.send;
-    
+
     // Override send method to log successful actions
-    res.send = function(body): Response {
+    res.send = function (body): Response {
       const originalStatus = res.statusCode;
-      
+
       // Only log successful actions (2xx status codes)
       if (originalStatus >= 200 && originalStatus < 300 && req.user) {
         // Extract entity ID from request params or body
-        const entityId = req.params.id 
-        
+        const entityId = req.params.id;
+
         // Log the action
-        adminLoggerService.logAction(
-          req.user.id,
-          action,
-          entityType,
-          {
-            method: req.method,
-            path: req.path,
-            body: req.body,
-            params: req.params,
-            query: req.query,
-            result: typeof body === 'string' ? JSON.parse(body) : body
-          },
-          req,
-          entityId
-        ).catch(err => console.error('Error logging admin action:', err));
+        adminLoggerService
+          .logAction(
+            req.user.id,
+            action,
+            entityType,
+            {
+              method: req.method,
+              path: req.path,
+              body: req.body,
+              params: req.params,
+              query: req.query,
+              result: typeof body === 'string' ? JSON.parse(body) : body,
+            },
+            req,
+            entityId,
+          )
+          .catch(err => console.error('Error logging admin action:', err));
       }
-      
+
       // Call the original send method
       return originalSend.call(this, body);
     };
-    
+
     next();
   };
 };

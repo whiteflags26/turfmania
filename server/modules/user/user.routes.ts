@@ -1,15 +1,13 @@
 import express from 'express';
-import { protect } from '../auth/auth.middleware';
 import { getUserById, getUsers } from './user.controller';
+import { protect } from '../auth/auth.middleware';
 
 const router = express.Router({ mergeParams: true });
-
-// Apply protection middleware to all routes
-router.use(protect);
 
 // Get all users
 router.get(
   '/',
+  protect,
   //   checkPermission('view_users'),
   getUsers,
 );

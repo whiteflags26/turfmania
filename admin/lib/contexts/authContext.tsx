@@ -1,164 +1,169 @@
-"use client";
+'use client';
 
+import axios from 'axios';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   createContext,
+  ReactNode,
   useContext,
   useEffect,
   useState,
-  useMemo,
-  ReactNode,
-} from "react";
-import { useRouter } from "next/navigation";
+} from 'react';
 
 interface User {
-  id: string;
+  _id: string;
   email: string;
   first_name: string;
   last_name: string;
-  role: string;
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, isAdmin?: boolean) => Promise<void>;
+  loading: boolean;
+  checkAuth: () => Promise<boolean>;
   logout: () => Promise<void>;
-  isLoading: boolean;
-  isAdmin: boolean;
+  login: (email: string, password: string) => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const checkAuth = async (): Promise<boolean> => {
+    try {
+      console.log('Checking auth status...');
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`,
+        {
+          withCredentials: true,
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      console.log('Auth check response:', response.data);
+
+      if (response.status === 200 && response.data?.data) {
+        console.log('User authenticated:', response.data.data);
+        setUser(response.data.data);
+        return true;
+      }
+
+      console.log('No user data in response');
+      setUser(null);
+      return false;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('Auth check failed:', {
+          status: error.response?.status,
+          message: error.response?.data?.message,
+          error: error.message,
+        });
+      } else {
+        console.error('Auth check failed with unknown error:', error);
+      }
+
+      setUser(null);
+      // Only redirect if not already on sign-in page and not loading
+      if (!pathname.includes('/sign-in') && !loading) {
+        console.log('Redirecting to sign-in page...');
+        router.push('/admin/sign-in');
+      }
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<void> => {
+    try {
+      console.log('Attempting login...');
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/admin/login`,
+        { email, password },
+        {
+          withCredentials: true,
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      console.log('Login response:', response.data);
+
+      if (response.status === 200 && response.data?.data?.user) {
+        console.log('Login successful, user:', response.data.data.user);
+        setUser(response.data.data.user);
+        router.push('/admin/dashboard');
+        return;
+      }
+      throw new Error('Login failed - Invalid response format');
+    } catch (error) {
+      console.error('Login error:', {
+        error: axios.isAxiosError(error)
+          ? {
+              status: error.response?.status,
+              message: error.response?.data?.message,
+              error: error.message,
+            }
+          : error,
+      });
+
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.message ?? 'Login failed');
+      }
+      throw error;
+    }
+  };
+
+  const logout = async (): Promise<void> => {
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/admin/logout`,
+        {},
+        {
+          withCredentials: true,
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      setUser(null);
+      router.push('/admin/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        // Check if there's an admin session cookie first
-        const adminResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/admin/me`,
-          {
-            credentials: "include", // Important for sending cookies
-          }
-        );
-
-        if (adminResponse.ok) {
-          const data = await adminResponse.json();
-          setUser(data.data);
-          setIsAdmin(true);
-        } else {
-          // If not admin, check regular user status
-          const userResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`,
-            {
-              credentials: "include",
-            }
-          );
-
-          if (userResponse.ok) {
-            const data = await userResponse.json();
-            setUser(data.data);
-            setIsAdmin(false);
-          } else {
-            setUser(null);
-            setIsAdmin(false);
-          }
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error);
-        setUser(null);
-        setIsAdmin(false);
-      } finally {
-        setIsLoading(false);
-      }
+    const initAuth = async () => {
+      console.log('Initializing auth check on path:', pathname);
+      await checkAuth();
     };
 
-    checkAuthStatus();
-  }, []);
+    initAuth();
+  }, [pathname]);
 
-  const login = async (email: string, password: string, isAdmin: boolean = false) => {
-    try {
-      // Use the appropriate endpoint based on whether this is an admin login
-      const endpoint = isAdmin 
-        ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/admin/login`
-        : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`;
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message ?? "Login failed");
-      }
-
-      setUser(data.data.user);
-      setIsAdmin(isAdmin);
-      
-      // Redirect based on user type
-      if (isAdmin) {
-        router.push("/admin/dashboard");
-      } else {
-        router.push("/");
-      }
-      
-      router.refresh();
-    } catch (error: any) {
-      throw new Error(error.message);
-    }
-  };
-
-  const logout = async () => {
-    try {
-      // Use the appropriate endpoint based on whether the user is an admin
-      const endpoint = isAdmin
-        ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/admin/logout`
-        : `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`;
-        
-      const response = await fetch(endpoint, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        setUser(null);
-        setIsAdmin(false);
-        
-        // Redirect based on user type
-        if (isAdmin) {
-          router.push("/admin/login");
-        } else {
-          router.push("/sign-in");
-        }
-        
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
-
-  const value = useMemo(
-    () => ({ user, login, logout, isLoading, isAdmin }),
-    [user, isLoading, isAdmin]
+  return (
+    <AuthContext.Provider value={{ user, loading, checkAuth, logout, login }}>
+      {children}
+    </AuthContext.Provider>
   );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

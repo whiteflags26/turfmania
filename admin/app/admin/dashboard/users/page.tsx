@@ -14,12 +14,11 @@ export default function UsersManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('/api/v1/users');
+        const response = await axios.get('http://localhost:3000/api/v1/users', { withCredentials: true });
         setUsers(response.data.data);
         setError(null);
       } catch (err) {
@@ -33,15 +32,13 @@ export default function UsersManagement() {
     fetchUsers();
   }, []);
 
-  // Fetch global roles
   useEffect(() => {
     const fetchGlobalRoles = async () => {
       try {
-        const response = await axios.get('/api/v1/roles/global');
+        const response = await axios.get('http://localhost:3000/api/v1/roles/global', { withCredentials: true });
         setGlobalRoles(response.data.data);
       } catch (err) {
         console.error('Error fetching global roles:', err);
-        // We don't set the main error state here as users are more important
       }
     };
 
@@ -52,14 +49,13 @@ export default function UsersManagement() {
     if (!selectedUser || !selectedRole) return;
 
     try {
-      await axios.post(`/api/v1/users/${selectedUser._id}/assignments/global`, {
-        roleId: selectedRole
-      });
-      
-      // Show success message (you could use a toast notification here)
-      alert(`Role successfully assigned to ${selectedUser.name}`);
-      
-      // Reset modal state
+      await axios.post(
+        `http://localhost:3000/api/v1/role-assignments/users/${selectedUser._id}/assignments/global`,
+        { roleId: selectedRole },
+        { withCredentials: true }
+      );
+
+      alert(`Role successfully assigned`);
       setSelectedUser(null);
       setSelectedRole('');
     } catch (err) {
@@ -84,10 +80,7 @@ export default function UsersManagement() {
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mt-4">
           <p>{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-2 text-red-600 underline"
-          >
+          <button onClick={() => window.location.reload()} className="mt-2 text-red-600 underline">
             Retry
           </button>
         </div>
@@ -106,11 +99,7 @@ export default function UsersManagement() {
         </div>
       ) : (
         <div className="mt-8 overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-          <UserTable 
-            users={users} 
-            canAssignRoles={true} 
-            onAssignClick={setSelectedUser} 
-          />
+          <UserTable users={users} canAssignRoles={true} onAssignClick={setSelectedUser} />
         </div>
       )}
 

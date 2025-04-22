@@ -1,6 +1,3 @@
-import { PermissionScope } from './../permission/permission.model';
-import User,{ UserDocument } from './../user/user.model';
-import { IRole } from './../role/role.model';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt, { SignOptions } from 'jsonwebtoken';
@@ -8,8 +5,15 @@ import { Types } from 'mongoose';
 import { sendEmail } from '../../utils/email';
 import ErrorResponse from '../../utils/errorResponse';
 import Token from '../token/token.model';
+import { PermissionScope } from './../permission/permission.model';
+import User, { UserDocument } from './../user/user.model';
 
 import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
+
+interface IPermission {
+  _id: Types.ObjectId;
+  name: string;
+}
 
 class AuthService {
   private readonly JWT_SECRET: string;
@@ -85,25 +89,34 @@ class AuthService {
 
   /** @desc Check if user has admin dashboard access **/
   public async checkAdminAccess(userId: Types.ObjectId): Promise<boolean> {
-    const assignments = await UserRoleAssignment.findOne({
-      userId,
-      scope: PermissionScope.GLOBAL,
-    }).populate<{
-      roleId: IRole;
-    }>({
-      path: 'roleId',
-      select: 'permissions',
-      populate: {
-        path: 'permissions',
-        select: '_id name',
-      },
-    });
+    try {
+      const assignments = await UserRoleAssignment.findOne({
+        userId,
+        scope: PermissionScope.GLOBAL,
+      }).populate<{
+        roleId: {
+          permissions: IPermission[];
+        };
+      }>({
+        path: 'roleId',
+        select: 'permissions',
+        populate: {
+          path: 'permissions',
+          select: '_id name',
+        },
+      });
 
-    if (!assignments?.roleId?.permissions) return false;
+      if (!assignments?.roleId?.permissions?.length) {
+        return false;
+      }
 
-    return assignments.roleId.permissions.some(
-      (p: any) => p.name === 'access_admin_dashboard',
-    );
+      return assignments.roleId.permissions.some(
+        permission => permission.name === 'access_admin_dashboard',
+      );
+    } catch (error) {
+      console.error('Error checking admin access:', error);
+      return false;
+    }
   }
 }
 
