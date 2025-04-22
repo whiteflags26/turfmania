@@ -4,61 +4,68 @@ import { fetchOrganizationTurfs } from "@/lib/server-apis/single-turf/fetchOrgan
 import TurfImageSlider from "@/components/single-turf/TurfImageSlider";
 import TurfDetails from "@/components/single-turf/TurfDetails";
 import OtherOrganizationTurfs from "@/components/single-turf/OtherOrganizationTurfs";
+import ReviewSection from "@/components/single-turf/ReviewRating";
 import { notFound } from "next/navigation";
-
+import { auth } from "@/lib/server-auth/auth";
+import { Card } from "@/components/ui/card";
 
 interface SingleTurfPageProps {
   params: {
-    id: string; 
+    id: string;
   };
 }
 
 export default async function SingleTurfPage({ params }: SingleTurfPageProps) {
   const turfId = params.id;
+  const session = await auth();
+  const currentUser = session?.user || null;
 
-  // 1. Fetch the main turf details
+  // Fetch data
   const turf: ITurf | null = await fetchSingleTurf(turfId);
+  if (!turf) notFound();
 
-  // Handle case where turf is not found
-  if (!turf) {
-    notFound(); // Renders the nearest not-found.tsx or the default 404 page
-  }
-
-  // 2. Fetch other turfs from the same organization
-  // Check if organization data is available and has an _id
-  const organizationId = turf.organization?._id; // Use optional chaining in case organization is not populated or missing _id
-
-  // Fetch other turfs only if organizationId is available
+  const organizationId = turf.organization?._id;
   const otherTurfs: ITurf[] = organizationId
-    ? (await fetchOrganizationTurfs(organizationId,turfId)) || [] // Fetch and default to empty array on error/null
-    : []; // If no organizationId, there are no other turfs from this org
+    ? (await fetchOrganizationTurfs(organizationId, turfId)) || []
+    : [];
 
   return (
-    // Use a main container for padding and responsiveness
-    <div className="container mx-auto px-4 py-8 md:px-6 lg:px-8">
-      {/* Turf Image Slider Section */}
-      {turf.images && turf.images.length > 0 && (
-        <section className="mb-8">
-          <TurfImageSlider images={turf.images} />
-        </section>
-      )}
-
-      {/* Turf Details Section */}
-      <section className="mb-12">
-        <TurfDetails turf={turf} />
+    <div className="min-h-screen bg-background pt-20">
+      {/* Hero Section */}
+      <section className="w-full bg-white border-b">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto py-6"> 
+            {turf.images && turf.images.length > 0 && (
+              <TurfImageSlider images={turf.images} />
+            )}
+          </div>
+        </div>
       </section>
 
-      {/* Other Turfs by Organization Section */}
-      {/* Only render this section if there are other turfs to show */}
-      {otherTurfs.length > 0 && (
-        <section>
-          {/* Pass the full list and the current turf ID for filtering within the component */}
-          <OtherOrganizationTurfs turfs={otherTurfs} currentTurfId={turfId} />
-        </section>
-      )}
+      {/* Main Content */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8"> 
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-8 space-y-8"> 
+            <TurfDetails turf={turf} />
+            <ReviewSection turfId={turfId} currentUser={currentUser} />
+          </div>
+
+          {/* Right Column - Sidebar */}
+          <div className="lg:col-span-4"> 
+            <div className="sticky top-24">
+              {otherTurfs.length > 0 && (
+                <Card className="p-4 bg-white">
+                  <OtherOrganizationTurfs
+                    turfs={otherTurfs}
+                    currentTurfId={turfId}
+                  />
+                </Card>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
-
-
-//Modify the contents 
