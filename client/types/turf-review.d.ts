@@ -4,7 +4,7 @@ import { IUser } from "./user";
 export interface ITurfReview {
   _id: string;
   turf: ITurf | string;
-  user: IUser | string;
+  user: IUser ;
   rating: number;
   review?: string;
   images?: string[];
