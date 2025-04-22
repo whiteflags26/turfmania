@@ -44,7 +44,7 @@ export default class TurfService {
 
   /**@desc Retrieve turf by ID **/
   async getTurfById(id: string): Promise<ITurf | null> {
-    return await Turf.findById(id).populate('organization');
+    return await Turf.findById(id).populate("organization");
   }
 
   /**@desc Update turf by ID with image upload and data validation **/
@@ -384,5 +384,47 @@ export default class TurfService {
         );
       }
     }
+  }
+
+  /**
+   * @desc Check if a turf is currently open or closed
+   * @param turfId - The ID of the turf to check
+   * @returns Object containing open status and next opening/closing time
+   */
+  async checkTurfStatus(turfId: string) {
+    const turf = await Turf.findById(turfId);
+    if (!turf) {
+      throw new ErrorResponse("Turf not found", 404);
+    }
+
+    const now = new Date();
+    const currentDay = now.getDay(); // 0-6 (Sunday-Saturday)
+    const currentTime = now.toLocaleTimeString("en-US", {
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    // Find today's operating hours
+    const todayHours = turf.operatingHours.find(
+      (hour) => hour.day === currentDay
+    );
+    if (!todayHours) {
+      return {
+        isOpen: false,
+        status: "CLOSED",
+        message: "Turf is closed today",
+      };
+    }
+
+    // Check if current time is within operating hours
+    const isOpen =
+      currentTime >= todayHours.open && currentTime <= todayHours.close;
+
+    return {
+      isOpen,
+      status: isOpen ? "OPEN" : "CLOSED",
+      message: isOpen ? `Open until ${todayHours.close}` : "Currently closed",
+    };
   }
 }
