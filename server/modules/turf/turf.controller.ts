@@ -304,4 +304,26 @@ export default class TurfController {
       res.status(200).json(result);
     }
   );
+
+  /**
+   * @route GET /api/v1/turfs/:id/status
+   * @desc Check if a turf is currently open or closed
+   * @access Public
+   */
+  getTurfStatus = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { id } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(new ErrorResponse("Invalid Turf ID format", 404));
+      }
+
+      const status = await this.turfService.checkTurfStatus(id);
+
+      res.status(200).json({
+        success: true,
+        data: status,
+      });
+    }
+  );
 }
