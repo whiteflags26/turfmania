@@ -61,7 +61,7 @@ router.put(
 router.get(
   "/my/:id",
   protect,
-  organizationRequestController.getMyOrganizationRequest
+  organizationRequestController.getOrganizationRequestAsUser
 )
 
 router.get(
@@ -69,6 +69,13 @@ router.get(
   protect,
   organizationRequestController.getOrganizationRequestAsAdmin
 )
+
+router.get(
+  "/user",
+  protect,
+  organizationRequestController.getUserOrganizationRequests
+)
+
 
 
 export default router;
