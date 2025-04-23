@@ -98,7 +98,7 @@ export default class OrganizationRequestController {
   /**
    * @route   GET /api/v1/organization-requests/validate-owner-email/:email
    * @desc    Validate if owner email exists in database
-   * @access  Private
+   * @access  Private (Admin only)
    */
   public validateOwnerEmail = asyncHandler(
     async (req: Request, res: Response) => {
@@ -117,5 +117,26 @@ export default class OrganizationRequestController {
     }
   );
 
-  
+  /**
+   * @route   PUT /api/v1/organization-requests/process/:id
+   * @desc    Start processing an organization request
+   * @access  Private (Admin only)
+   */
+  public startProcessingRequest = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      if (!req.user) {
+        throw new ErrorResponse('User not authenticated', 401);
+      }
+
+      const { id } = req.params;
+      const request = await this.organizationRequestService.startProcessing(id, req.user.id);
+
+      res.status(200).json({
+        success: true,
+        data: request,
+        message: 'Request processing started'
+      });
+    }
+  );
+
 }

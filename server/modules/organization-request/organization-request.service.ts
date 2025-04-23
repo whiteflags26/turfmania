@@ -118,4 +118,29 @@ export default class OrganizationRequestService {
       }
     }
   }
+
+  // Process an organization request (approve/reject)
+  public async startProcessing(
+    requestId: string,
+    adminId: string
+  ): Promise<IOrganizationRequest> {
+    const request = await OrganizationRequest.findById(requestId);
+    if (!request) {
+      throw new ErrorResponse("Request not found", 404);
+    }
+
+    if (request.status !== "pending") {
+      throw new ErrorResponse(
+        `Request cannot be processed. Current status: ${request.status}`,
+        400
+      );
+    }
+
+    request.status = "processing";
+    request.processingAdminId = new Types.ObjectId(adminId);
+    request.processingStartedAt = new Date();
+    await request.save();
+
+    return request;
+  }
 }

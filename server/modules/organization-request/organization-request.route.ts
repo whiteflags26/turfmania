@@ -24,11 +24,13 @@ const upload = multer({
 // Initialize controller
 const organizationRequestController = new OrganizationRequestController();
 
-// --- Public Endpoints ---
-router.get('/validate-owner-email/:email', organizationRequestController.validateOwnerEmail);
-
 // Authenticated Endpoints
 router.post("/", protect, upload.array("images", 5), organizationRequestController.createOrganizationRequest);
+
+// Admin Endpoints
+// Will add a middleware to check if the user is an admin later
+router.get('/validate-owner-email/:email', protect, organizationRequestController.validateOwnerEmail);
+router.put('/process/:id', protect, organizationRequestController.startProcessingRequest);
 
 
 export default router;
