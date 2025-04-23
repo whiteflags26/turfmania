@@ -33,7 +33,6 @@ export default class OrganizationRequestController {
         ownerEmail,
         requestNotes,
       } = req.body;
-
       // Validate required fields
       if (
         !organizationName ||
@@ -180,6 +179,38 @@ export default class OrganizationRequestController {
         success: true,
         data: request,
         message: "Request processing cancelled",
+      });
+    }
+  );
+
+  /**
+   * @route   PUT /api/v1/organization-requests/:id/reject
+   * @desc    Reject an organization request
+   * @access  Private (Admin only)
+   */
+  public rejectOrganizationRequest = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      if (!req.user) {
+        throw new ErrorResponse('User not authenticated', 401);
+      }
+
+      const { id } = req.params;
+      const { adminNotes } = req.body;
+
+      if (!adminNotes) {
+        throw new ErrorResponse('Rejection reason is required', 400);
+      }
+
+      const request = await this.organizationRequestService.rejectRequest(
+        id, 
+        req.user.id,
+        validator.trim(adminNotes)
+      );
+
+      res.status(200).json({
+        success: true,
+        data: request,
+        message: 'Organization request rejected'
       });
     }
   );

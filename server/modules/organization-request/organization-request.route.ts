@@ -52,4 +52,10 @@ router.put(
   organizationRequestController.cancelProcessingRequest
 );
 
+router.put(
+  "/:id/reject",
+  protect,
+  organizationRequestController.rejectOrganizationRequest
+);
+
 export default router;
