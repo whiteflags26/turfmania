@@ -368,4 +368,19 @@ private buildOwnerMessage(
 
     return request;
   }
+
+  public async getRequestById(
+    requestId: string
+  ): Promise<IOrganizationRequest> {
+    const request = await OrganizationRequest.findById(requestId)
+      .populate("requesterId", "first_name last_name email")
+      .populate("processingAdminId", "first_name last_name email")
+      .populate("organizationId");
+
+    if (!request) {
+      throw new ErrorResponse("Organization request not found", 404);
+    }
+
+    return request;
+  }
 }

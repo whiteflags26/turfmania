@@ -58,4 +58,17 @@ router.put(
   organizationRequestController.rejectOrganizationRequest
 );
 
+router.get(
+  "/my/:id",
+  protect,
+  organizationRequestController.getMyOrganizationRequest
+)
+
+router.get(
+  "/admin/:id",
+  protect,
+  organizationRequestController.getOrganizationRequestAsAdmin
+)
+
+
 export default router;

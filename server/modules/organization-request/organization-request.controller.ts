@@ -191,18 +191,18 @@ export default class OrganizationRequestController {
   public rejectOrganizationRequest = asyncHandler(
     async (req: AuthRequest, res: Response) => {
       if (!req.user) {
-        throw new ErrorResponse('User not authenticated', 401);
+        throw new ErrorResponse("User not authenticated", 401);
       }
 
       const { id } = req.params;
       const { adminNotes } = req.body;
 
       if (!adminNotes) {
-        throw new ErrorResponse('Rejection reason is required', 400);
+        throw new ErrorResponse("Rejection reason is required", 400);
       }
 
       const request = await this.organizationRequestService.rejectRequest(
-        id, 
+        id,
         req.user.id,
         validator.trim(adminNotes)
       );
@@ -210,7 +210,53 @@ export default class OrganizationRequestController {
       res.status(200).json({
         success: true,
         data: request,
-        message: 'Organization request rejected'
+        message: "Organization request rejected",
+      });
+    }
+  );
+
+  /**
+   * @route   GET /api/v1/organization-requests/my/:id
+   * @desc    Get requester's own organization request by ID
+   * @access  Private (Requester only)
+   */
+  public getMyOrganizationRequest = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      if (!req.user) {
+        throw new ErrorResponse("User not authenticated", 401);
+      }
+
+      const { id } = req.params;
+      const request = await this.organizationRequestService.getRequestById(id);
+
+      if (!request.requesterId.equals(req.user.id)) {
+        throw new ErrorResponse("Not authorized to view this request", 403);
+      }
+
+      res.status(200).json({
+        success: true,
+        data: request,
+      });
+    }
+  );
+
+  /**
+   * @route   GET /api/v1/organization-requests/admin/:id
+   * @desc    Get any organization request (admin access)
+   * @access  Private (Admin only)
+   */
+  public getOrganizationRequestAsAdmin = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      if (!req.user) {
+        throw new ErrorResponse("User not authenticated", 401);
+      }
+
+      const { id } = req.params;
+      const request = await this.organizationRequestService.getRequestById(id);
+
+      res.status(200).json({
+        success: true,
+        data: request,
       });
     }
   );
