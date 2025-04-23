@@ -24,7 +24,11 @@ const upload = multer({
 // Initialize controller
 const organizationRequestController = new OrganizationRequestController();
 
+// --- Public Endpoints ---
+router.get('/validate-owner-email/:email', organizationRequestController.validateOwnerEmail);
+
 // Authenticated Endpoints
 router.post("/", protect, upload.array("images", 5), organizationRequestController.createOrganizationRequest);
+
 
 export default router;
