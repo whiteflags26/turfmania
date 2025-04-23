@@ -143,4 +143,26 @@ export default class OrganizationRequestService {
 
     return request;
   }
+
+  // Cancel processing of a request
+  public async cancelProcessing(
+    requestId: string,
+    adminId: string
+  ): Promise<IOrganizationRequest> {
+    const request = await OrganizationRequest.findById(requestId);
+    if (!request) {
+      throw new ErrorResponse("Request not found", 404);
+    }
+
+    if (request.status !== "processing") {
+      throw new ErrorResponse("Request is not currently being processed", 400);
+    }
+
+    request.status = "pending";
+    request.processingAdminId = undefined;
+    request.processingStartedAt = undefined;
+    await request.save();
+
+    return request;
+  }
 }

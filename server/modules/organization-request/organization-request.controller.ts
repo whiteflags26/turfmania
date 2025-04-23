@@ -118,7 +118,7 @@ export default class OrganizationRequestController {
   );
 
   /**
-   * @route   PUT /api/v1/organization-requests/process/:id
+   * @route   PUT /api/v1/organization-requests/:id/process
    * @desc    Start processing an organization request
    * @access  Private (Admin only)
    */
@@ -135,6 +135,28 @@ export default class OrganizationRequestController {
         success: true,
         data: request,
         message: 'Request processing started'
+      });
+    }
+  );
+
+  /**
+   * @route   PUT /api/v1/organization-requests/:id/cancel-processing
+   * @desc    Cancel processing an organization request
+   * @access  Private (Admin only)
+   */
+  public cancelProcessingRequest = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      if (!req.user) {
+        throw new ErrorResponse('User not authenticated', 401);
+      }
+
+      const { id } = req.params;
+      const request = await this.organizationRequestService.cancelProcessing(id, req.user.id);
+
+      res.status(200).json({
+        success: true,
+        data: request,
+        message: 'Request processing cancelled'
       });
     }
   );
