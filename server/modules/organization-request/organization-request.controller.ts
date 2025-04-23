@@ -111,29 +111,29 @@ export default class OrganizationRequestController {
     }
   );
 
-  /**
-   * @route   GET /api/v1/organization-requests/validate-owner-email/:email
-   * @desc    Validate if owner email exists in database
-   * @access  Private (Admin only)
-   */
-  public validateOwnerEmail = asyncHandler(
-    async (req: Request, res: Response) => {
-      const { email } = req.params;
+  // /**
+  //  * @route   GET /api/v1/organization-requests/validate-owner-email/:email
+  //  * @desc    Validate if owner email exists in database
+  //  * @access  Private (Admin only)
+  //  */
+  // public validateOwnerEmail = asyncHandler(
+  //   async (req: Request, res: Response) => {
+  //     const { email } = req.params;
 
-      if (!email) {
-        throw new ErrorResponse("Email parameter is required", 400);
-      }
+  //     if (!email) {
+  //       throw new ErrorResponse("Email parameter is required", 400);
+  //     }
 
-      const isValid = await this.organizationRequestService.validateOwnerEmail(
-        email
-      );
+  //     const isValid = await this.organizationRequestService.validateOwnerEmail(
+  //       email
+  //     );
 
-      res.status(200).json({
-        success: true,
-        data: { exists: isValid },
-      });
-    }
-  );
+  //     res.status(200).json({
+  //       success: true,
+  //       data: { exists: isValid },
+  //     });
+  //   }
+  // );
 
   /**
    * @route   PUT /api/v1/organization-requests/:id/process

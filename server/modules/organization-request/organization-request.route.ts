@@ -32,42 +32,10 @@ router.post(
   organizationRequestController.createOrganizationRequest
 );
 
-// Admin Endpoints
-// Will add a middleware to check if the user is an admin later
-router.get(
-  "/validate-owner-email/:email",
-  protect,
-  organizationRequestController.validateOwnerEmail
-);
-
-router.put(
-  "/:id/process",
-  protect,
-  organizationRequestController.startProcessingRequest
-);
-
-router.put(
-  "/:id/cancel-processing",
-  protect,
-  organizationRequestController.cancelProcessingRequest
-);
-
-router.put(
-  "/:id/reject",
-  protect,
-  organizationRequestController.rejectOrganizationRequest
-);
-
 router.get(
   "/my/:id",
   protect,
   organizationRequestController.getOrganizationRequestAsUser
-);
-
-router.get(
-  "/admin/:id",
-  protect,
-  organizationRequestController.getOrganizationRequestAsAdmin
 );
 
 router.get(
@@ -76,9 +44,49 @@ router.get(
   organizationRequestController.getUserOrganizationRequests
 );
 
+
+
+// Admin Endpoints
+// Will add a middleware to check if the user is an admin later
+// router.get(
+//   "/validate-owner-email/:email",
+//   protect,
+//   checkPermission('manage_organization_requests'),
+//   organizationRequestController.validateOwnerEmail
+// );
+
+router.put(
+  "/:id/process",
+  protect,
+  checkPermission('manage_organization_requests'),
+  organizationRequestController.startProcessingRequest
+);
+
+router.put(
+  "/:id/cancel-processing",
+  protect,
+  checkPermission('manage_organization_requests'),
+  organizationRequestController.cancelProcessingRequest
+);
+
+router.put(
+  "/:id/reject",
+  protect,
+  checkPermission('manage_organization_requests'),
+  organizationRequestController.rejectOrganizationRequest
+);
+
+router.get(
+  "/admin/:id",
+  protect,
+  checkPermission('manage_organization_requests'),
+  organizationRequestController.getOrganizationRequestAsAdmin
+);
+
 router.get(
   "/",
   protect,
+  checkPermission('manage_organization_requests'),
   organizationRequestController.getOrganizationRequests
 );
 
