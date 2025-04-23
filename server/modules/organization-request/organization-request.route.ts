@@ -62,20 +62,24 @@ router.get(
   "/my/:id",
   protect,
   organizationRequestController.getOrganizationRequestAsUser
-)
+);
 
 router.get(
   "/admin/:id",
   protect,
   organizationRequestController.getOrganizationRequestAsAdmin
-)
+);
 
 router.get(
   "/user",
   protect,
   organizationRequestController.getUserOrganizationRequests
-)
+);
 
-
+router.get(
+  "/",
+  protect,
+  organizationRequestController.getOrganizationRequests
+);
 
 export default router;

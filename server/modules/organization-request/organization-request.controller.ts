@@ -5,6 +5,8 @@ import asyncHandler from "../../shared/middleware/async";
 import ErrorResponse from "../../utils/errorResponse";
 import { AuthRequest } from "../auth/auth.middleware";
 import OrganizationRequestService from "./organization-request.service";
+import { RequestStatus } from "./organization-request.model";
+import { RequestFilters, PaginationOptions } from "./organization-request.service";
 
 export default class OrganizationRequestController {
   private readonly organizationRequestService: OrganizationRequestService;
@@ -269,14 +271,110 @@ export default class OrganizationRequestController {
   public getUserOrganizationRequests = asyncHandler(
     async (req: AuthRequest, res: Response) => {
       if (!req.user) {
-        throw new ErrorResponse('User not authenticated', 401);
+        throw new ErrorResponse("User not authenticated", 401);
       }
 
-      const requests = await this.organizationRequestService.getUserOrganizationRequests(req.user.id);
+      const requests =
+        await this.organizationRequestService.getUserOrganizationRequests(
+          req.user.id
+        );
 
       res.status(200).json({
         success: true,
-        data: requests
+        data: requests,
+      });
+    }
+  );
+
+  /**
+   * Extract filter options from request query parameters
+   * @private
+   */
+  private extractRequestFilters(req: Request): RequestFilters {
+    const status = req.query.status as string;
+    const fromDate = req.query.fromDate
+      ? new Date(req.query.fromDate as string)
+      : undefined;
+    const toDate = req.query.toDate
+      ? new Date(req.query.toDate as string)
+      : undefined;
+    const requesterEmail = req.query.requesterEmail as string;
+    const ownerEmail = req.query.ownerEmail as string;
+    const sortBy = req.query.sortBy as
+      | "createdAt"
+      | "updatedAt"
+      | "organizationName";
+    const sortOrder = req.query.sortOrder as "asc" | "desc";
+
+    const filters: RequestFilters = {};
+
+    // Add status filter
+    if (status) {
+      filters.status = status.includes(",")
+        ? (status.split(",") as RequestStatus[])
+        : (status as RequestStatus);
+    }
+
+    // Add date filters
+    if (fromDate) filters.fromDate = fromDate;
+    if (toDate) filters.toDate = toDate;
+
+    // Add email filters
+    if (requesterEmail) filters.requesterEmail = requesterEmail;
+    if (ownerEmail) filters.ownerEmail = ownerEmail;
+
+    // Add sorting options
+    if (
+      sortBy &&
+      ["createdAt", "updatedAt", "organizationName"].includes(sortBy)
+    ) {
+      filters.sortBy = sortBy;
+    }
+
+    if (sortOrder && ["asc", "desc"].includes(sortOrder)) {
+      filters.sortOrder = sortOrder;
+    }
+
+    return filters;
+  }
+
+  /**
+   * Extract pagination options from request query parameters
+   * @private
+   */
+  private extractPaginationOptions(req: Request): PaginationOptions {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(req.query.limit as string) || 10)
+    );
+    return { page, limit };
+  }
+
+  /**
+   * @route   GET /api/v1/organization-requests
+   * @desc    Get all organization requests with filtering and pagination
+   * @access  Private (Admin only)
+   */
+  public getOrganizationRequests = asyncHandler(
+    async (req: Request, res: Response) => {
+      const filters = this.extractRequestFilters(req);
+      const pagination = this.extractPaginationOptions(req);
+
+      const results = await this.organizationRequestService.getRequests(
+        filters,
+        pagination
+      );
+
+      res.status(200).json({
+        success: true,
+        data: results,
+        meta: {
+          total: results.total,
+          page: results.page,
+          pages: results.pages,
+          filters: filters,
+        },
       });
     }
   );

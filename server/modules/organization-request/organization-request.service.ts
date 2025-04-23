@@ -37,6 +37,28 @@ interface ProcessingResult {
   data?: any;
 }
 
+export interface RequestFilters {
+  status?: RequestStatus | RequestStatus[];
+  fromDate?: Date;
+  toDate?: Date;
+  requesterEmail?: string;
+  ownerEmail?: string;
+  sortBy?: "createdAt" | "updatedAt" | "organizationName";
+  sortOrder?: "asc" | "desc";
+}
+
+export interface PaginationOptions {
+  page: number;
+  limit: number;
+}
+
+export interface RequestsResult {
+  total: number;
+  page: number;
+  pages: number;
+  requests: IOrganizationRequest[];
+}
+
 export default class OrganizationRequestService {
   // Validates the owner email by checking if it exists in the user database
   public async validateOwnerEmail(email: string): Promise<boolean> {
@@ -402,5 +424,76 @@ export default class OrganizationRequestService {
       .sort({ createdAt: -1 })
       .select("-adminNotes -processingAdminId -processingStartedAt -__v")
       .lean();
+  }
+
+  public async getRequests(
+    filters: RequestFilters = {},
+    pagination: PaginationOptions = { page: 1, limit: 10 }
+  ): Promise<RequestsResult> {
+    const { status, fromDate, toDate, requesterEmail, ownerEmail, sortBy = 'createdAt', sortOrder = 'desc' } = filters;
+    const { page, limit } = pagination;
+    const query: any = {};
+    
+    // Apply status filter
+    if (status) {
+      query.status = Array.isArray(status) ? { $in: status } : status;
+    }
+    
+    // Apply date range filter
+    if (fromDate || toDate) {
+      query.createdAt = {};
+      if (fromDate) query.createdAt.$gte = fromDate;
+      if (toDate) query.createdAt.$lte = toDate;
+    }
+    
+    // Apply requester email filter if specified
+    if (requesterEmail) {
+      // Find the user IDs for the specified requester email
+      const requesters = await User.find({ 
+        email: { $regex: new RegExp(requesterEmail, 'i') } 
+      }).select('_id');
+      
+      if (requesters.length > 0) {
+        const requesterIds = requesters.map(requester => requester._id);
+        query.requesterId = { $in: requesterIds };
+      } else {
+        // If no match, return empty result
+        return {
+          total: 0,
+          page,
+          pages: 0,
+          requests: []
+        };
+      }
+    }
+    
+    // Apply owner email filter if specified
+    if (ownerEmail) {
+      query.ownerEmail = { $regex: new RegExp(ownerEmail, 'i') };
+    }
+  
+    // Count total before applying pagination
+    const total = await OrganizationRequest.countDocuments(query);
+    const pages = Math.ceil(total / limit);
+    const skip = (page - 1) * limit;
+    
+    // Build sort object
+    const sortOptions: any = {};
+    sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+  
+    // Fetch paginated results with sorting
+    const requests = await OrganizationRequest.find(query)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
+      .populate("requesterId", "first_name last_name email")
+      .populate("processingAdminId", "first_name last_name email");
+    
+    return {
+      total,
+      page,
+      pages,
+      requests,
+    };
   }
 }
