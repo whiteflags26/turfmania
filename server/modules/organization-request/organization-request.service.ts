@@ -496,4 +496,24 @@ export default class OrganizationRequestService {
       requests,
     };
   }
+
+  public async resetStuckProcessingRequests(
+    timeoutHours: number = 2
+  ): Promise<number> {
+    const cutoffTime = new Date();
+    cutoffTime.setHours(cutoffTime.getHours() - timeoutHours);
+
+    const result = await OrganizationRequest.updateMany(
+      {
+        status: "processing",
+        processingStartedAt: { $lt: cutoffTime },
+      },
+      {
+        $set: { status: "pending" },
+        $unset: { processingAdminId: "", processingStartedAt: "" },
+      }
+    );
+
+    return result.modifiedCount;
+  }
 }
