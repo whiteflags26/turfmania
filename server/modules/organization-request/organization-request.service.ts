@@ -1,6 +1,5 @@
-import { Types } from "mongoose";
-import fs from "fs/promises";
-import path from "path";
+// organization-request.service.ts (Updated)
+import mongoose, { Types } from "mongoose";
 import validator from "validator";
 
 import User from "../user/user.model";
@@ -9,12 +8,11 @@ import OrganizationRequest, {
   IOrganizationRequest,
 } from "./organization-request.model";
 import { uploadImage } from "../../utils/cloudinary";
-import { organizationService } from "../organization/organization.service";
 import ErrorResponse from "../../utils/errorResponse";
 import { sendEmail } from "../../utils/email";
 
 interface CreateRequestDto {
-  name: string;
+  organizationName: string;
   facilities: string[];
   location: {
     place_id: string;
@@ -28,9 +26,7 @@ interface CreateRequestDto {
     city: string;
     post_code?: string;
   };
-  contactName: string;
   contactPhone: string;
-  contactEmail?: string;
   ownerEmail: string;
   requestNotes?: string;
 }
@@ -41,10 +37,7 @@ interface ProcessingResult {
   data?: any;
 }
 
-const TEMP_IMAGE_DIR = path.join(process.cwd(), "uploads", "temp");
-
 export default class OrganizationRequestService {
-
   // Validates the owner email by checking if it exists in the user database
   public async validateOwnerEmail(email: string): Promise<boolean> {
     if (!email || !validator.isEmail(email)) {
@@ -58,13 +51,12 @@ export default class OrganizationRequestService {
     return !!user;
   }
 
-  // Creates a new organization request
+  // Creates a new organization request with images directly uploaded to Cloudinary
   public async createRequest(
     requesterId: string,
     requestData: CreateRequestDto,
     images?: Express.Multer.File[]
   ): Promise<IOrganizationRequest> {
-    const tempImagePaths: string[] = [];
     try {
       // Validate owner email exists in database
       const ownerExists = await this.validateOwnerEmail(requestData.ownerEmail);
@@ -75,20 +67,12 @@ export default class OrganizationRequestService {
         );
       }
 
-      // Handle images - save to temp location
+      // Upload images directly to Cloudinary
+      const imageUrls: string[] = [];
       if (images && images.length > 0) {
-        // Ensure temp directory exists
-        await fs.mkdir(TEMP_IMAGE_DIR, { recursive: true });
-
-        // Save each image to temp dir with unique name
-        for (const image of images) {
-          const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}-${
-            image.originalname
-          }`;
-          const filePath = path.join(TEMP_IMAGE_DIR, fileName);
-          await fs.writeFile(filePath, image.buffer);
-          tempImagePaths.push(filePath);
-        }
+        const uploadPromises = images.map((image) => uploadImage(image));
+        const uploadResults = await Promise.all(uploadPromises);
+        imageUrls.push(...uploadResults.map((result) => result.url));
       }
 
       // Create request
@@ -96,30 +80,16 @@ export default class OrganizationRequestService {
         requesterId,
         status: "pending",
         ...requestData,
-        tempImagePaths,
+        images: imageUrls, // Store Cloudinary URLs directly
       });
 
       return request;
     } catch (error) {
-      /// Clean up any temp files if error occurs
-      await this.cleanupTempImages(tempImagePaths);
       throw error;
     }
   }
 
-  // Cleanup temporary images
-  private async cleanupTempImages(paths: string[]): Promise<void> {
-    for (const path of paths) {
-      try {
-        await fs.unlink(path);
-      } catch (err) {
-        console.error(`Failed to delete temp file ${path}:`, err);
-        // Continue with other files
-      }
-    }
-  }
-
-  // Process an organization request (approve/reject)
+  // Process an organization request
   public async startProcessing(
     requestId: string,
     adminId: string
@@ -164,5 +134,134 @@ export default class OrganizationRequestService {
     await request.save();
 
     return request;
+  }
+
+  // Approve request and link to an existing organization
+public async approveRequest(
+  requestId: string,
+  adminId: string,
+  organizationId: string,
+  wasEdited: boolean = false
+): Promise<ProcessingResult> {
+  const request = await OrganizationRequest.findById(requestId);
+  if (!request) {
+    throw new ErrorResponse("Request not found", 404);
+  }
+
+  if (request.status !== "processing") {
+    throw new ErrorResponse("Request is not in processing state", 400);
+  }
+
+  try {
+    // Set the status based on whether the data was edited
+    request.status = wasEdited ? "approved_with_changes" : "approved";
+    
+    // Set the organizationId reference
+    request.organizationId = new mongoose.Types.ObjectId(organizationId);
+    await request.save();
+
+    // Notify requester
+    await this.notifyRequestProcessed(request, true, wasEdited);
+
+    return {
+      success: true,
+      message: wasEdited 
+        ? "Organization request approved with changes" 
+        : "Organization request approved successfully",
+      data: { request },
+    };
+  } catch (error: any) {
+    console.error("Error approving request:", error);
+    throw new ErrorResponse(
+      error.message || "Failed to approve organization request",
+      error.statusCode || 500
+    );
+  }
+}
+
+  // Notify requester about request processing result
+  private async notifyRequestProcessed(
+    request: IOrganizationRequest,
+    approved: boolean,
+    wasEdited: boolean = false
+  ): Promise<void> {
+    try {
+      const user = await User.findById(request.requesterId);
+      if (!user) {
+        console.error(`User ${request.requesterId} not found for notification`);
+        return;
+      }
+
+      const subject = approved
+        ? "Organization Request Approved - TurfMania"
+        : "Organization Request Rejected - TurfMania";
+
+      // Check if requester is the owner
+      const isOwner = user.email === request.ownerEmail;
+
+      // Start with a greeting
+      const recipientName =
+        user.name || (isOwner ? "Owner" : "Valued Customer");
+      let message = `Dear ${recipientName},\n\n`;
+
+      if (approved) {
+        message +=
+          `We are pleased to inform you that your request to create organization "${request.organizationName}" has been approved${wasEdited ? " with some changes" : ""}.\n\n` +
+          `The organization has been successfully created in our system and is now active.\n` +
+          (request.organizationId
+            ? `Organization ID: ${request.organizationId}\n\n`
+            : "\n");
+        
+        if (wasEdited) {
+          message += `Please note that some details of your request were modified during the approval process. You can view the final organization details in your dashboard.\n\n`;
+        }
+
+        // Always include owner message if requester is owner
+        if (isOwner) {
+          message += `As the owner of "${request.organizationName}", you now have full administrative access to manage the organization.\n\n`;
+        }
+      } else {
+        message += `We regret to inform you that your request to create organization "${request.organizationName}" has been rejected.\n\n`;
+
+        if (request.adminNotes) {
+          message +=
+            `Reason: ${request.adminNotes}\n\n` +
+            `You may submit a new request after addressing the issues mentioned above.\n\n`;
+        }
+      }
+
+      // Add common footer
+      message +=
+        `If you have any questions or need further assistance, please don't hesitate to contact our support team at supportMail@gmail.com.\n\n` +
+        `Thank you for choosing TurfMania!\n\n` +
+        `Best regards,\n` +
+        `The TurfMania Team\n\n` +
+        `[This is an automated message. Please do not reply directly to this email.]`;
+
+      if (isOwner) {
+        // Send owner-specific message
+        await sendEmail(user.email, subject, message);
+      } else {
+        // Send standard message to requester
+        await sendEmail(user.email, subject, message);
+
+        // Send owner-specific message to owner (if different)
+        const ownerMessage =
+          `Dear ${request.ownerEmail.split("@")[0]},\n\n` +
+          `You have been designated as the owner of organization "${
+            request.organizationName
+          }" which was just ${
+            approved ? wasEdited ? "approved with some modifications" : "approved" : "rejected"
+          } on TurfMania.\n\n` +
+          (approved
+            ? `As the owner, you have full administrative access to manage the organization.\n\n`
+            : "") +
+          message.substring(message.indexOf("\n\nIf you have any questions"));
+
+        await sendEmail(request.ownerEmail, subject, ownerMessage);
+      }
+    } catch (error) {
+      console.error("Failed to send notification email:", error);
+    }
   }
 }

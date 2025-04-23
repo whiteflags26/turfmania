@@ -9,6 +9,8 @@ import { organizationService } from './organization.service';
 interface CreateOrganizationBody {
   name: string;
   facilities: string[];
+  requestId?: string;
+  wasEdited?: boolean;
   location: {
     place_id: string;
     address: string;
@@ -51,11 +53,11 @@ interface AssignRoleBody {
  */
 export const createOrganization = asyncHandler(
   async (
-    req: AuthRequest & { body: CreateOrganizationBody },
+    req: AuthRequest & { body: CreateOrganizationBody & { requestId?: string, wasEdited?: boolean } },
     res: Response,
     next: NextFunction,
   ) => {
-    const { name, facilities } = req.body;
+    const { name, facilities, requestId, wasEdited } = req.body;
 
     // Validate user authentication first
     if (!req.user) {
@@ -158,12 +160,17 @@ export const createOrganization = asyncHandler(
       parsedFacilities,
       location,
       images,
+      requestId ? requestId : undefined,
+      req.user.id,
+      wasEdited !== undefined ? wasEdited : true, // Default to true if not provided
     );
 
     res.status(201).json({
       success: true,
       data: organization,
-      message: 'Organization created successfully',
+      message: requestId 
+        ? 'Organization created and request approved successfully' 
+        : 'Organization created successfully',
     });
   },
 );

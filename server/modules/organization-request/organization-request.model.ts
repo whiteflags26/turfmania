@@ -1,13 +1,14 @@
+// organization-request.model.ts (Updated)
 import mongoose, { Document, Schema, Types } from "mongoose";
 
-export type RequestStatus = "pending" | "processing" | "approved" | "rejected";
+export type RequestStatus = "pending" | "processing" | "approved" | "approved_with_changes" | "rejected";
 
 export interface IOrganizationRequest extends Document {
   requesterId: Types.ObjectId; // Reference to User model
   status: RequestStatus;
 
   // Organization Data
-  name: string;
+  organizationName: string;
   facilities: string[];
   location: {
     place_id: string;
@@ -23,9 +24,7 @@ export interface IOrganizationRequest extends Document {
   };
 
   // Contact Information
-  contactName: string;
   contactPhone: string; // Mandatory
-  contactEmail?: string; // Optional
 
   // Owner Information
   ownerEmail: string; // Mandatory - must exist in user database
@@ -36,8 +35,8 @@ export interface IOrganizationRequest extends Document {
   processingAdminId?: Types.ObjectId; // Which admin is processing this request
   processingStartedAt?: Date; // When processing began
 
-  // Images (references to temporarily stored images)
-  tempImagePaths: string[];
+  // Images (Cloudinary URLs)
+  images: string[];
 
   // Result data
   organizationId?: Types.ObjectId; // Reference to created organization (if approved)
@@ -56,12 +55,12 @@ const OrganizationRequestSchema: Schema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "processing", "approved", "rejected"],
+      enum: ["pending", "processing", "approved", "approved_with_changes", "rejected"],
       default: "pending",
     },
 
     // Organization Data
-    name: {
+    organizationName: {
       type: String,
       required: true,
       trim: true,
@@ -100,13 +99,6 @@ const OrganizationRequestSchema: Schema = new Schema(
     },
 
     // Contact Information
-    contactName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    // In org_create_request.model.ts, update the contactPhone field in the schema:
-
     contactPhone: {
       type: String,
       required: true,
@@ -119,19 +111,6 @@ const OrganizationRequestSchema: Schema = new Schema(
         },
         message:
           "Please provide a valid Bangladeshi phone number (e.g. 01712345678 or +8801712345678)",
-      },
-    },
-    contactEmail: {
-      type: String,
-      trim: true,
-      lowercase: true,
-      validate: {
-        validator: function (value: string) {
-          return (
-            !value || /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(value)
-          );
-        },
-        message: "Please provide a valid email address",
       },
     },
 
@@ -166,8 +145,8 @@ const OrganizationRequestSchema: Schema = new Schema(
       type: Date,
     },
 
-    // Images
-    tempImagePaths: {
+    // Images (Cloudinary URLs)
+    images: {
       type: [String],
       default: [],
     },

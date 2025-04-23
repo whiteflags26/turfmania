@@ -8,6 +8,8 @@ import Role, { IRole } from '../role/role.model'; // Import Role model
 import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
 import User from '../user/user.model';
 import Organization, { IOrganization } from './organization.model';
+import OrganizationRequestService from "../organization-request/organization-request.service";
+import mongoose from 'mongoose';
 
 export interface IOrganizationRoleAssignment {
   organizationId: Types.ObjectId;
@@ -15,46 +17,94 @@ export interface IOrganizationRoleAssignment {
 }
 
 class OrganizationService {
+
+  organizationRequestService = new OrganizationRequestService();
+
   /**
-   * Create a new organization (Admin only)
-   * Called by an Admin. Owner is assigned in a separate step.
-   * @param name - Organization name
-   * @param facilities - List of facilities
-   * @param images - Array of image files
-   * @param location - Location object
-   * @returns Promise<IOrganization>
-   */
-  public async createOrganization(
-    name: string,
-    facilities: string[],
-    location: IOrganization['location'],
-    images?: Express.Multer.File[],
-  ): Promise<IOrganization | null> {
-    try {
-      let imageUrls: string[] = [];
+ * Create a new organization (Admin only)
+ * Called by an Admin. Owner is assigned in a separate step if no requestId is provided.
+ * If requestId is provided, owner is assigned as part of the creation process.
+ * @param name - Organization name
+ * @param facilities - List of facilities
+ * @param images - Array of image files
+ * @param location - Location object
+ * @param requestId - Optional organization request ID
+ * @param adminId - ID of admin creating the organization
+ * @param wasEdited - Whether request was edited during approval process
+ * @returns Promise<IOrganization>
+ */
+public async createOrganization(
+  name: string,
+  facilities: string[],
+  location: IOrganization['location'],
+  images?: Express.Multer.File[],
+  requestId?: string,
+  adminId?: string,
+  wasEdited: boolean = true,
+): Promise<IOrganization | null> {
+  try {
+    let imageUrls: string[] = [];
 
-      // Only process images if they exist
-      if (images && images.length > 0) {
-        const imageUploads = images.map(image => uploadImage(image));
-        const uploadedImages = await Promise.all(imageUploads);
-        imageUrls = uploadedImages.map(img => img.url);
-      }
-
-      // Create organization with owner and permissions
-      const organization = new Organization({
-        name,
-        facilities,
-        images: imageUrls,
-        location,
-      });
-
-      await organization.save();
-      return organization;
-    } catch (error) {
-      console.error(error);
-      throw new ErrorResponse('Failed to create organization', 500);
+    // Only process images if they exist
+    if (images && images.length > 0) {
+      const imageUploads = images.map(image => uploadImage(image));
+      const uploadedImages = await Promise.all(imageUploads);
+      imageUrls = uploadedImages.map(img => img.url);
     }
+
+    // Create organization with owner and permissions
+    const organization = new Organization({
+      name,
+      facilities,
+      images: imageUrls,
+      location,
+    });
+
+    await organization.save();
+    
+    // If requestId is provided, approve the organization request and assign owner
+    if (requestId && adminId) {
+      try {        
+        // Get the request to extract the owner email
+        const request = await mongoose.model('OrganizationRequest').findById(requestId);
+        if (!request) {
+          throw new ErrorResponse('Organization request not found', 404);
+        }
+
+        // Find the owner user from the request's ownerEmail
+        const owner = await User.findOne({ email: request.ownerEmail }).collation({ locale: 'en', strength: 2 });
+        if (!owner) {
+          throw new ErrorResponse('Owner user not found', 404);
+        }
+
+        if(!organization?._id) {
+          throw new ErrorResponse('Organization ID not found', 404);
+        }
+
+        // Now also assign the default organization owner role
+        await this.assignOwnerToOrganization(organization._id.toString(), owner._id.toString());
+        
+        // Approve the request with the newly created organization ID
+        await this.organizationRequestService.approveRequest(
+          requestId,
+          adminId,
+          organization._id.toString(),
+          wasEdited // Use the provided wasEdited parameter
+        );
+        
+        console.log(`Organization request ${requestId} approved and linked to organization ${organization._id}`);
+      } catch (error) {
+        console.error('Failed to process organization request:', error);
+        // Continue with organization creation even if request processing fails
+      }
+    }
+    
+    return organization;
+  } catch (error) {
+    console.error(error);
+    throw new ErrorResponse('Failed to create organization', 500);
   }
+}
 
   /**
    * Assign a user as the owner of an organization (Admin only)
@@ -131,7 +181,6 @@ class OrganizationService {
       );
 
       // 4. Update organization with owner
-      organization.owner = user._id;
       await organization.save();
 
       console.log(
