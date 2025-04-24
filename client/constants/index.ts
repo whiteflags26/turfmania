@@ -1,3 +1,5 @@
+import { Square } from "@/types/square"
+
 //Navigation Bar
 export const NAV_LINKS = [
   { href: "/", key: "home", label: "Home" },
@@ -7,7 +9,7 @@ export const NAV_LINKS = [
 ];
 
 //Hero Section
-export const squareData = [
+export const squareData: Square[] = [
   {
     id: 1,
     src: "/images/Hero-id1.avif",
