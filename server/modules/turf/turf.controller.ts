@@ -29,29 +29,22 @@ export default class TurfController {
       } = req.body;
       const images = req.files as Express.Multer.File[];
 
+      // Parse numeric fields
+      let parsedBasePrice: ITurf["basePrice"];
+      parsedBasePrice = parseFloat(basePrice);
+      if (isNaN(parsedBasePrice)) {
+        return next(new ErrorResponse("basePrice must be a valid number", 400));
+      }
+
+      // Parse sports (if sent as a JSON string)
+      let parsedSports: ITurf["sports"];
       try {
-        // Parse and validate all fields
-        const parsedFields = await this.validateAndParseCreateData({
-          name,
-          sports,
-          basePrice,
-          team_size,
-          organization,
-          operatingHours,
-        });
-
-        if (!parsedFields) {
-          return next(new ErrorResponse('Failed to parse turf data', 400));
-        }
-
-        // Create turf
-        const turf = await this.turfService.createTurf(parsedFields, images);
-
-        res.status(201).json({
-          success: true,
-          data: turf,
-          message: 'Turf created successfully',
-        });
+        const rawSports =
+          typeof sports === "string" ? JSON.parse(sports) : sports;
+        parsedSports = rawSports.map(
+          (sport: string) =>
+            sport.charAt(0).toUpperCase() + sport.slice(1).toLowerCase()
+        );
       } catch (error) {
         console.error('Error creating turf:', error);
         return next(
@@ -348,8 +341,9 @@ export default class TurfController {
         teamSize: req.query.teamSize as string,
         sports: req.query.sports as string | string[],
         facilities: req.query.facilities as string | string[],
-        preferredDay: req.query.preferredDay as string,
-        preferredTime: req.query.preferredTime as string,
+        preferredDate: req.query.preferredDate as string,
+        preferredTimeStart: req.query.preferredTimeStart as string,
+        preferredTimeEnd: req.query.preferredTimeEnd as string,
         latitude: req.query.latitude as string,
         longitude: req.query.longitude as string,
         radius: req.query.radius as string,
@@ -360,6 +354,28 @@ export default class TurfController {
       const result = await this.turfService.filterTurfs(filterOptions);
 
       res.status(200).json(result);
-    },
+    }
+  );
+
+  /**
+   * @route GET /api/v1/turfs/:id/status
+   * @desc Check if a turf is currently open or closed
+   * @access Public
+   */
+  getTurfStatus = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { id } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return next(new ErrorResponse("Invalid Turf ID format", 404));
+      }
+
+      const status = await this.turfService.checkTurfStatus(id);
+
+      res.status(200).json({
+        success: true,
+        data: status,
+      });
+    }
   );
 }

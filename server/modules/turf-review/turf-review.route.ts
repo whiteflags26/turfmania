@@ -24,8 +24,8 @@ const upload = multer({
 
 // Protected routes
 const turfReviewController = new TurfReviewController();
-router.post("/review/", protect, upload.array("images", 5), turfReviewController.createTurfReview);
-router.put("/review/:reviewId", protect, upload.array("images", 5), turfReviewController.updateReview);
+router.post("/review/", protect, upload.array("images", 2), turfReviewController.createTurfReview);
+router.put("/review/:reviewId", protect, upload.array("images", 2), turfReviewController.updateReview);
 router.delete("/review/:reviewId", protect, turfReviewController.deleteTurfReview);
 router.get("/user/", protect, turfReviewController.getReviewsByUser);
 
