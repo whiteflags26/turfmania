@@ -13,7 +13,7 @@ import "@/lib/config/barikoiConfig";
 import { ITurf } from "@/types/turf";
 import { ITurfFilters } from "@/types/turfFilter";
 import { SetPagination } from "@/types/pagination";
-
+import { reverseGeocode } from "@/lib/server-apis/barikoi/reverseGeocode-api";
 
 interface Props {
   turfs: ITurf[];
@@ -72,14 +72,29 @@ export default function TurfFilters({
   const handleGeoLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        async (pos) => {
+          const lat = pos.coords.latitude.toString();
+          const lon = pos.coords.longitude.toString();
+          
+          // Update filters with coordinates
           setFilters({
             ...filters,
-            latitude: pos.coords.latitude.toString(),
-            longitude: pos.coords.longitude.toString(),
+            latitude: lat,
+            longitude: lon,
           });
+
+          // Get address from coordinates
+          const result = await reverseGeocode(lat, lon);
+          if (result && result.place && result.place.address) {
+            setQuery(result.place.address);
+          } else {
+            setQuery(`${lat}, ${lon}`);
+          }
         },
-        () => alert("Please enable location access to use this feature")
+        (error) => {
+          console.error('Geolocation error:', error);
+          alert("Please enable location access to use this feature");
+        }
       );
     }
   };
