@@ -39,7 +39,6 @@ export const protect = async (
   try {
     const token = req.cookies.token;
     const adminToken = req.cookies.admin_token;
-   
 
     if (!token && !adminToken) {
       return next(
@@ -72,8 +71,14 @@ export const protect = async (
         new ErrorResponse('Not authorized to access this route', 401),
       );
     }
-  } catch (error) {
-    return next(new ErrorResponse('Authorization error', 500));
+  } catch (error: unknown) {
+    // Properly type and handle the error
+    if (error instanceof Error) {
+      return next(new ErrorResponse(error.message, 500));
+    }
+    return next(
+      new ErrorResponse('An unexpected authorization error occurred', 500),
+    );
   }
 };
 
@@ -184,7 +189,6 @@ export const checkPermission = (requiredPermissionName: string) => {
         return next();
       }
 
-   
       return next(
         new ErrorResponse(
           `Not authorized to perform: ${requiredPermissionName}`,
