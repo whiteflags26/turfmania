@@ -51,7 +51,7 @@ export default function ResetPasswordPage() {
         router.push("/sign-in");
       }, 2000);
     } catch (err: any) {
-      toast.error(err.message || "An error occurred. Please try again.");
+      toast.error(err.message ?? "An error occurred. Please try again.");
     }
   };
 
@@ -118,7 +118,7 @@ export default function ResetPasswordPage() {
                 {...register("retypeNewPassword", {
                   required: "Please retype your new password",
                   validate: (value) =>
-                    value.trim() === newPassword.trim() ||
+                    value.trim() === newPassword.trim() || 
                     "Passwords do not match",
                 })}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm"

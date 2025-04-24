@@ -54,7 +54,7 @@ export default function SignUpPage() {
       reset(); // Clear form
       router.push('/'); // Redirect to login page
     } catch (error: any) {
-      toast.error(error.message || 'Failed to register');
+      toast.error(error.message ?? 'Failed to register');
     } finally {
       setIsLoading(false);
     }

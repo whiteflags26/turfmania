@@ -9,11 +9,11 @@ import {
   updateOrganization,
   deleteOrganization,
   createOrganizationRole,
-  assignOrganizationRoleToUser,
-  fetchOtherTurfs,
-} from "./organization.controller";
-import { getOrganizationRoles } from "../role/role.controller";
-import { assignOrganizationRole } from "../role_assignment/userRoleAssignmentController";
+ 
+ 
+} from './organization.controller';
+import { getOrganizationRoles } from '../role/role.controller';
+import { assignOrganizationRole } from '../role_assignment/userRoleAssignmentController';
 
 const router = express.Router();
 
@@ -68,13 +68,7 @@ router.post(
   createOrganizationRole
 );
 
-// Assign a Role to a User within an Organization
-router.post(
-  "/:organizationId/users/:userId/assign-role",
-  protect,
-  checkPermission("assign_organization_roles"), // Organization-scoped
-  assignOrganizationRoleToUser
-);
+
 router.get(
   "/:organizationId/roles",
   protect,

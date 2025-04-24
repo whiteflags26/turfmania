@@ -29,7 +29,7 @@ const VerifyEmailPage = () => {
         setIsVerified(true);
       } catch (error: any) {
         setMessage(
-          error.message || "An error occurred. Please try again later."
+          error.message ?? "An error occurred. Please try again later."
         );
       }
     };

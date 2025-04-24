@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
       const response = await sendForgotPasswordRequest(data.email);
       toast.success(response.message);
     } catch (err: any) {
-      toast.error(err.message || "An error occurred.");
+      toast.error(err.message ?? "An error occurred.");
     }
   };
 
