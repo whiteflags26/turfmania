@@ -183,25 +183,101 @@ export default class TurfReviewService {
     return true;
   }
 
-  // Get all reviews for a specific turf and their average rating and rating distribution
-  async getReviewsByTurf(
-    turfId: string,
-    options: ReviewFilterOptions = {}
-  ): Promise<ReviewSummary> {
-    const filter = { turf: turfId };
-    const matchStage = { turf: new mongoose.Types.ObjectId(turfId) };
+// Get all reviews for a specific turf and their average rating and rating distribution
+async getReviewsByTurf(
+  turfId: string,
+  options: ReviewFilterOptions = {},
+  requestingUserId?: string // Add parameter for requesting user
+): Promise<ReviewSummary> {
+  const filter = { turf: turfId };
+  const matchStage = { turf: new mongoose.Types.ObjectId(turfId) };
 
-    // Use the extracted common method
-    return this.getReviewsWithStats(
-      filter,
-      matchStage,
+  // Use the extracted common method
+  return this.getReviewsWithStats(
+    filter,
+    matchStage,
+    {
+      populateField: "user",
+      populateSelect: "_id first_name last_name email isVerified",
+    },
+    options,
+    requestingUserId
+  );
+}
+
+// Common method for retrieving reviews with stats
+private async getReviewsWithStats(
+  filter: any,
+  matchStage: any,
+  populateOptions: { populateField: string; populateSelect: string },
+  options: ReviewFilterOptions = {},
+  requestingUserId?: string // Add parameter for requesting user
+): Promise<ReviewSummary> {
+  // Apply rating filters
+  this.applyRatingFilters(filter, matchStage, options);
+
+  // Get pagination and sorting options
+  const paginationSort = this.getPaginationAndSortOptions(options);
+  
+  // Execute all promises in parallel for efficiency
+  const [totalCount, ratingStats] = await Promise.all([
+    TurfReview.countDocuments(filter),
+    TurfReview.aggregate([
+      { $match: matchStage },
       {
-        populateField: "user",
-        populateSelect: "_id first_name last_name email isVerified",
+        $group: {
+          _id: "$rating",
+          count: { $sum: 1 },
+        },
       },
-      options
+    ])
+  ]);
+  
+  // Fetch all reviews according to filter and sorting
+  let allReviews = await TurfReview.find(filter)
+    .sort(paginationSort.sort)
+    .skip(options.skip ?? 0)
+    .limit(options.limit ?? 10)
+    .populate(populateOptions.populateField, populateOptions.populateSelect)
+    .lean();
+  
+  // If requesting user ID is provided, find their review and prioritize it
+  if (requestingUserId) {
+    // Find if the user's review is already in the result set
+    const userReviewIndex = allReviews.findIndex(
+      review => review.user._id.toString() === requestingUserId
     );
+    
+    // If user's review exists in the fetched results, move it to the top
+    if (userReviewIndex > 0) {
+      const userReview = allReviews.splice(userReviewIndex, 1)[0];
+      allReviews.unshift(userReview);
+    } 
+    // If we're on the first page and user's review is not in results, check if it exists at all
+    else if (userReviewIndex === -1 && (options.skip ?? 0) === 0) {
+      const userReview = await TurfReview.findOne({
+        ...filter,
+        user: requestingUserId
+      })
+      .populate(populateOptions.populateField, populateOptions.populateSelect)
+      .lean();
+      
+      // If user review exists and passes filters, add it at the top and remove last item to maintain limit
+      if (userReview) {
+        allReviews.unshift(userReview);
+        if (options.limit && allReviews.length > options.limit) {
+          allReviews.pop();
+        }
+      }
+    }
   }
+  
+  return {
+    reviews: allReviews,
+    total: totalCount,
+    ...this.calculateRatingStats(ratingStats),
+  };
+}
 
   // Get a single review by ID
   async getReviewById(reviewId: string): Promise<ITurfReview | null> {
@@ -245,45 +321,6 @@ export default class TurfReviewService {
       },
       options
     );
-  }
-
-  // Common method for retrieving reviews with stats
-  private async getReviewsWithStats(
-    filter: any,
-    matchStage: any,
-    populateOptions: { populateField: string; populateSelect: string },
-    options: ReviewFilterOptions = {}
-  ): Promise<ReviewSummary> {
-    // Apply rating filters
-    this.applyRatingFilters(filter, matchStage, options);
-
-    // Get pagination and sorting options
-    const paginationSort = this.getPaginationAndSortOptions(options);
-
-    const [reviews, total, ratingStats] = await Promise.all([
-      TurfReview.find(filter)
-        .sort(paginationSort.sort)
-        .skip(paginationSort.skip)
-        .limit(paginationSort.limit)
-        .populate(populateOptions.populateField, populateOptions.populateSelect)
-        .lean(),
-      TurfReview.countDocuments(filter),
-      TurfReview.aggregate([
-        { $match: matchStage },
-        {
-          $group: {
-            _id: "$rating",
-            count: { $sum: 1 },
-          },
-        },
-      ]),
-    ]);
-
-    return {
-      reviews,
-      total,
-      ...this.calculateRatingStats(ratingStats),
-    };
   }
 
   // Helper to apply rating filters to both filter object and match stage

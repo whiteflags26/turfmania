@@ -102,11 +102,11 @@ export default class TurfReviewController {
   );
 
   /**
-   * @route   GET /api/v1/turf-review/turf/:turfId
+   * @route   GET /api/v1/turf-review/turf/:turfId/public
    * @desc    get all the reviews by turf and other filters and their average rating and rating distribution
    * @access  Public
    */
-  public getReviewsByTurf = asyncHandler(
+  public getReviewsByTurfPublic = asyncHandler(
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const { turfId } = req.params;
       const options = this.extractFilterOptions(req);
@@ -114,6 +114,28 @@ export default class TurfReviewController {
       const result = await this.turfReviewService.getReviewsByTurf(
         turfId,
         options
+      );
+
+      this.sendReviewResponse(res, result, options);
+    }
+  );
+
+  /**
+   * @route   GET /api/v1/turf-review/turf/:turfId
+   * @desc    get all the reviews by turf and other filters and their average rating and rating distribution 
+   *          but the first review is always of the logged in user if a review of the logged in user exists
+   * @access  Private
+   */
+  public getReviewsByTurf = asyncHandler(
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const { turfId } = req.params;
+      const options = this.extractFilterOptions(req);
+      const userId = getUserId(req);
+
+      const result = await this.turfReviewService.getReviewsByTurf(
+        turfId,
+        options,
+        userId
       );
 
       this.sendReviewResponse(res, result, options);
