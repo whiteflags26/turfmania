@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { ITurfReview } from "@/types/turf-review";
@@ -38,6 +38,35 @@ interface ReviewData {
   };
 }
 
+interface ImageModalProps {
+  src: string;
+  alt: string;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const ImageModal = ({ src, alt, isOpen, onClose }: ImageModalProps) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl p-0 overflow-hidden">
+        <DialogTitle className="sr-only">
+          Review Image Preview
+        </DialogTitle>
+        <div className="relative w-full h-[80vh]">
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            sizes="80vw"
+            className="object-contain"
+            priority
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export default function ReviewSection({
   turfId,
   currentUser,
@@ -55,6 +84,7 @@ export default function ReviewSection({
   });
   const [sortBy, setSortBy] = useState("latest");
   const [filterRating, setFilterRating] = useState<number | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const router = useRouter();
 
   // Convert rating distribution to chart data
@@ -290,15 +320,19 @@ export default function ReviewSection({
                       </p>
                     )}
                     {review.images && review.images.length > 0 && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {review.images.map((img, i) => (
-                          <div key={i} className="relative h-24 w-full">
+                          <div 
+                            key={i} 
+                            className="relative h-64 w-full cursor-pointer"
+                            onClick={() => setSelectedImage(img)}
+                          >
                             <Image
                               src={img}
                               alt={`Review image ${i + 1}`}
                               fill
-                              sizes="(max-width: 768px) 50vw, 25vw"
-                              className="object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+                              sizes="(max-width: 768px) 100vw, 50vw"
+                              className="object-cover rounded-lg hover:opacity-90 transition-opacity"
                             />
                           </div>
                         ))}
@@ -311,6 +345,16 @@ export default function ReviewSection({
           )}
         </motion.div>
       </AnimatePresence>
+
+      {/* Add Image Modal */}
+      {selectedImage && (
+        <ImageModal
+          src={selectedImage}
+          alt="Review image"
+          isOpen={!!selectedImage}
+          onClose={() => setSelectedImage(null)}
+        />
+      )}
 
       {/* Pagination */}
       {reviewData.pagination.totalPages > 1 && (
