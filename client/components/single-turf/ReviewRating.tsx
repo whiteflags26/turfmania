@@ -118,7 +118,7 @@ export default function ReviewSection({
         {currentUser ? (
           <Dialog>
             <DialogTrigger asChild>
-              <Button >
+              <Button className='rounded-xl' >
                 Add Your Review
               </Button>
             </DialogTrigger>
