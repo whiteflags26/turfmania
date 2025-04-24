@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { sendResetPasswordRequest } from "@/lib/server-apis/authentication/password-api";
+import { ApiError } from "@/types/api-error";
 import toast from "react-hot-toast";
 
 interface ResetPasswordFormData {
@@ -50,8 +51,9 @@ export default function ResetPasswordPage() {
       setTimeout(() => {
         router.push("/sign-in");
       }, 2000);
-    } catch (err: any) {
-      toast.error(err.message ?? "An error occurred. Please try again.");
+    } catch (err) {
+      const error = err as ApiError;
+      toast.error(error?.message || "An error occurred. Please try again.");
     }
   };
 
@@ -118,7 +120,7 @@ export default function ResetPasswordPage() {
                 {...register("retypeNewPassword", {
                   required: "Please retype your new password",
                   validate: (value) =>
-                    value.trim() === newPassword.trim() || 
+                    value.trim() === newPassword.trim() ||
                     "Passwords do not match",
                 })}
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm"
