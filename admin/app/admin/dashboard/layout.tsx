@@ -37,14 +37,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const initNavigation = async () => {
       const allNavItems: NavigationItem[] = [
         { name: 'Dashboard', href: '/admin/dashboard' },
-        { name: 'Users', href: '/admin/dashboard/users', permission: 'view_users' },
-        { name: 'Roles', href: '/admin/dashboard/roles', permission: 'view_roles' },
+        {
+          name: 'Users',
+          href: '/admin/dashboard/users',
+          permission: 'view_users',
+        },
+        {
+          name: 'Roles',
+          href: '/admin/dashboard/roles',
+          permission: 'view_roles',
+        },
         {
           name: 'Organizations',
-          href: '/admin/organizations',
+          href: '/admin/dashboard/organization-requests',
           permission: 'view_organizations',
         },
-        {name:'audit',href:'/admin/audit'}
+        { name: 'audit', href: '/admin/audit' },
       ];
 
       const availableNavItems = await Promise.all(
