@@ -1,5 +1,6 @@
 import { OrganizationRequest } from '@/types/organization';
 import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { JSX, useState } from 'react';
 
 type SortKey = keyof OrganizationRequest;
@@ -23,6 +24,7 @@ interface StatusLabels {
 }
 
 export function RequestsTable({ data }: Readonly<RequestsTableProps>) {
+  const router = useRouter();
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: 'createdAt',
     direction: 'desc',
@@ -121,6 +123,10 @@ export function RequestsTable({ data }: Readonly<RequestsTableProps>) {
     );
   };
 
+  const handleRowClick = (id: string) => {
+    router.push(`/admin/dashboard/organization-requests/${id}`);
+  };
+
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm mt-6">
       <div className="overflow-x-auto">
@@ -180,22 +186,28 @@ export function RequestsTable({ data }: Readonly<RequestsTableProps>) {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {sortedData.map(req => (
-              <tr key={req._id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {req.organizationName}
+            {sortedData.map(request => (
+              <tr
+                key={request._id}
+                onClick={() => handleRowClick(request._id)}
+                className="hover:bg-gray-50 cursor-pointer transition-colors"
+              >
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {request.organizationName}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {getStatusBadge(req.status)}
+                  {getStatusBadge(request.status)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {req.ownerEmail}
+                  {request.ownerEmail}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {req.requesterId.email}
+                  {request.requesterId.email}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {new Date(req.createdAt).toLocaleDateString(undefined, {
+                  {new Date(request.createdAt).toLocaleDateString(undefined, {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric',

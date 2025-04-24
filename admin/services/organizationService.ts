@@ -35,7 +35,7 @@ export async function getSingleOrganizationRequest(
 ): Promise<OrganizationRequestsResponse> {
   try {
     const { data } = await api.get(
-      `/api/v1/organization-requests/${requestId}`,
+      `/api/v1/organization-requests/admin/${requestId}`,
       {
         withCredentials: true,
       },
