@@ -14,6 +14,7 @@ import { ITurf } from "@/types/turf";
 import { ITurfFilters } from "@/types/turfFilter";
 import { SetPagination } from "@/types/pagination";
 import { reverseGeocode } from "@/lib/server-apis/barikoi/reverseGeocode-api";
+import { IBarikoiSuggestion } from "@/types/barikoi";
 
 interface Props {
   turfs: ITurf[];
@@ -113,7 +114,7 @@ export default function TurfFilters({
   };
 
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<IBarikoiSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -139,7 +140,7 @@ export default function TurfFilters({
     return () => clearTimeout(timeout);
   }, [query]);
 
-  const handleLocationSelect = (place: any) => {
+  const handleLocationSelect = (place: IBarikoiSuggestion) => {
     setFilters({
       ...filters,
       latitude: place.latitude.toString(),
