@@ -19,6 +19,7 @@ import { fetchReviewsByTurf } from "@/lib/server-apis/single-turf/fetchReviewsBy
 import ReviewForm from "@/components/single-turf/ReviewForm";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star } from "lucide-react";
+import Image from "next/image";
 
 interface ReviewSectionProps {
   turfId: string;
@@ -291,12 +292,15 @@ export default function ReviewSection({
                     {review.images && review.images.length > 0 && (
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {review.images.map((img, i) => (
-                          <img
-                            key={i}
-                            src={img}
-                            alt={`Review image ${i + 1}`}
-                            className="h-24 w-full object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
-                          />
+                          <div key={i} className="relative h-24 w-full">
+                            <Image
+                              src={img}
+                              alt={`Review image ${i + 1}`}
+                              fill
+                              sizes="(max-width: 768px) 50vw, 25vw"
+                              className="object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+                            />
+                          </div>
                         ))}
                       </div>
                     )}
