@@ -6,7 +6,6 @@ import TurfReviewService, {
 } from "./turf-review.service";
 import { AuthenticatedRequest } from "../../types/request";
 import { getUserId } from "../../utils/getUserId";
-import { AuthRequest } from "../auth/auth.middleware";
 import ErrorResponse from "../../utils/errorResponse";
 
 export default class TurfReviewController {
@@ -108,7 +107,7 @@ export default class TurfReviewController {
    * @access  Public
    */
   public getReviewsByTurf = asyncHandler(
-    async (req: AuthRequest, res: Response): Promise<void> => {
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const { turfId } = req.params;
       const options = this.extractFilterOptions(req);
 
@@ -127,7 +126,7 @@ export default class TurfReviewController {
    * @access  Public
    */
   public getReviewById = asyncHandler(
-    async (req: AuthRequest, res: Response): Promise<void> => {
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const { reviewId } = req.params;
       const review = await this.turfReviewService.getReviewById(reviewId);
 
@@ -158,13 +157,14 @@ export default class TurfReviewController {
   );
 
   /**
-   * @route   GET /api/v1/turf-review/user/:userId
+   * @route   GET /api/v1/turf-review/user/
    * @desc    Get all reviews by a specific user with average rating and rating distribution
    * @access  Public
    */
   public getReviewsByUser = asyncHandler(
-    async (req: AuthRequest, res: Response): Promise<void> => {
-      const { userId } = req.params;
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const userId = getUserId(req);
+      console.log("userId", userId);
       const options = this.extractFilterOptions(req);
 
       const result = await this.turfReviewService.getReviewsByUser(
@@ -180,7 +180,7 @@ export default class TurfReviewController {
    * Extract filter options from request query parameters
    * @private
    */
-  private extractFilterOptions(req: AuthRequest): ReviewFilterOptions {
+  private extractFilterOptions(req: AuthenticatedRequest): ReviewFilterOptions {
     return {
       minRating: req.query.minRating ? Number(req.query.minRating) : undefined,
       maxRating: req.query.maxRating ? Number(req.query.maxRating) : undefined,
