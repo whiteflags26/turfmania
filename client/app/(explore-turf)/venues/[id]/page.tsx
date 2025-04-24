@@ -10,13 +10,12 @@ import { auth } from "@/lib/server-auth/auth";
 import { Card } from "@/components/ui/card";
 
 interface SingleTurfPageProps {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>
+
 }
 
 export default async function SingleTurfPage({ params }: SingleTurfPageProps) {
-  const turfId = params.id;
+  const { id:turfId } = await params;
   const session = await auth();
   const currentUser = session?.user || null;
 
