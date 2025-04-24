@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { DialogTitle } from "@/components/ui/dialog";
 import { Star } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -44,6 +45,10 @@ export default function ReviewForm({ turfId, onSuccess }: { turfId: string; onSu
       animate={{ opacity: 1 }}
       className="space-y-6 p-4"
     >
+      <DialogTitle className="text-xl font-semibold mb-4">
+        Write a Review
+      </DialogTitle>
+
       <div className="space-y-2">
         <Label className="text-base">Rating</Label>
         <div className="flex gap-2">
