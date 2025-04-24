@@ -1,3 +1,5 @@
+import { Square } from "@/types/square"
+
 //Navigation Bar
 export const NAV_LINKS = [
   { href: "/", key: "home", label: "Home" },
@@ -7,7 +9,7 @@ export const NAV_LINKS = [
 ];
 
 //Hero Section
-export const squareData = [
+export const squareData: Square[] = [
   {
     id: 1,
     src: "/images/Hero-id1.avif",
@@ -161,6 +163,13 @@ export const featureContents = [
       ],
     },
   },
+];
+
+// Venues Hero Section Slider Images
+export const VENUES_SLIDER_IMAGES = [
+  "/images/VenuesHeroSection-id1.avif", 
+  "/images/VenuesHeroSection-id2.avif",  
+  "/images/VenuesHeroSection-id3.avif"   
 ];
 
 //layout.tsx conditional render for Navbar:
