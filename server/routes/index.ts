@@ -10,6 +10,7 @@ import turfReviewRoutes from '../modules/turf-review/turf-review.route';
 import turfRoutes from '../modules/turf/turf.route';
 import userRouter from '../modules/user/user.routes';
 import adminActionsRouter from '../modules/admin_actions/adminActions.routes'
+import organizationRequestRouter from '../modules/organization-request/organization-request.route';
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use('/api/v1/roles', roleRouter);
 router.use('/api/v1/users', userRouter);
 router.use('/api/v1/permissions', permissionRoutes);
 router.use('/api/v1/admin/logs',adminActionsRouter)
+router.use('/api/v1/organization-requests', organizationRequestRouter);
 
 export default router;
