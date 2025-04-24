@@ -158,15 +158,20 @@ export default class OrganizationRequestService {
     return request;
   }
 
-  // Approve request and link to an existing organization
-  public async approveRequest(
+  // Approve request and link to an existing organization with session support for transactions
+  public async approveRequestWithSession(
     requestId: string,
     adminId: string,
     organizationId: string,
     wasEdited: boolean = false,
-    adminNotes?: string
+    adminNotes?: string,
+    session?: mongoose.ClientSession
   ): Promise<ProcessingResult> {
-    const request = await OrganizationRequest.findById(requestId);
+    const options = session ? { session } : {};
+
+    const request = await OrganizationRequest.findById(requestId).session(
+      session || null
+    );
     if (!request) {
       throw new ErrorResponse("Request not found", 404);
     }
@@ -181,11 +186,14 @@ export default class OrganizationRequestService {
 
       // Set the organizationId reference
       request.organizationId = new mongoose.Types.ObjectId(organizationId);
-      if(adminNotes) request.adminNotes = adminNotes;
-      await request.save();
+      if (adminNotes) request.adminNotes = adminNotes;
+      await request.save(options);
 
-      // Notify requester
-      await this.notifyRequestProcessed(request, true, wasEdited);
+      // Notify requester - this is not part of the transaction
+      // Only do this if we're not in a transaction or after transaction is complete
+      if (!session) {
+        await this.notifyRequestProcessed(request, true, wasEdited);
+      }
 
       return {
         success: true,
@@ -432,31 +440,39 @@ export default class OrganizationRequestService {
     filters: RequestFilters = {},
     pagination: PaginationOptions = { page: 1, limit: 10 }
   ): Promise<RequestsResult> {
-    const { status, fromDate, toDate, requesterEmail, ownerEmail, sortBy = 'createdAt', sortOrder = 'desc' } = filters;
+    const {
+      status,
+      fromDate,
+      toDate,
+      requesterEmail,
+      ownerEmail,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = filters;
     const { page, limit } = pagination;
     const query: any = {};
-    
+
     // Apply status filter
     if (status) {
       query.status = Array.isArray(status) ? { $in: status } : status;
     }
-    
+
     // Apply date range filter
     if (fromDate || toDate) {
       query.createdAt = {};
       if (fromDate) query.createdAt.$gte = fromDate;
       if (toDate) query.createdAt.$lte = toDate;
     }
-    
+
     // Apply requester email filter if specified
     if (requesterEmail) {
       // Find the user IDs for the specified requester email
-      const requesters = await User.find({ 
-        email: { $regex: new RegExp(requesterEmail, 'i') } 
-      }).select('_id');
-      
+      const requesters = await User.find({
+        email: { $regex: new RegExp(requesterEmail, "i") },
+      }).select("_id");
+
       if (requesters.length > 0) {
-        const requesterIds = requesters.map(requester => requester._id);
+        const requesterIds = requesters.map((requester) => requester._id);
         query.requesterId = { $in: requesterIds };
       } else {
         // If no match, return empty result
@@ -464,25 +480,25 @@ export default class OrganizationRequestService {
           total: 0,
           page,
           pages: 0,
-          requests: []
+          requests: [],
         };
       }
     }
-    
+
     // Apply owner email filter if specified
     if (ownerEmail) {
-      query.ownerEmail = { $regex: new RegExp(ownerEmail, 'i') };
+      query.ownerEmail = { $regex: new RegExp(ownerEmail, "i") };
     }
-  
+
     // Count total before applying pagination
     const total = await OrganizationRequest.countDocuments(query);
     const pages = Math.ceil(total / limit);
     const skip = (page - 1) * limit;
-    
+
     // Build sort object
     const sortOptions: any = {};
-    sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
-  
+    sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
+
     // Fetch paginated results with sorting
     const requests = await OrganizationRequest.find(query)
       .sort(sortOptions)
@@ -490,7 +506,7 @@ export default class OrganizationRequestService {
       .limit(limit)
       .populate("requesterId", "first_name last_name email")
       .populate("processingAdminId", "first_name last_name email");
-    
+
     return {
       total,
       page,
