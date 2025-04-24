@@ -8,32 +8,66 @@ import { Textarea } from "@/components/ui/textarea";
 import { DialogTitle } from "@/components/ui/dialog";
 import { Star } from "lucide-react";
 import { motion } from "framer-motion";
+import { createTurfReview } from "@/lib/server-apis/single-turf/createTurfReview-api";
+import toast from "react-hot-toast";
 
-export default function ReviewForm({ turfId, onSuccess }: { turfId: string; onSuccess: () => void }) {
+interface ReviewFormProps {
+  turfId: string;
+  onSuccess: () => void;
+}
+
+export default function ReviewForm({ turfId, onSuccess }: ReviewFormProps) {
   const [review, setReview] = useState("");
   const [rating, setRating] = useState(5);
   const [images, setImages] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    const formData = new FormData();
-    formData.append("turfId", turfId);
-    formData.append("rating", rating.toString());
-    formData.append("review", review);
-    images.forEach((file) => formData.append("images", file));
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 2) {
+      toast.error("Maximum 2 images allowed");
+      return;
+    }
+    setImages(files);
+  };
 
+  const handleSubmit = async () => {
     try {
-      const res = await fetch("/api/v1/turf-review/review/", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
+      setIsSubmitting(true);
+
+      // Validate rating
+      if (!rating) {
+        toast.error("Rating is required");
+        return;
+      }
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append("turfId", turfId);
+      formData.append("rating", rating.toString());
+      
+      // Add optional fields
+      if (review.trim()) {
+        formData.append("review", review.trim());
+      }
+      
+      // Add images if any
+      images.forEach((file) => {
+        formData.append("images", file);
       });
 
-      if (!res.ok) throw new Error("Failed to post review");
+      await createTurfReview(formData);
+      
+      toast.success("Review submitted successfully!");
       onSuccess();
+      
+      // Reset form
+      setReview("");
+      setRating(5);
+      setImages([]);
+      
     } catch (error) {
-      console.error("Error submitting review:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to submit review");
     } finally {
       setIsSubmitting(false);
     }
@@ -50,10 +84,11 @@ export default function ReviewForm({ turfId, onSuccess }: { turfId: string; onSu
       </DialogTitle>
 
       <div className="space-y-2">
-        <Label className="text-base">Rating</Label>
+        <Label className="text-base">Rating (Required)</Label>
         <div className="flex gap-2">
-          {[5, 4, 3, 2, 1].map((star) => (
+          {[1,2,3,4,5].map((star) => (
             <motion.button
+              type="button"
               key={star}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -73,7 +108,7 @@ export default function ReviewForm({ turfId, onSuccess }: { turfId: string; onSu
       </div>
 
       <div className="space-y-2">
-        <Label className="text-base">Your Review</Label>
+        <Label className="text-base">Your Review (Optional)</Label>
         <Textarea
           value={review}
           onChange={(e) => setReview(e.target.value)}
@@ -83,20 +118,20 @@ export default function ReviewForm({ turfId, onSuccess }: { turfId: string; onSu
       </div>
 
       <div className="space-y-2">
-        <Label className="text-base">Upload Images</Label>
+        <Label className="text-base">Upload Images (Optional)</Label>
         <Input
           type="file"
           multiple
           accept="image/*"
-          onChange={(e) => setImages(Array.from(e.target.files || []))}
+          onChange={handleImageChange}
           className="cursor-pointer file:cursor-pointer file:border-0 file:bg-primary/10 file:text-primary file:font-medium file:mr-4 file:py-2 file:px-4 hover:file:bg-primary/20"
         />
-        <p className="text-sm text-gray-500">You can upload multiple images</p>
+        <p className="text-sm text-gray-500">Maximum 2 images allowed</p>
       </div>
 
       <Button 
-        className="w-full"
         onClick={handleSubmit}
+        className="w-full"
         disabled={isSubmitting}
       >
         {isSubmitting ? "Submitting..." : "Submit Review"}
