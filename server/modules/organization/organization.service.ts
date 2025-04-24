@@ -1,15 +1,16 @@
-import { DeleteResult } from 'mongodb';
-import { Types } from 'mongoose';
-import { deleteImage, uploadImage } from '../../utils/cloudinary';
-import ErrorResponse from '../../utils/errorResponse';
-import { extractPublicIdFromUrl } from '../../utils/extractUrl';
-import Permission, { PermissionScope } from '../permission/permission.model';
-import Role, { IRole } from '../role/role.model';
-import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
-import User from '../user/user.model';
-import Organization, { IOrganization } from './organization.model';
+import { DeleteResult } from "mongodb";
+import { Types } from "mongoose";
+import { deleteImage, uploadImage } from "../../utils/cloudinary";
+import ErrorResponse from "../../utils/errorResponse";
+import { extractPublicIdFromUrl } from "../../utils/extractUrl";
+import Permission, { PermissionScope } from "../permission/permission.model";
+import Role, { IRole } from "../role/role.model";
+import UserRoleAssignment from "../role_assignment/userRoleAssignment.model";
+import User from "../user/user.model";
+import Organization, { IOrganization } from "./organization.model";
+import { Turf } from "../turf/turf.model";
 import OrganizationRequestService from "../organization-request/organization-request.service";
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 export interface IOrganizationRoleAssignment {
   organizationId: Types.ObjectId;
@@ -17,7 +18,6 @@ export interface IOrganizationRoleAssignment {
 }
 
 class OrganizationService {
-
   organizationRequestService = new OrganizationRequestService();
 
   /**
@@ -37,7 +37,7 @@ class OrganizationService {
   public async createOrganization(
     name: string,
     facilities: string[],
-    location: IOrganization['location'],
+    location: IOrganization["location"],
     images?: Express.Multer.File[],
     requestId?: string,
     adminId?: string,
@@ -57,12 +57,12 @@ class OrganizationService {
       // If requestId is provided, use a transaction to ensure atomicity
       if (requestId && adminId) {
         const session = await mongoose.startSession();
-        
+
         try {
           let organization = null;
-          
+
           // Execute all operations within a transaction
-          
+
           await session.withTransaction(async () => {
             // Create organization with basic information
             organization = new Organization({
@@ -71,36 +71,38 @@ class OrganizationService {
               images: imageUrls,
               location,
             });
-            
+
             await organization.save({ session });
-            
+
             // Get the request to extract the owner email
-            const OrganizationRequest = mongoose.model('OrganizationRequest');
-            const request = await OrganizationRequest.findById(requestId).session(session);
+            const OrganizationRequest = mongoose.model("OrganizationRequest");
+            const request = await OrganizationRequest.findById(
+              requestId
+            ).session(session);
             if (!request) {
-              throw new ErrorResponse('Organization request not found', 404);
+              throw new ErrorResponse("Organization request not found", 404);
             }
 
             // Find the owner user from the request's ownerEmail
             const owner = await User.findOne({ email: request.ownerEmail })
-              .collation({ locale: 'en', strength: 2 })
+              .collation({ locale: "en", strength: 2 })
               .session(session);
-              
+
             if (!owner) {
-              throw new ErrorResponse('Owner user not found', 404);
+              throw new ErrorResponse("Owner user not found", 404);
             }
 
             if (!organization?._id) {
-              throw new ErrorResponse('Organization ID not found', 404);
+              throw new ErrorResponse("Organization ID not found", 404);
             }
 
             // Assign the default organization owner role
             await this.assignOwnerToOrganizationWithSession(
-              organization._id.toString(), 
+              organization._id.toString(),
               owner._id.toString(),
               session
             );
-            
+
             // Approve the request with the newly created organization ID
             await this.organizationRequestService.approveRequestWithSession(
               requestId,
@@ -110,13 +112,18 @@ class OrganizationService {
               adminNotes,
               session
             );
-            
-            console.log(`Organization request ${requestId} approved and linked to organization ${organization._id}`);
+
+            console.log(
+              `Organization request ${requestId} approved and linked to organization ${organization._id}`
+            );
           });
-          
+
           return organization;
         } catch (error) {
-          console.error('Failed to create organization and process request:', error);
+          console.error(
+            "Failed to create organization and process request:",
+            error
+          );
           throw error; // Rethrow the error to be handled by the caller
         } finally {
           session.endSession();
@@ -129,7 +136,7 @@ class OrganizationService {
           images: imageUrls,
           location,
         });
-        
+
         await organization.save();
         return organization;
       }
@@ -148,7 +155,7 @@ class OrganizationService {
    */
   public async assignOwnerToOrganization(
     organizationId: string,
-    userId: string,
+    userId: string
   ): Promise<IOrganization> {
     // Use the session version with no session for backward compatibility
     return this.assignOwnerToOrganizationWithSession(organizationId, userId);
@@ -168,18 +175,22 @@ class OrganizationService {
   ): Promise<IOrganization> {
     try {
       const options = session ? { session } : {};
-      
-      const organization = await Organization.findById(organizationId).session(session || null);
-      if (!organization) throw new ErrorResponse('Organization not found', 404);
+
+      const organization = await Organization.findById(organizationId).session(
+        session || null
+      );
+      if (!organization) throw new ErrorResponse("Organization not found", 404);
 
       const user = await User.findById(userId).session(session || null);
-      if (!user) throw new ErrorResponse('User not found', 404);
+      if (!user) throw new ErrorResponse("User not found", 404);
 
       // 1. Define the role name and get permissions
       const ownerRoleName = "Organization Owner";
       const orgPermissions = await Permission.find({
         scope: PermissionScope.ORGANIZATION,
-      }).select('_id').session(session || null);
+      })
+        .select("_id")
+        .session(session || null);
 
       // 2. Find or create the owner role (without scopeId)
       const ownerRole = await Role.findOneAndUpdate(
@@ -199,8 +210,8 @@ class OrganizationService {
           upsert: true,
           new: true,
           runValidators: true,
-          ...options
-        },
+          ...options,
+        }
       );
 
       if (!ownerRole) {
@@ -229,8 +240,8 @@ class OrganizationService {
         {
           upsert: true,
           runValidators: true,
-          ...options
-        },
+          ...options,
+        }
       );
 
       // 4. Update organization with owner
@@ -326,7 +337,7 @@ class OrganizationService {
       throw new ErrorResponse("Failed to delete organization", 500);
     }
   }
-  
+
   /**
    * Create a new role within an organization (Requires 'manage_organization_roles')
    * @param organizationId
@@ -341,12 +352,12 @@ class OrganizationService {
     // Permission check ('manage_organization_roles') in middleware
     try {
       const organization = await Organization.findById(organizationId);
-      if (!organization) throw new ErrorResponse('Organization not found', 404);
+      if (!organization) throw new ErrorResponse("Organization not found", 404);
       if (
-        typeof roleName !== 'string' ||
+        typeof roleName !== "string" ||
         !/^[a-zA-Z0-9\s-_]+$/.exec(roleName)
       ) {
-        throw new ErrorResponse('Role name contains invalid characters', 400);
+        throw new ErrorResponse("Role name contains invalid characters", 400);
       }
       // Validate role name uniqueness within this org
       const existingRole = await Role.findOne({
@@ -396,6 +407,30 @@ class OrganizationService {
       );
     }
   }
+
+  /**
+   * Fetch other turfs from the same organization excluding the current turf
+   * @param organizationId - The ID of the organization
+   * @param excludeTurfId - The ID of the turf to exclude
+   */
+  getOtherTurfsByOrganization = async (
+    organizationId: string,
+    excludeTurfId: string
+  ) => {
+    if (
+      !mongoose.Types.ObjectId.isValid(organizationId) ||
+      !mongoose.Types.ObjectId.isValid(excludeTurfId)
+    ) {
+      throw new Error("Invalid organization or turf ID.");
+    }
+
+    return await Turf.find({
+      organization: organizationId,
+      _id: { $ne: excludeTurfId },
+    })
+      .limit(6)
+      .populate("organization");
+  };
 }
 
 export const organizationService = new OrganizationService();
