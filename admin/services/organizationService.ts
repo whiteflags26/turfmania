@@ -29,3 +29,23 @@ export async function getOrganizationRequests(
     );
   }
 }
+
+export async function getSingleOrganizationRequest(
+  requestId: string,
+): Promise<OrganizationRequestsResponse> {
+  try {
+    const { data } = await api.get(
+      `/api/v1/organization-requests/${requestId}`,
+      {
+        withCredentials: true,
+      },
+    );
+    return data;
+  } catch (error: any) {
+    console.error('API Error:', error.response?.data);
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to fetch organization request',
+    );
+  }
+}
+
