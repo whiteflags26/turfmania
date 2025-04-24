@@ -40,7 +40,8 @@ public async createOrganization(
   images?: Express.Multer.File[],
   requestId?: string,
   adminId?: string,
-  wasEdited: boolean = true,
+  wasEdited: boolean = false,
+  adminNotes?: string
 ): Promise<IOrganization | null> {
   try {
     let imageUrls: string[] = [];
@@ -89,7 +90,8 @@ public async createOrganization(
           requestId,
           adminId,
           organization._id.toString(),
-          wasEdited // Use the provided wasEdited parameter
+          wasEdited,
+          adminNotes
         );
         
         console.log(`Organization request ${requestId} approved and linked to organization ${organization._id}`);

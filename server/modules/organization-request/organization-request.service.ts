@@ -163,7 +163,8 @@ export default class OrganizationRequestService {
     requestId: string,
     adminId: string,
     organizationId: string,
-    wasEdited: boolean = false
+    wasEdited: boolean = false,
+    adminNotes?: string
   ): Promise<ProcessingResult> {
     const request = await OrganizationRequest.findById(requestId);
     if (!request) {
@@ -180,6 +181,7 @@ export default class OrganizationRequestService {
 
       // Set the organizationId reference
       request.organizationId = new mongoose.Types.ObjectId(organizationId);
+      if(adminNotes) request.adminNotes = adminNotes;
       await request.save();
 
       // Notify requester
