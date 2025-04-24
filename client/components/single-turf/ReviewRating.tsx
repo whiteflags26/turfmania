@@ -15,6 +15,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { fetchReviewsByTurfPublic } from "@/lib/server-apis/single-turf/fetchReviewsByTurfPublic-api";
 import { fetchReviewsByTurf } from "@/lib/server-apis/single-turf/fetchReviewsByTurf-api";
 import ReviewForm from "@/components/single-turf/ReviewForm";
 import { motion, AnimatePresence } from "framer-motion";
@@ -116,7 +117,11 @@ export default function ReviewSection({
         maxRating: filterRating || undefined,
       };
 
-      const data = await fetchReviewsByTurf(turfId, options);
+      // Use different API based on authentication status
+      const data = currentUser 
+        ? await fetchReviewsByTurf(turfId, options)
+        : await fetchReviewsByTurfPublic(turfId, options);
+
       setReviewData(data);
     } catch (error) {
       console.error("Error fetching reviews:", error);
