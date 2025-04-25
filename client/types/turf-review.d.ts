@@ -4,10 +4,17 @@ import { IUser } from "./user";
 export interface ITurfReview {
   _id: string;
   turf: ITurf | string;
-  user: IUser ;
+  user: IUser;
   rating: number;
   review?: string;
   images?: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UpdateReviewData {
+  rating?: number;
+  review?: string;
+  images?: File[];
+  existingImages?: string[];
 }
