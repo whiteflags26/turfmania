@@ -4,7 +4,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -76,7 +75,7 @@ export default function ReviewActionsDropdown({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {isReviewOwner && (
+          {isReviewOwner ? (
             <>
               <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
                 <Edit className="mr-2 h-4 w-4" />
@@ -86,13 +85,13 @@ export default function ReviewActionsDropdown({
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Review
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
             </>
+          ) : (
+            <DropdownMenuItem onClick={handleReport}>
+              <Flag className="mr-2 h-4 w-4" />
+              Report Review
+            </DropdownMenuItem>
           )}
-          <DropdownMenuItem onClick={handleReport}>
-            <Flag className="mr-2 h-4 w-4" />
-            Report Review
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
