@@ -181,7 +181,7 @@ export default class TurfReviewController {
   /**
    * @route   GET /api/v1/turf-review/user/
    * @desc    Get all reviews by a specific user with average rating and rating distribution
-   * @access  Public
+   * @access  Private
    */
   public getReviewsByUser = asyncHandler(
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
