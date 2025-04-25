@@ -16,7 +16,6 @@ interface ILocation {
 export interface IOrganization extends Document {
   name: string;
   facilities: string[];
-  owner:mongoose.Types.ObjectId;
 
   images: string[];
   turfs: mongoose.Types.ObjectId[];
@@ -29,11 +28,6 @@ const OrganizationSchema: Schema = new Schema(
     facilities: { type: [String], default: [] },
     images: { type: [String], default: [] },
     turfs: [{ type: Schema.Types.ObjectId, ref: "Turf" }],
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      unique:true
-    },
 
   
     location: {

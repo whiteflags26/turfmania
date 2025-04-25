@@ -54,6 +54,6 @@ UserSchema.pre<UserDocument>('save', async function (next) {
 });
 
 const User =
-  mongoose.models.User || mongoose.model<UserDocument>('User', UserSchema);
+  mongoose.models.User ?? mongoose.model<UserDocument>('User', UserSchema);
 
 export default User;

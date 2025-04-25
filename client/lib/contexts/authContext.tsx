@@ -8,6 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import {ApiError} from "@/types/api-error";
 
 interface User {
   id: string;
@@ -74,13 +75,14 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+        throw new Error(data.message ?? "Login failed");
       }
 
       setUser(data.data.user);
       router.push("/");
       router.refresh();
-    } catch (error: any) {
+    } catch (err) {
+      const error= err as ApiError;
       throw new Error(error.message);
     }
   };

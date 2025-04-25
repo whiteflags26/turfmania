@@ -21,7 +21,7 @@ export default class BookingService {
         throw new Error('Turf not found');
       }
 
-      const price = timeSlot.price_override || turf.basePrice;
+      const price = timeSlot.price_override ?? turf.basePrice;
 
       // 3. Create booking
       const booking = new Booking({

@@ -1,0 +1,60 @@
+name: Full CI-CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [reopened, synchronize, opened]
+
+jobs:
+  test-and-analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      # Create environment files
+      - name: Create server .env file
+        run: |
+          cat > ./server/.env << EOF
+          PORT=3000
+          MONGO_URI=${{ secrets.MONGO_URI }}
+          MAP_API=${{ secrets.MAP_API }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_EXPIRE=${{ secrets.JWT_EXPIRE }}
+          EMAIL_USER=${{ secrets.EMAIL_USER }}
+          EMAIL_PASS=${{ secrets.EMAIL_PASS }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          EOF
+        
+      # Server test setup
+      - name: Install server dependencies
+        run: npm ci
+        working-directory: ./server
+        
+      - name: Run server tests with coverage
+        run: npm run test:ci
+        working-directory: ./server
+        
+      - name: Verify server coverage file
+        run: |
+          ls -la coverage/
+          [ -f coverage/lcov.info ] || exit 1
+          echo "Server coverage file exists with $(wc -l < coverage/lcov.info) lines"
+        working-directory: ./server
+        
+      # SonarCloud scan
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v5.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
