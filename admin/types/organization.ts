@@ -4,15 +4,35 @@ export interface RequesterInfo {
   name: string;
 }
 
+export interface Location {
+  coordinates: {
+    type: string;
+    coordinates: number[];
+  };
+  place_id: string;
+  address: string;
+  city: string;
+  area?: string;
+  sub_area?: string;
+  post_code?: string;
+}
+
+export interface Organization {
+  _id?: string;
+  organizationName: string;
+  location: Location;
+  facilities: string[];
+  images?: string[];
+  turfs?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+}
+
 export interface OrganizationRequest {
   _id: string;
   organizationName: string;
-  status:
-    | 'pending'
-    | 'approved'
-    | 'rejected'
-    | 'processing'
-    | 'approved_with_changes';
+  status: 'pending' | 'approved' | 'rejected' | 'processing' | 'approved_with_changes';
   location: Location;
   requesterId: RequesterInfo;
   createdAt: string;
@@ -35,35 +55,14 @@ export interface OrganizationRequestsResponse {
     pages: number;
     filters: Record<string, unknown>;
   };
-  
-}
-
-export interface Location {
-  coordinates: {
-    type: string;
-    coordinates: number[];
-  };
-  place_id: string;
-  address: string;
-  city: string;
-  area?: string;
-  sub_area?: string;
-  post_code?: string;
-}
-
-export interface Organization {
-  _id: string;
-  organizationName: string;
-  location: Location;
-  facilities: string[];
-  images: string[];
-  turfs: string[];
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
 }
 
 export interface SingleOrganizationResponse {
   success: boolean;
   data: Organization;
+}
+
+export interface OrganizationResponse {
+  success: boolean;
+  data: Organization | Organization[];
 }

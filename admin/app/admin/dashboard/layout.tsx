@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           href: '/admin/dashboard/organization-requests',
           permission: 'view_organizations',
         },
-        { name: 'audit', href: '/admin/audit' },
+        { name: 'Organization Form', href: '/admin/dashboard/organization-form' },
       ];
 
       const availableNavItems = await Promise.all(

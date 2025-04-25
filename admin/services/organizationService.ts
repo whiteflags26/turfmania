@@ -99,3 +99,32 @@ export async function rejectOrganizationRequest(
     );
   }
 }
+
+export async function createOrganization(
+  formData: FormData,
+): Promise<SingleOrganizationResponse> {
+  try {
+    // Extract data from FormData
+    const payload = {
+      name: formData.get('organizationName'),
+      facilities: formData.getAll('facilities[]'),
+      location: JSON.parse(formData.get('location') as string),
+      requestId: formData.get('requestId'),
+      wasEdited: formData.get('wasEdited') || 'False',
+    };
+
+    const response = await api.post('/api/v1/organizations', payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('Create organization error:', error.response?.data);
+    throw new Error(
+      error.response?.data?.message || 'Failed to create organization',
+    );
+  }
+}

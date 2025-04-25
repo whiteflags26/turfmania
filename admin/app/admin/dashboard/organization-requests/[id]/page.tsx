@@ -140,6 +140,9 @@ export default function OrganizationRequestDetailPage() {
 
       // Show success message
       toast.success('Request processing started successfully');
+
+      // Route to organization forms page
+      router.push(`/admin/dashboard/organization-form/${params.id}`);
     } catch (err: any) {
       console.error('Failed to process request:', err);
       setError(err.message ?? 'Failed to process request');
@@ -163,7 +166,7 @@ export default function OrganizationRequestDetailPage() {
     } catch (err: any) {
       console.error('Failed to cancel processing:', err);
       setError(err.message ?? 'Failed to cancel processing');
-      toast.error(err.message ?? 'Failed to cancel processing');
+      toast.error(err.message || 'Failed to cancel processing');
     } finally {
       setIsCancelling(false);
     }
@@ -188,8 +191,8 @@ export default function OrganizationRequestDetailPage() {
       setRejectionNotes(''); // Reset notes after successful rejection
     } catch (err: any) {
       console.error('Failed to reject request:', err);
-      setError(err.message ?? 'Failed to reject request');
-      toast.error(err.message ?? 'Failed to reject request');
+      setError(err.message || 'Failed to reject request');
+      toast.error(err.message || 'Failed to reject request');
     } finally {
       setIsRejecting(false);
     }

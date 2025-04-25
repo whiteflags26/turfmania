@@ -1,6 +1,9 @@
 'use client';
 
-import { getSingleOrganizationRequest } from '@/services/organizationService';
+import {
+  createOrganization,
+  getSingleOrganizationRequest,
+} from '@/services/organizationService';
 import {
   ArrowLeft,
   Building,
@@ -12,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast'; // Replace react-toastify with react-hot-toast
+import { toast } from 'react-hot-toast';
 
 // Mock facility options
 const FACILITY_OPTIONS = [
@@ -44,17 +47,12 @@ export default function EditOrganizationForm() {
   const [longitude, setLongitude] = useState(0);
   const [latitude, setLatitude] = useState(0);
   const [facilities, setFacilities] = useState<string[]>([]);
-  const [imageCount, setImageCount] = useState(0);
   const [images, setImages] = useState<string[]>([]);
+  const [newImages, setNewImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Add these to your state declarations
-  const [originalImages, setOriginalImages] = useState<string[]>([]);
-  const [newImages, setNewImages] = useState<File[]>([]);
-  const [discardedImages, setDiscardedImages] = useState<string[]>([]);
 
   // Fetch organization data
   useEffect(() => {
@@ -78,9 +76,8 @@ export default function EditOrganizationForm() {
           setLatitude(orgData.location.coordinates.coordinates[1]);
 
           setFacilities(orgData.facilities);
-          setOriginalImages(orgData.images);
           setImages(orgData.images);
-          setImageCount(orgData.images.length);
+          setNewImages(orgData.images);
         }
       } catch (err: any) {
         console.error('Error fetching organization data:', err);
@@ -113,7 +110,7 @@ export default function EditOrganizationForm() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const remainingSlots = 5 - images.length;
+      const remainingSlots = 5 - (images.length + newImages.length);
       if (remainingSlots <= 0) return;
 
       const files = Array.from(e.target.files).slice(0, remainingSlots);
@@ -143,11 +140,9 @@ export default function EditOrganizationForm() {
       const updatedImages = [...images];
       updatedImages.splice(index, 1);
       setImages(updatedImages);
-      setImageCount(prev => prev - 1);
     } else {
       // Remove newly added image (not in the original images array)
       setNewImages(prev => prev.filter((_, i) => i !== index));
-      setImageCount(prev => Math.max(0, prev - 1));
     }
   };
 
@@ -156,30 +151,49 @@ export default function EditOrganizationForm() {
     setLoading(true);
 
     try {
-      // Prepare the data to update
-      const updateData = {
-        name,
-        address,
-        placeId,
-        city,
-        area,
-        subArea,
-        postCode,
-        longitude,
-        latitude,
-        facilities,
-        // You would include image handling logic here
+      const formData = new FormData();
+
+      // Add organization name
+      formData.append('organizationName', name);
+
+      // Add facilities
+      facilities.forEach((facility, index) => {
+        formData.append(`facilities[]`, facility);
+      });
+
+      // Add location details
+      const locationData = {
+        place_id: placeId,
+        address: address,
+        coordinates: {
+          type: 'Point',
+          coordinates: [longitude, latitude], // [longitude, latitude]
+        },
+        area: area || undefined,
+        sub_area: subArea || undefined,
+        city: city,
+        post_code: postCode || undefined,
       };
 
-      // In a real implementation, you would call an API to update the organization
-      // For example: await updateOrganization(organizationId, updateData);
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
+      formData.append('location', JSON.stringify(locationData));
 
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      // Add request ID and wasEdited flag
+      if (params.id) {
+        formData.append('requestId', params.id);
+      }
+      formData.append('wasEdited', 'False');
+
+      const response = await createOrganization(formData);
+
+      if (response.success) {
+        setSuccess(true);
+        toast.success('Organization created successfully!');
+        router.push('/admin/dashboard/organization-requests');
+      }
     } catch (err: any) {
-      console.error('Error updating organization:', err);
-      setError(err.message || 'Failed to update organization');
+      console.error('Error creating organization:', err);
+      setError(err.message || 'Failed to create organization');
+      toast.error(err.message || 'Failed to create organization');
     } finally {
       setLoading(false);
     }
@@ -242,7 +256,7 @@ export default function EditOrganizationForm() {
     );
   }
 
-  // Update input field classes
+  // create input field classes
   const inputClasses =
     'mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-gray-900';
 
@@ -255,13 +269,15 @@ export default function EditOrganizationForm() {
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Organization</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Create Organization
+        </h1>
       </div>
 
       {success && (
         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
           <Check className="h-5 w-5 text-green-500 mr-2" />
-          <p className="text-green-700">Organization updated successfully!</p>
+          <p className="text-green-700">Organization created successfully!</p>
         </div>
       )}
 
@@ -495,81 +511,21 @@ export default function EditOrganizationForm() {
                   <Upload className="w-5 h-5 mr-2" />
                   Organization Images
                   <span className="ml-2 text-sm text-gray-500">
-                    ({images.length}/5 images)
+                    ({newImages.length}/5 images)
                   </span>
                 </h2>
               </div>
               <div className="p-6">
                 <div className="space-y-4">
-                  {/* Original Images */}
-                  {originalImages.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 mb-2">
-                        Current Images
-                      </h3>
-                      <div className="grid grid-cols-2 gap-2">
-                        {originalImages.map((img, idx) => (
-                          <div
-                            key={`original-${idx}`}
-                            className="relative group"
-                          >
-                            <div className="aspect-square w-full overflow-hidden rounded-md">
-                              <img
-                                src={img}
-                                alt={`Current image ${idx + 1}`}
-                                className="object-cover w-full h-full"
-                              />
-                              {!discardedImages.includes(img) && (
-                                <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setDiscardedImages(prev => [
-                                        ...prev,
-                                        img,
-                                      ]);
-                                      setImages(prev =>
-                                        prev.filter(i => i !== img),
-                                      );
-                                    }}
-                                    className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600"
-                                  >
-                                    Discard
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                            {discardedImages.includes(img) && (
-                              <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setDiscardedImages(prev =>
-                                      prev.filter(i => i !== img),
-                                    );
-                                    setImages(prev => [...prev, img]);
-                                  }}
-                                  className="bg-green-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-green-600"
-                                >
-                                  Restore
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {/* New Image Upload */}
                   <div>
                     <h3 className="text-sm font-medium text-gray-900 mb-2">
-                      Add New Images
+                      Add Images
                     </h3>
                     <label
                       htmlFor="imageUpload"
                       className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${
-                        images.length >= 5
+                        newImages.length >= 5
                           ? 'opacity-50 cursor-not-allowed'
                           : ''
                       }`}
@@ -591,7 +547,7 @@ export default function EditOrganizationForm() {
                         multiple
                         className="hidden"
                         onChange={handleImageUpload}
-                        disabled={images.length >= 5}
+                        disabled={newImages.length >= 5}
                       />
                     </label>
                   </div>
@@ -600,7 +556,7 @@ export default function EditOrganizationForm() {
                   {newImages.length > 0 && (
                     <div>
                       <h3 className="text-sm font-medium text-gray-900 mb-2">
-                        New Images to Upload
+                        Images to Upload
                       </h3>
                       <div className="grid grid-cols-2 gap-2">
                         {newImages.map((file, idx) => (
@@ -676,10 +632,10 @@ export default function EditOrganizationForm() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Updating...
+                Creating...
               </div>
             ) : (
-              'Update Organization'
+              'Create Organization'
             )}
           </button>
         </div>
