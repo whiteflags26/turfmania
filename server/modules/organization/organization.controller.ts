@@ -53,17 +53,11 @@ interface AssignRoleBody {
  */
 export const createOrganization = asyncHandler(
   async (
-    req: AuthRequest & {
-      body: CreateOrganizationBody & {
-        requestId?: string;
-        wasEdited?: boolean;
-        adminNotes?: string;
-      };
-    },
+    req: AuthRequest & { body: CreateOrganizationBody & { requestId?: string, adminNotes?: string } },
     res: Response,
     next: NextFunction
   ) => {
-    const { name, facilities, requestId, wasEdited, adminNotes } = req.body;
+    const { name, facilities, requestId, adminNotes } = req.body;
 
     // Validate user authentication first
     if (!req.user) {
@@ -168,16 +162,15 @@ export const createOrganization = asyncHandler(
       images,
       requestId ? requestId : undefined,
       req.user.id,
-      wasEdited !== undefined ? wasEdited : false,
-      adminNotes ? adminNotes : undefined
+      adminNotes ? adminNotes : undefined,
     );
 
     res.status(201).json({
       success: true,
       data: organization,
       message: requestId
-        ? "Organization created and request approved successfully"
-        : "Organization created successfully",
+        ? 'Organization created and request approved successfully'
+        : 'Organization created successfully',
     });
   }
 );

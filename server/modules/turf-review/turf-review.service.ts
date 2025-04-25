@@ -380,7 +380,6 @@ export default class TurfReviewService {
     };
   }
 
-  // Add this method to the TurfReviewService class
 
   // Check if a user has already reviewed a turf
   async hasUserReviewedTurf(userId: string, turfId: string): Promise<boolean> {
