@@ -1,6 +1,13 @@
 'use client';
 
-import { getSingleOrganizationRequest } from '@/services/organizationService';
+import {
+  CancelProcessOrganizationRequest,
+  getSingleOrganizationRequest,
+  processOrganizationRequest,
+  rejectOrganizationRequest,
+} from '@/services/organizationService';
+
+import { ActionButton } from '@/components/buttons/ActionButton';
 import { format } from 'date-fns';
 import {
   Activity,
@@ -19,6 +26,7 @@ import {
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 // Types
 interface Coordinates {
@@ -87,6 +95,9 @@ export default function OrganizationRequestDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [processing, setProcessing] = useState<boolean>(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectionNotes, setRejectionNotes] = useState<string>('');
 
   useEffect(() => {
     const fetchRequestDetails = async () => {
@@ -119,18 +130,68 @@ export default function OrganizationRequestDetailPage() {
   const handleProcessRequest = async () => {
     try {
       setProcessing(true);
-      // Implement the processing API call here
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      setError(null);
 
-      const response = (await getSingleOrganizationRequest(
-        params.id as string,
-      )) as unknown as ApiResponse;
+      // Call the process API
+      const response = await processOrganizationRequest(params.id as string);
+
+      // Update the local state with the new request data
       setRequest(response.data);
-    } catch (err) {
+
+      // Show success message
+      toast.success('Request processing started successfully');
+    } catch (err: any) {
       console.error('Failed to process request:', err);
-      alert('Failed to process request');
+      setError(err.message ?? 'Failed to process request');
+      toast.error(err.message ?? 'Failed to process request');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  // Add new handlers
+  const handleCancelProcessing = async () => {
+    try {
+      setIsCancelling(true);
+      setError(null);
+
+      const response = await CancelProcessOrganizationRequest(
+        params.id as string,
+      );
+      setRequest(response.data);
+      toast.success('Processing cancelled successfully');
+    } catch (err: any) {
+      console.error('Failed to cancel processing:', err);
+      setError(err.message ?? 'Failed to cancel processing');
+      toast.error(err.message ?? 'Failed to cancel processing');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectionNotes.trim()) {
+      toast.error('Please provide rejection notes');
+      return;
+    }
+
+    try {
+      setIsRejecting(true);
+      setError(null);
+
+      const response = await rejectOrganizationRequest(
+        params.id as string,
+        rejectionNotes.trim(),
+      );
+      setRequest(response.data);
+      toast.success('Request rejected successfully');
+      setRejectionNotes(''); // Reset notes after successful rejection
+    } catch (err: any) {
+      console.error('Failed to reject request:', err);
+      setError(err.message ?? 'Failed to reject request');
+      toast.error(err.message ?? 'Failed to reject request');
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -215,45 +276,29 @@ export default function OrganizationRequestDetailPage() {
           </p>
         </div>
 
-        {request.status === 'pending' && (
-          <button
-            onClick={handleProcessRequest}
-            disabled={processing}
-            className={`mt-4 sm:mt-0 px-4 py-2 rounded-md font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-              processing
-                ? 'bg-blue-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {processing ? (
-              <span className="inline-flex items-center">
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Processing...
-              </span>
-            ) : (
-              'Process Request'
-            )}
-          </button>
-        )}
+        <div className="flex space-x-4">
+          {request.status === 'pending' && (
+            <ActionButton
+              onClick={handleProcessRequest}
+              disabled={processing}
+              loading={processing}
+              variant="primary"
+            >
+              Process Request
+            </ActionButton>
+          )}
+
+          {request.status === 'processing' && (
+            <ActionButton
+              onClick={handleCancelProcessing}
+              disabled={isCancelling}
+              loading={isCancelling}
+              variant="warning"
+            >
+              Cancel Processing
+            </ActionButton>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -650,6 +695,43 @@ export default function OrganizationRequestDetailPage() {
           </div>
         </div>
       </div>
+
+      {(request.status === 'pending' || request.status === 'processing') && (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden mt-6">
+          <div className="px-6 py-4 border-b border-gray-200 bg-red-50">
+            <h2 className="text-lg font-medium text-red-900 flex items-center">
+              <X className="w-5 h-5 mr-2" />
+              Reject Request
+            </h2>
+          </div>
+          <div className="p-6 space-y-4">
+            <div>
+              <label
+                htmlFor="rejectionNotes"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Rejection Notes
+              </label>
+              <textarea
+                id="rejectionNotes"
+                rows={3}
+                className="shadow-sm block w-full focus:ring-red-500 focus:border-red-500 sm:text-sm border border-gray-300 rounded-md"
+                placeholder="Please provide a reason for rejection..."
+                value={rejectionNotes}
+                onChange={e => setRejectionNotes(e.target.value)}
+              />
+            </div>
+            <ActionButton
+              onClick={handleReject}
+              disabled={isRejecting || !rejectionNotes.trim()}
+              loading={isRejecting}
+              variant="danger"
+            >
+              Reject Request
+            </ActionButton>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

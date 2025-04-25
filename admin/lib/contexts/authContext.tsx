@@ -10,12 +10,19 @@ import {
   useState,
 } from 'react';
 
+interface UserPermissions {
+  name: string;
+  scope: string;
+}
+
 interface User {
   _id: string;
   email: string;
   first_name: string;
   last_name: string;
   isAdmin?: boolean;
+  permissions?: UserPermissions[];
+  role?: string;
 }
 
 interface AuthContextType {
@@ -24,6 +31,7 @@ interface AuthContextType {
   checkAuth: () => Promise<boolean>;
   logout: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  hasPermission: (permissionName: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -144,6 +152,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const hasPermission = (permissionName: string): boolean => {
+    if (!user || !user.permissions) return false;
+    return user.permissions.some(p => p.name === permissionName);
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       console.log('Initializing auth check on path:', pathname);
@@ -154,7 +167,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, checkAuth, logout, login }}>
+    <AuthContext.Provider
+      value={{ user, loading, checkAuth, logout, login, hasPermission }}
+    >
       {children}
     </AuthContext.Provider>
   );

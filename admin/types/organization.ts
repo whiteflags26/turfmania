@@ -1,5 +1,3 @@
-
-
 export interface RequesterInfo {
   _id: string;
   email: string;
@@ -20,7 +18,7 @@ export interface OrganizationRequest {
   createdAt: string;
   updatedAt: string;
   images?: string[];
-  ownerEmail:string
+  ownerEmail: string;
 }
 
 export interface OrganizationRequestsResponse {
@@ -37,16 +35,14 @@ export interface OrganizationRequestsResponse {
     pages: number;
     filters: Record<string, unknown>;
   };
+  
 }
 
-// Types
-interface Coordinates {
-  type: string;
-  coordinates: number[];
-}
-
-interface Location {
-  coordinates: Coordinates;
+export interface Location {
+  coordinates: {
+    type: string;
+    coordinates: number[];
+  };
   place_id: string;
   address: string;
   city: string;
@@ -55,21 +51,19 @@ interface Location {
   post_code?: string;
 }
 
-interface User {
+export interface Organization {
   _id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-}
-
-interface Organization {
+  organizationName: string;
   location: Location;
-  _id: string;
-  name: string;
   facilities: string[];
   images: string[];
   turfs: string[];
   createdAt: string;
   updatedAt: string;
   __v: number;
+}
+
+export interface SingleOrganizationResponse {
+  success: boolean;
+  data: Organization;
 }
