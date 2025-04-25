@@ -3,23 +3,38 @@
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/Button";
 import { Textarea } from "@/components/ui/textarea";
 import { DialogTitle } from "@/components/ui/dialog";
 import { Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { createTurfReview } from "@/lib/server-apis/single-turf/createTurfReview-api";
 import toast from "react-hot-toast";
+import { updateTurfReview } from "@/lib/server-apis/single-turf/updateTurfReview-api";
+import { UpdateReviewData } from "@/types/turf-review";
 
 interface ReviewFormProps {
   turfId: string;
   onSuccess: () => void;
+  initialData?: {
+    reviewId?: string;
+    rating: number;
+    review: string;
+    images: string[];
+  };
+  isEditing?: boolean;
 }
 
-export default function ReviewForm({ turfId, onSuccess }: ReviewFormProps) {
-  const [review, setReview] = useState("");
-  const [rating, setRating] = useState(5);
+export default function ReviewForm({ 
+  turfId, 
+  onSuccess, 
+  initialData, 
+  isEditing = false 
+}: ReviewFormProps) {
+  const [review, setReview] = useState(initialData?.review || "");
+  const [rating, setRating] = useState(initialData?.rating || 5);
   const [images, setImages] = useState<File[]>([]);
+  const [existingImages] = useState<string[]>(initialData?.images || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,38 +50,36 @@ export default function ReviewForm({ turfId, onSuccess }: ReviewFormProps) {
     try {
       setIsSubmitting(true);
 
-      // Validate rating
-      if (!rating) {
-        toast.error("Rating is required");
-        return;
-      }
+      if (isEditing && initialData?.reviewId) {
+        const updateData: UpdateReviewData = {
+          rating,
+          review: review.trim(),
+          images,
+          existingImages
+        };
 
-      // Create FormData
-      const formData = new FormData();
-      formData.append("turfId", turfId);
-      formData.append("rating", rating.toString());
-      
-      // Add optional fields
-      if (review.trim()) {
-        formData.append("review", review.trim());
+        await updateTurfReview(initialData.reviewId, updateData);
+        toast.success("Review updated successfully!");
+      } else {
+        const formData = new FormData();
+        formData.append("turfId", turfId);
+        formData.append("rating", rating.toString());
+        
+        if (review.trim()) {
+          formData.append("review", review.trim());
+        }
+        
+        images.forEach((file) => {
+          formData.append("images", file);
+        });
+
+        await createTurfReview(formData);
+        toast.success("Review submitted successfully!");
       }
       
-      // Add images if any
-      images.forEach((file) => {
-        formData.append("images", file);
-      });
-
-      await createTurfReview(formData);
-      
-      toast.success("Review submitted successfully!");
       onSuccess();
-      
-      // Reset form
-      setReview("");
-      setRating(5);
-      setImages([]);
-      
     } catch (error) {
+      console.error('Review submission error:', error);
       toast.error(error instanceof Error ? error.message : "Failed to submit review");
     } finally {
       setIsSubmitting(false);
@@ -80,7 +93,7 @@ export default function ReviewForm({ turfId, onSuccess }: ReviewFormProps) {
       className="space-y-6 p-4"
     >
       <DialogTitle className="text-xl font-semibold mb-4">
-        Write a Review
+        {isEditing ? "Edit Review" : "Write a Review"}
       </DialogTitle>
 
       <div className="space-y-2">
@@ -134,7 +147,7 @@ export default function ReviewForm({ turfId, onSuccess }: ReviewFormProps) {
         className="w-full"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Submitting..." : "Submit Review"}
+        {isSubmitting ? "Submitting..." : isEditing ? "Update Review" : "Submit Review"}
       </Button>
     </motion.div>
   );
