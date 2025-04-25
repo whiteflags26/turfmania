@@ -135,7 +135,7 @@ export const login = asyncHandler(
 
     // Generate token
     const token = authService.generateToken(user);
-    console.log(token);
+    
 
     // Remove sensitive data from response
     const userWithoutPassword = user.toObject();
@@ -157,6 +157,90 @@ export const login = asyncHandler(
 );
 
 /**
+ * @route   POST /api/v1/auth/admin/login
+ * @desc    Admin Login with dashboard access check
+ * @access  Public
+ */
+export const adminLogin = asyncHandler(
+  async (
+    req: Request<{}, {}, LoginBody>,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    let { email, password } = req.body;
+    // Trim and sanitize inputs
+    email = validator.trim(email ?? '').toLowerCase();
+    password = validator.trim(password ?? '');
+
+    // Input validation
+    if (!email || !password) {
+      return next(
+        new ErrorResponse('Please provide an email and password', 400),
+      );
+    }
+
+    // Validate email format
+    if (!validator.isEmail(email)) {
+      return next(new ErrorResponse('Invalid email format', 400));
+    }
+
+    // Find user with case-insensitive email match
+    const user = await User.findOne({ email })
+      .collation({ locale: 'en', strength: 2 })
+      .select('+password');
+
+    if (!user) {
+      return next(new ErrorResponse('Invalid credentials', 401));
+    }
+
+    // Check password
+    const isMatched = await authService.matchPassword(password, user);
+
+    if (!isMatched) {
+      return next(new ErrorResponse('Invalid credentials', 401));
+    }
+
+    // Check for admin dashboard access permission
+    const hasAdminAccess = await authService.checkAdminAccess(user._id);
+    if (!hasAdminAccess) {
+      return next(
+        new ErrorResponse('Unauthorized access to admin dashboard', 403),
+      );
+    }
+
+    // Generate token
+    const token = authService.generateToken(user);
+
+    // Remove sensitive data from response
+    const userWithoutPassword = user.toObject();
+    delete userWithoutPassword.password;
+
+    // Set admin token cookie
+    res.cookie('admin_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
+    // Set regular token cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { user: userWithoutPassword },
+    });
+  },
+);
+
+/**
  * @route   POST /api/v1/auth/logout
  * @desc    Logout current user
  * @access  Public
@@ -168,6 +252,12 @@ export const logout = asyncHandler(
       httpOnly: true,
       expires: new Date(0), // set the cookie to expire immediately
       //secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+    res.cookie('admin_token', '', {
+      httpOnly: true,
+      expires: new Date(0), // set the cookie to expire immediately
+      //secure: process.env.NODE_ENV === 'production', // Uncomment for production
       sameSite: 'lax',
     });
 
@@ -185,15 +275,24 @@ export const logout = asyncHandler(
  */
 export const getMe = asyncHandler(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    console.log('in me controller');
-    if (!req.user) {
+    if (!req.user?.id) {
       return next(new ErrorResponse('User not authenticated', 401));
     }
-    console.log('user', req.user.id);
-    const user = await User.findById(req.user.id).select('-password');
+
+    const user = await User.findById(req.user.id).select(
+      '-password -verificationToken -verificationTokenExpires',
+    );
 
     if (!user) {
       return next(new ErrorResponse('User not found', 404));
+    }
+
+    // If it's an admin request, check admin access
+    if (req.cookies.admin_token) {
+      const hasAdminAccess = await authService.checkAdminAccess(user._id);
+      if (!hasAdminAccess) {
+        return next(new ErrorResponse('Not authorized as admin', 403));
+      }
     }
 
     res.status(200).json({
