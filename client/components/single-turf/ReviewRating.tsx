@@ -21,7 +21,10 @@ import ReviewForm from "@/components/single-turf/ReviewForm";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star } from "lucide-react";
 import Image from "next/image";
-
+import ReviewActionsDropdown from "@/components/single-turf/ReviewActionsDropdown";
+import {updateTurfReview } from "@/lib/server-apis/single-turf/updateTurfReview-api";
+import { deleteTurfReview } from "@/lib/server-apis/single-turf/deleteTurfReview-api";
+import { UpdateReviewData } from "@/types/turf-review";
 interface ReviewSectionProps {
   turfId: string;
   currentUser: IUser | null;
@@ -306,17 +309,26 @@ export default function ReviewSection({
                           {new Date(review.createdAt).toLocaleDateString()}
                         </p>
                       </div>
-                      <div className="flex gap-1">
-                        {Array.from({ length: 5 }, (_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < review.rating
-                                ? "text-yellow-400 fill-yellow-400"
-                                : "text-slate-200"
-                            }`}
-                          />
-                        ))}
+                      <div className="flex items-center gap-4">
+                        <div className="flex gap-1">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < review.rating
+                                  ? "text-yellow-400 fill-yellow-400"
+                                  : "text-slate-200"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <ReviewActionsDropdown
+                          review={review}
+                          currentUser={currentUser}
+                          onDelete={async () => await deleteTurfReview(review._id)}
+                          onEdit={async (data: UpdateReviewData) => await updateTurfReview(review._id, data)}
+                          onReload={loadReviews}
+                        />
                       </div>
                     </div>
                     {review.review && (
