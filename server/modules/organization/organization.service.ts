@@ -21,19 +21,19 @@ class OrganizationService {
   organizationRequestService = new OrganizationRequestService();
 
   /**
-   * Create a new organization (Admin only)
-   * Called by an Admin. Owner is assigned in a separate step if no requestId is provided.
-   * If requestId is provided, owner is assigned as part of the creation process.
-   * All operations are executed atomically within a transaction when requestId is provided.
-   * @param name - Organization name
-   * @param facilities - List of facilities
-   * @param images - Array of image files
-   * @param location - Location object
-   * @param requestId - Optional organization request ID
-   * @param adminId - ID of admin creating the organization
-   * @param wasEdited - Whether request was edited during approval process
-   * @returns Promise<IOrganization>
-   */
+ * Create a new organization (Admin only)
+ * Called by an Admin. Owner is assigned in a separate step if no requestId is provided.
+ * If requestId is provided, owner is assigned as part of the creation process.
+ * All operations are executed atomically within a transaction when requestId is provided.
+ * @param name - Organization name
+ * @param facilities - List of facilities
+ * @param images - Array of image files
+ * @param location - Location object
+ * @param requestId - Optional organization request ID
+ * @param adminId - ID of admin creating the organization
+ * @param adminNotes - Optional notes from admin
+ * @returns Promise<IOrganization>
+ */
   public async createOrganization(
     name: string,
     facilities: string[],
@@ -41,7 +41,6 @@ class OrganizationService {
     images?: Express.Multer.File[],
     requestId?: string,
     adminId?: string,
-    wasEdited: boolean = false,
     adminNotes?: string
   ): Promise<IOrganization | null> {
     try {
@@ -60,9 +59,9 @@ class OrganizationService {
 
         try {
           let organization = null;
+          let wasEdited = false;
 
           // Execute all operations within a transaction
-
           await session.withTransaction(async () => {
             // Create organization with basic information
             organization = new Organization({
@@ -103,6 +102,14 @@ class OrganizationService {
               session
             );
 
+            // Check if data was edited from the original request
+            wasEdited = await this.organizationRequestService.wasRequestDataEdited(
+              requestId,
+              name,
+              facilities,
+              location
+            );
+
             // Approve the request with the newly created organization ID
             await this.organizationRequestService.approveRequestWithSession(
               requestId,
@@ -113,9 +120,7 @@ class OrganizationService {
               session
             );
 
-            console.log(
-              `Organization request ${requestId} approved and linked to organization ${organization._id}`
-            );
+            console.log(`Organization request ${requestId} approved and linked to organization ${organization._id}`);
           });
 
           return organization;
@@ -176,10 +181,8 @@ class OrganizationService {
     try {
       const options = session ? { session } : {};
 
-      const organization = await Organization.findById(organizationId).session(
-        session || null
-      );
-      if (!organization) throw new ErrorResponse("Organization not found", 404);
+      const organization = await Organization.findById(organizationId).session(session || null);
+      if (!organization) throw new ErrorResponse('Organization not found', 404);
 
       const user = await User.findById(userId).session(session || null);
       if (!user) throw new ErrorResponse("User not found", 404);
