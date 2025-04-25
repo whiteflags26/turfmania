@@ -210,7 +210,7 @@ export default class TurfReviewController {
       skip:
         req.query.page && req.query.limit
           ? (parseInt(req.query.page as string) - 1) *
-            parseInt(req.query.limit as string)
+          parseInt(req.query.limit as string)
           : undefined,
       sortBy: (req.query.sortBy as string) || "createdAt",
       sortOrder: req.query.sortOrder === "asc" ? "asc" : "desc",
@@ -250,4 +250,29 @@ export default class TurfReviewController {
       },
     });
   }
+
+  /**
+ * @route   GET /api/v1/turf-review/has-reviewed/:turfId
+ * @desc    Check if the authenticated user has already reviewed a specific turf
+ * @access  Private
+ */
+  public hasUserReviewedTurf = asyncHandler(
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const { turfId } = req.params;
+      const userId = getUserId(req);
+
+      if (!turfId) {
+        throw new ErrorResponse("Turf ID is required", 400);
+      }
+
+      const hasReviewed = await this.turfReviewService.hasUserReviewedTurf(userId, turfId);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          hasReviewed
+        }
+      });
+    }
+  );
 }

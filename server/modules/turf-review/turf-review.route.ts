@@ -29,6 +29,7 @@ router.put("/review/:reviewId", protect, upload.array("images", 2), turfReviewCo
 router.delete("/review/:reviewId", protect, turfReviewController.deleteTurfReview);
 router.get("/user/", protect, turfReviewController.getReviewsByUser);
 router.get("/turf/:turfId", protect, turfReviewController.getReviewsByTurf);
+router.get("/has-reviewed/:turfId", protect, turfReviewController.hasUserReviewedTurf);
 
 // Public routes
 router.get("/turf/:turfId/public", turfReviewController.getReviewsByTurfPublic);
