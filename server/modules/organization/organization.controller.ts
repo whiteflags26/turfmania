@@ -58,7 +58,7 @@ export const createOrganization = asyncHandler(
     next: NextFunction
   ) => {
     const { name, facilities, requestId, adminNotes } = req.body;
-
+console.log("Request body:", req.body); // Debugging line
     // Validate user authentication first
     if (!req.user) {
       return next(new ErrorResponse("User not authenticated", 401));
