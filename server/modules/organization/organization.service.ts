@@ -10,6 +10,7 @@ import User from "../user/user.model";
 import Organization, { IOrganization } from "./organization.model";
 import { Turf } from "../turf/turf.model";
 import OrganizationRequestService from "../organization-request/organization-request.service";
+import FaciltyService from "../facility/facility.service";
 import mongoose from "mongoose";
 
 export interface IOrganizationRoleAssignment {
@@ -19,6 +20,7 @@ export interface IOrganizationRoleAssignment {
 
 class OrganizationService {
   organizationRequestService = new OrganizationRequestService();
+  facilityService = new FaciltyService();
 
   /**
  * Create a new organization (Admin only)
@@ -44,6 +46,9 @@ class OrganizationService {
     adminNotes?: string
   ): Promise<IOrganization | null> {
     try {
+      // Validate facilities
+      await this.facilityService.validateFacilities(facilities);
+
       let imageUrls: string[] = [];
 
       // Only process images if they exist
@@ -278,6 +283,11 @@ class OrganizationService {
     try {
       const organization = await Organization.findById(id);
       if (!organization) throw new ErrorResponse("Organization not found", 404);
+
+      // Validate facilities if they're being updated
+    if (updateData.facilities && updateData.facilities.length > 0) {
+      await this.facilityService.validateFacilities(updateData.facilities);
+    }
 
       // Handle image updates
       if (newImages && newImages.length > 0) {

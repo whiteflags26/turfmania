@@ -10,6 +10,8 @@ import OrganizationRequest, {
 import { uploadImage } from "../../utils/cloudinary";
 import ErrorResponse from "../../utils/errorResponse";
 import { sendEmail } from "../../utils/email";
+import FaciltyService from "../facility/facility.service";
+
 
 interface CreateRequestDto {
   organizationName: string;
@@ -60,6 +62,8 @@ export interface RequestsResult {
 }
 
 export default class OrganizationRequestService {
+  facilityService = new FaciltyService();
+
   // Validates the owner email by checking if it exists in the user database
   public async validateOwnerEmail(email: string): Promise<boolean> {
     if (!email || !validator.isEmail(email)) {
@@ -88,6 +92,9 @@ export default class OrganizationRequestService {
           400
         );
       }
+
+      // Validate facilities
+      await this.facilityService.validateFacilities(requestData.facilities);
 
       // Upload images directly to Cloudinary
       const imageUrls: string[] = [];
