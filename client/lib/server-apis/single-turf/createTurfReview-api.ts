@@ -1,24 +1,25 @@
-export async function createTurfReview(formData: FormData, token: string) {
+export async function createTurfReview(formData: FormData) {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/review/`,
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/review`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
+        credentials: "include", // Important for sending cookies
+        body: formData, // Send as FormData for file upload support
       }
     );
 
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message || "Failed to create review");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to create review");
     }
 
-    return await res.json();
+    return data;
   } catch (error) {
-    console.error(error);
-    throw error;
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error("An unexpected error occurred");
   }
 }
