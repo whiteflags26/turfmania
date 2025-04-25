@@ -109,7 +109,7 @@ export async function createOrganization(
       name: formData.get('organizationName'),
       facilities: formData.getAll('facilities[]'),
       location: JSON.parse(formData.get('location') as string),
-      requestId: formData.get('requestId'),
+      requestId: formData.get('requestId') || null, // Optional requestId
       wasEdited: formData.get('wasEdited') || 'False',
     };
 
@@ -124,7 +124,7 @@ export async function createOrganization(
   } catch (error: any) {
     console.error('Create organization error:', error.response?.data);
     throw new Error(
-      error.response?.data?.message || 'Failed to create organization',
+      error.response?.data?.message ?? 'Failed to create organization',
     );
   }
 }

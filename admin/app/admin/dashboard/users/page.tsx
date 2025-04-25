@@ -19,7 +19,7 @@ export default function UsersManagement() {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:3000/api/v1/users', {
+        const response = await axios.get('http://localhost:5000/api/v1/users', {
           withCredentials: true,
         });
         setUsers(response.data.data);
@@ -39,7 +39,7 @@ export default function UsersManagement() {
     const fetchGlobalRoles = async () => {
       try {
         const response = await axios.get(
-          'http://localhost:3000/api/v1/roles/global',
+          'http://localhost:5000/api/v1/roles/global',
           { withCredentials: true },
         );
         setGlobalRoles(response.data.data);
@@ -56,7 +56,7 @@ export default function UsersManagement() {
 
     try {
       await axios.post(
-        `http://localhost:3000/api/v1/role-assignments/users/${selectedUser._id}/assignments/global`,
+        `http://localhost:5000/api/v1/role-assignments/users/${selectedUser._id}/assignments/global`,
         { roleId: selectedRole },
         { withCredentials: true },
       );
