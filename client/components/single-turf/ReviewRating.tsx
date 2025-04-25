@@ -2,7 +2,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { ITurfReview } from "@/types/turf-review";
@@ -22,9 +27,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Star } from "lucide-react";
 import Image from "next/image";
 import ReviewActionsDropdown from "@/components/single-turf/ReviewActionsDropdown";
-import {updateTurfReview } from "@/lib/server-apis/single-turf/updateTurfReview-api";
+import { updateTurfReview } from "@/lib/server-apis/single-turf/updateTurfReview-api";
 import { deleteTurfReview } from "@/lib/server-apis/single-turf/deleteTurfReview-api";
 import { UpdateReviewData } from "@/types/turf-review";
+import { hasUserReviewedTurf } from "@/lib/server-apis/single-turf/hasUserReviewedTurf-api";
+import { toast } from "react-hot-toast";
+import { DualRangeSlider } from "@/components/ui/dual-range-slider";
+
 interface ReviewSectionProps {
   turfId: string;
   currentUser: IUser | null;
@@ -53,9 +62,7 @@ const ImageModal = ({ src, alt, isOpen, onClose }: ImageModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl p-0 overflow-hidden">
-        <DialogTitle className="sr-only">
-          Review Image Preview
-        </DialogTitle>
+        <DialogTitle className="sr-only">Review Image Preview</DialogTitle>
         <div className="relative w-full h-[80vh]">
           <Image
             src={src}
@@ -87,8 +94,10 @@ export default function ReviewSection({
     },
   });
   const [sortBy, setSortBy] = useState("latest");
-  const [filterRating, setFilterRating] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [ratingRange, setRatingRange] = useState([1, 5]);
+  const [isFiltered, setIsFiltered] = useState(false);
   const router = useRouter();
 
   // Convert rating distribution to chart data
@@ -116,16 +125,21 @@ export default function ReviewSection({
             : sortBy === "lowest"
             ? ("asc" as const)
             : ("desc" as const),
-        minRating: filterRating || undefined,
-        maxRating: filterRating || undefined,
+        minRating: ratingRange[0],
+        maxRating: ratingRange[1],
       };
 
       // Use different API based on authentication status
-      const data = currentUser 
+      const data = currentUser
         ? await fetchReviewsByTurf(turfId, options)
         : await fetchReviewsByTurfPublic(turfId, options);
 
       setReviewData(data);
+
+      if (currentUser) {
+        const reviewed = await hasUserReviewedTurf(turfId);
+        setHasReviewed(reviewed);
+      }
     } catch (error) {
       console.error("Error fetching reviews:", error);
     }
@@ -133,13 +147,42 @@ export default function ReviewSection({
 
   useEffect(() => {
     loadReviews();
-  }, [turfId, sortBy, filterRating, reviewData.pagination.currentPage]);
+    setIsFiltered(
+      sortBy !== "latest" || ratingRange[0] !== 1 || ratingRange[1] !== 5
+    );
+  }, [turfId, sortBy, ratingRange, reviewData.pagination.currentPage]);
+
+  useEffect(() => {
+    const checkReviewStatus = async () => {
+      if (currentUser) {
+        const reviewed = await hasUserReviewedTurf(turfId);
+        setHasReviewed(reviewed);
+      }
+    };
+
+    checkReviewStatus();
+  }, [currentUser, turfId]);
 
   const handlePageChange = (newPage: number) => {
     setReviewData((prev) => ({
       ...prev,
       pagination: { ...prev.pagination, currentPage: newPage },
     }));
+  };
+
+  const handleReviewClick = () => {
+    if (hasReviewed) {
+      toast.error(
+        "You have already reviewed this turf. You can edit or delete your existing review to submit a new one."
+      );
+      return;
+    }
+  };
+
+  const clearFilters = () => {
+    setSortBy("latest");
+    setRatingRange([1, 5]);
+    setIsFiltered(false);
   };
 
   return (
@@ -157,18 +200,22 @@ export default function ReviewSection({
         {currentUser ? (
           <Dialog>
             <DialogTrigger asChild>
-              <Button className='rounded-xl' >
-                Add Your Review
+              <Button
+                className="rounded-xl"
+                onClick={handleReviewClick}
+                disabled={hasReviewed}
+              >
+                {hasReviewed ? "Already Reviewed" : "Add Your Review"}
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <ReviewForm turfId={turfId} onSuccess={loadReviews} />
-            </DialogContent>
+            {!hasReviewed && (
+              <DialogContent>
+                <ReviewForm turfId={turfId} onSuccess={loadReviews} />
+              </DialogContent>
+            )}
           </Dialog>
         ) : (
-          <Button
-            onClick={() => router.push("/sign-in")}
-          >
+          <Button onClick={() => router.push("/sign-in")}>
             Sign in to Review
           </Button>
         )}
@@ -237,38 +284,76 @@ export default function ReviewSection({
       {/* Filters */}
       <Card className="border-slate-200">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Label className="text-slate-700">Sort by:</Label>
-              <select
-                className="px-3 py-2 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="latest">Latest</option>
-                <option value="oldest">Oldest</option>
-                <option value="highest">Highest Rated</option>
-                <option value="lowest">Lowest Rated</option>
-              </select>
+          <div className="flex flex-col gap-4">
+            {/* Header Section with Rating Range and Clear Filters */}
+            <div className="flex flex-col sm:flex-row items-start justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-slate-400" />
+                <h3 className="text-base font-semibold text-slate-700">
+                  Filter & Sort Reviews
+                </h3>
+              </div>
+
+              <div className="w-full sm:w-64 space-y-1">
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs font-medium text-slate-600">
+                    Rating Range
+                  </Label>
+                  <span className="text-xs font-medium text-slate-500 bg-slate-100/80 px-2 py-0.5 rounded-full">
+                    {ratingRange[0]} - {ratingRange[1]} ★
+                  </span>
+                </div>
+                <DualRangeSlider
+                  min={1}
+                  max={5}
+                  step={1}
+                  value={ratingRange}
+                  onValueChange={setRatingRange}
+                  className="w-full h-2.5"
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Label className="text-slate-700">Filter by rating:</Label>
-              <select
-                className="px-3 py-2 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-                value={filterRating || ""}
-                onChange={(e) =>
-                  setFilterRating(
-                    e.target.value ? Number(e.target.value) : null
-                  )
-                }
-              >
-                <option value="">All Ratings</option>
-                {[5, 4, 3, 2, 1].map((star) => (
-                  <option key={star} value={star}>
-                    {star} Stars
-                  </option>
-                ))}
-              </select>
+
+            {/* Bottom Section - Sort Options and Clear Filters */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium text-slate-600">
+                    Sort:
+                  </Label>
+                  <select
+                    className="px-3 py-1.5 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                  >
+                    <option value="latest">Latest Reviews</option>
+                    <option value="oldest">Oldest Reviews</option>
+                    <option value="highest">Highest Rated</option>
+                    <option value="lowest">Lowest Rated</option>
+                  </select>
+                </div>
+              </div>
+
+              {isFiltered && (
+                <Button variant="destructive" onClick={clearFilters} size="sm">
+                  <span className="flex items-center gap-1.5">
+                    Clear
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M19 6L5 20M5 6l14 14" />
+                    </svg>
+                  </span>
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -325,8 +410,14 @@ export default function ReviewSection({
                         <ReviewActionsDropdown
                           review={review}
                           currentUser={currentUser}
-                          onDelete={async () => await deleteTurfReview(review._id)}
-                          onEdit={async (data: UpdateReviewData) => await updateTurfReview(review._id, data)}
+                          onDelete={async () => {
+                            await deleteTurfReview(review._id);
+                            setHasReviewed(false); // Reset review status immediately
+                            await loadReviews(); // Reload reviews
+                          }}
+                          onEdit={async (data: UpdateReviewData) =>
+                            await updateTurfReview(review._id, data)
+                          }
                           onReload={loadReviews}
                         />
                       </div>
@@ -337,20 +428,21 @@ export default function ReviewSection({
                       </p>
                     )}
                     {review.images && review.images.length > 0 && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-wrap gap-2 max-w-[400px]">
                         {review.images.map((img, i) => (
-                          <div 
-                            key={i} 
-                            className="relative h-64 w-full cursor-pointer"
+                          <div
+                            key={i}
+                            className="relative w-[80px] h-[80px] cursor-pointer rounded-md overflow-hidden group"
                             onClick={() => setSelectedImage(img)}
                           >
                             <Image
                               src={img}
                               alt={`Review image ${i + 1}`}
                               fill
-                              sizes="(max-width: 768px) 100vw, 50vw"
-                              className="object-cover rounded-lg hover:opacity-90 transition-opacity"
+                              sizes="80px"
+                              className="object-cover transition-transform duration-300 group-hover:scale-110"
                             />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                           </div>
                         ))}
                       </div>
