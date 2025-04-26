@@ -9,6 +9,14 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 import { IUserReviewsResponse } from "@/types/userReviewsRespone";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function ReviewsSection() {
   const [data, setData] = useState<IUserReviewsResponse | null>(null);
@@ -108,24 +116,56 @@ export default function ReviewsSection() {
             <p className="text-sm text-gray-500 mt-1">Average Rating</p>
           </div>
           <div className="text-center">
-            <div className="flex justify-center space-x-2">
-              {[5, 4, 3, 2, 1].map((rating) => (
-                <div key={rating} className="flex flex-col items-center gap-1">
-                  <div className="h-20 w-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="bg-yellow-400 w-full transition-all duration-500 ease-out"
-                      style={{
-                        height: `${
-                          ((data.ratingDistribution[rating] || 0) /
-                            data.total) *
-                          100
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-xs text-gray-500">{rating}</span>
-                </div>
-              ))}
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={[5,4,3,2,1].map(rating => ({
+                  star: rating,
+                  count: data.ratingDistribution[rating] || 0
+                }))}>
+                  <defs>
+                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22c55e" />
+                      <stop offset="100%" stopColor="#16a34a" />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="star"
+                    tick={{ fontSize: 14, fill: "#64748b" }}
+                    tickLine={false}
+                    axisLine={{ stroke: "#e2e8f0" }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 14, fill: "#64748b" }}
+                    tickLine={false}
+                    axisLine={{ stroke: "#e2e8f0" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "rgba(0, 0, 0, 0.04)" }}
+                    contentStyle={{
+                      background: "white",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      padding: "8px 12px",
+                    }}
+                    content={({ payload, label }) => (
+                      <div className="text-sm">
+                        <p className="font-medium text-slate-700">{label} Stars</p>
+                        <p className="text-slate-600">{payload?.[0]?.value || 0} Reviews</p>
+                      </div>
+                    )}
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="url(#barGradient)"
+                    radius={[6, 6, 0, 0]}
+                    barSize={32}
+                    animationDuration={1000}
+                    animationBegin={200}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
             <p className="text-sm text-gray-500 mt-2">Rating Distribution</p>
           </div>
