@@ -10,7 +10,7 @@ import {
   deleteOrganization,
   createOrganizationRole,
   fetchOtherTurfs,
-  getOrganization,
+  getOrganization
 } from "./organization.controller";
 import { getOrganizationRoles } from "../role/role.controller";
 import { assignOrganizationRole } from "../role_assignment/userRoleAssignmentController";
