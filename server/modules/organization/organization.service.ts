@@ -278,6 +278,28 @@ class OrganizationService {
   }
 
   /**
+   * Get organization details by ID
+   * @param id - Organization ID
+   * @returns Promise<IOrganization | null>
+   */
+  public async getOrganizationById(id: string): Promise<IOrganization | null> {
+    try {
+      const organization = await Organization.findById(id)
+        .populate('turfs')
+        .lean();
+      
+      if (!organization) {
+        throw new ErrorResponse('Organization not found', 404);
+      }
+
+      return organization;
+    } catch (error) {
+      console.error('Error fetching organization:', error);
+      throw new ErrorResponse('Failed to fetch organization', 500);
+    }
+  }
+
+  /**
    * Update an organization
    * @param id - Organization ID
    * @param updateData - Partial organization data
