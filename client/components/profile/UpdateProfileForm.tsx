@@ -6,6 +6,8 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { FiUser, FiPhone } from "react-icons/fi";
 import { ApiError } from "@/types/api-error";
+import { isBangladeshiPhone } from "@/lib/utils/phoneValidation";
+import { Button } from "@/components/Button";
 
 interface UpdateProfileFormProps {
   user: IUser | null;
@@ -22,10 +24,18 @@ export default function UpdateProfileForm({
     last_name: user?.last_name || "",
     phone_number: user?.phone_number || "",
   });
+  const [phoneError, setPhoneError] = useState<string>("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setPhoneError("");
+
+    if (formData.phone_number && !isBangladeshiPhone(formData.phone_number)) {
+      setPhoneError("Please enter a valid Bangladeshi phone number");
+      setLoading(false);
+      return;
+    }
 
     try {
       const updatedUser = await updateUserProfile(formData);
@@ -130,6 +140,9 @@ export default function UpdateProfileForm({
                 placeholder="+880 1XXX-XXXXXX"
               />
             </div>
+            {phoneError && (
+              <p className="text-red-500 text-sm mt-1">{phoneError}</p>
+            )}
             <p className="mt-1 text-sm text-gray-500">
               Optional: Add your contact number
             </p>
@@ -137,11 +150,7 @@ export default function UpdateProfileForm({
         </div>
 
         <div className="flex justify-end pt-4">
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <Button type="submit" disabled={loading} variant="default">
             {loading ? (
               <>
                 <svg
@@ -169,7 +178,7 @@ export default function UpdateProfileForm({
             ) : (
               "Update Profile"
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </form>
