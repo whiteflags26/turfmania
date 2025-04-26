@@ -11,7 +11,12 @@ import {
   BsClock,
   BsBuilding,
   BsArrowRight,
+  BsTelephone,
+  BsEnvelope,
+  BsGeoAlt,
+  BsImage,
 } from "react-icons/bs";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function OrganizationRequestsSection() {
@@ -168,6 +173,78 @@ export default function OrganizationRequestsSection() {
                 {request.status.replace("_", " ")}
               </span>
             </div>
+          </div>
+
+          <div className="mt-4 space-y-4">
+            {/* Location Information */}
+            <div className="flex items-start gap-2">
+              <BsGeoAlt className="mt-1 text-gray-500" />
+              <div>
+                <h4 className="text-sm font-medium text-gray-700">Location</h4>
+                <p className="text-sm text-gray-600">
+                  {request.location.address}
+                </p>
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <BsTelephone className="text-gray-500" />
+                <span className="text-sm text-gray-600">
+                  Requestor: {request.contactPhone}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BsTelephone className="text-gray-500" />
+                <span className="text-sm text-gray-600">
+                  Organization: {request.orgContactPhone}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BsEnvelope className="text-gray-500" />
+                <span className="text-sm text-gray-600">
+                  Owner: {request.ownerEmail}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BsEnvelope className="text-gray-500" />
+                <span className="text-sm text-gray-600">
+                  Organization: {request.orgContactEmail}
+                </span>
+              </div>
+            </div>
+
+            {/* Images */}
+            {request.images.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <BsImage className="text-gray-500" />
+                  <h4 className="text-sm font-medium text-gray-700">Images</h4>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {request.images.map((image, index) => (
+                    <div key={index} className="relative aspect-square">
+                      <Image
+                        src={image}
+                        alt={`Organization image ${index + 1}`}
+                        fill
+                        className="object-cover rounded-lg"
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Processing Started Date */}
+            {request.status === "processing" && request.processingStartedAt && (
+              <div className="text-sm text-gray-500">
+                Processing started on:{" "}
+                {format(new Date(request.processingStartedAt), "MMM dd, yyyy")}
+              </div>
+            )}
           </div>
 
           {(request.requestNotes || request.adminNotes) && (

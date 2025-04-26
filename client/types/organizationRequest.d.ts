@@ -29,6 +29,8 @@ export interface IOrganizationRequest {
   adminNotes?: string;
   processingAdminId?: string;
   processingStartedAt?: Date;
+  orgContactPhone: string;
+  orgContactEmail: string;
   images: string[];
   organizationId?: string;
   createdAt: Date;
