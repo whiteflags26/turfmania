@@ -1,3 +1,5 @@
+import { organizationService } from './../organization/organization.service';
+import { ObjectId } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt, { SignOptions } from 'jsonwebtoken';
@@ -86,6 +88,32 @@ class AuthService {
       `Click the link to reset your password:\n\n${resetUrl}\n\nThis link is valid for 10 minutes.`,
     );
   }
+
+  /** @desc Check if user has organization dashboard access **/
+  public async checkUserRoleInOrganization(
+    userId: string,
+    organizationId: string,
+  ) {
+
+    console.log('userId', userId);
+    console.log('organizationId', organizationId);
+    const roleAssignment = await UserRoleAssignment.findOne({
+      userId,
+      scope: 'organization',
+      scopeId: organizationId,
+    });
+console.log('roleAssignment', roleAssignment);
+
+    if (!roleAssignment) {
+      throw new ErrorResponse(
+        'You do not have access to this organization dashboard',
+        403,
+      );
+    }
+
+    return roleAssignment;
+  }
+
 
   /** @desc Check if user has admin dashboard access **/
   public async checkAdminAccess(userId: Types.ObjectId): Promise<boolean> {

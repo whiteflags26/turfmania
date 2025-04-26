@@ -1,32 +1,46 @@
 'use client';
 
-import {
-  createOrganization,
-  getAllFacilities,
-  getSingleOrganizationRequest,
-} from '@/services/organizationService';
+import { useAuth } from '@/lib/contexts/authContext';
+import { createOrganizationRequest } from '@/lib/server-apis/organization-request/organizationRequestService';
 import {
   ArrowLeft,
   Building,
   Check,
+  FileText,
   MapPin,
   Package,
+  Phone,
   Upload,
   X,
 } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
+import { ApiError } from 'next/dist/server/api-utils';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 // Mock facility options
+const FACILITY_OPTIONS = [
+  'football',
+  'cricket',
+  'basketball',
+  'tennis',
+  'badminton',
+  'volleyball',
+  'swimming_pool',
+  'gym',
+  'table_tennis',
+  'indoor_sports',
+];
 
-export default function EditOrganizationForm() {
+// Create a type for create organization request
+
+export default function CreateOrganizationRequestForm() {
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
-  const params = useParams();
-  const organizationId = params.id as string;
 
-  // State declarations
-  const [name, setName] = useState('');
+  // Form state
+  const [organizationName, setOrganizationName] = useState('');
+  const [facilities, setFacilities] = useState<string[]>([]);
   const [address, setAddress] = useState('');
   const [placeId, setPlaceId] = useState('');
   const [city, setCity] = useState('');
@@ -35,75 +49,32 @@ export default function EditOrganizationForm() {
   const [postCode, setPostCode] = useState('');
   const [longitude, setLongitude] = useState(0);
   const [latitude, setLatitude] = useState(0);
-  const [facilities, setFacilities] = useState<string[]>([]);
-  const [existingImages, setExistingImages] = useState<string[]>([]);
-  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(true);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [contactPhone, setContactPhone] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [requestNotes, setRequestNotes] = useState('');
+  const [images, setImages] = useState<File[]>([]);
   const [orgContactPhone, setOrgContactPhone] = useState('');
   const [orgContactEmail, setOrgContactEmail] = useState('');
-  const [adminNotes, setAdminNotes] = useState('');
-  const [facilityOptions, setFacilityOptions] = useState<string[]>([]);
 
-  // Fetch organization data
+  // Form submission state
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Populate email from user context if available
   useEffect(() => {
-    async function fetchOrganizationData() {
-      try {
-        setFetchLoading(true);
-        const response = await getSingleOrganizationRequest(organizationId);
-
-        if (response.success && response.data) {
-          const orgData = response.data;
-
-          // Populate form fields
-          setName(orgData.organizationName);
-          setAddress(orgData.location.address);
-          setPlaceId(orgData.location.place_id);
-          setCity(orgData.location.city);
-          setArea(orgData.location.area ?? '');
-          setSubArea(orgData.location.sub_area ?? '');
-          setPostCode(orgData.location.post_code ?? '');
-          setLongitude(orgData.location.coordinates.coordinates[0]);
-          setLatitude(orgData.location.coordinates.coordinates[1]);
-
-          setFacilities(orgData.facilities);
-          setExistingImages(orgData.images || []);
-          setOrgContactPhone(orgData.orgContactPhone || '');
-          setOrgContactEmail(orgData.orgContactEmail || '');
-        }
-      } catch (err: any) {
-        console.error('Error fetching organization data:', err);
-        setError(err.message ?? 'Failed to load organization data');
-      } finally {
-        setFetchLoading(false);
-      }
+    if (user) {
+      setOwnerEmail(user.email);
     }
+  }, [user]);
 
-    if (organizationId) {
-      fetchOrganizationData();
-    }
-  }, [organizationId]);
-
-  // Add after the existing useEffect
+  // Redirect if not logged in
   useEffect(() => {
-    const fetchFacilities = async () => {
-      try {
-        const response = await getAllFacilities();
-        if (response.success) {
-          setFacilityOptions(
-            response.data.map((facility: any) => facility.name),
-          );
-        }
-      } catch (error) {
-        console.error('Error fetching facilities:', error);
-        setError('Failed to load facilities');
-      }
-    };
-
-    fetchFacilities();
-  }, []);
+    if (!authLoading && !user) {
+      toast.error('Please sign in to submit an organization request');
+      router.push('/sign-in');
+    }
+  }, [authLoading, user, router]);
 
   // Handler functions
   const handleFacilityToggle = (facility: string) => {
@@ -114,13 +85,16 @@ export default function EditOrganizationForm() {
     );
   };
 
-
+  const formatFacilityName = (facility: string) => {
+    return facility
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const totalImagesCount = existingImages.length + newImageFiles.length;
-      const remainingSlots = 5 - totalImagesCount;
-
+      const remainingSlots = 5 - images.length;
       if (remainingSlots <= 0) {
         toast.error('Maximum 5 images allowed');
         return;
@@ -143,78 +117,92 @@ export default function EditOrganizationForm() {
         );
       }
 
-      setNewImageFiles(prev => [...prev, ...validFiles]);
+      setImages(prev => [...prev, ...validFiles]);
     }
   };
 
-  const removeExistingImage = (index: number) => {
-    setExistingImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const removeNewImage = (index: number) => {
-    setNewImageFiles(prev => prev.filter((_, i) => i !== index));
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
-      // Create the payload object
-      const payload = {
-        name,
-        facilities,
-        location: {
-          place_id: placeId,
-          address,
-          coordinates: {
-            type: 'Point',
-            coordinates: [longitude, latitude],
+      const response = await createOrganizationRequest(
+        {
+          organizationName,
+          facilities,
+          location: {
+            place_id: placeId,
+            address,
+            coordinates: {
+              type: 'Point',
+              coordinates: [longitude, latitude],
+            },
+            area: area || undefined,
+            sub_area: subArea || undefined,
+            city,
+            post_code: postCode || undefined,
           },
-          area: area || undefined,
-          sub_area: subArea || undefined,
-          city,
-          post_code: postCode || undefined,
+          contactPhone,
+          ownerEmail,
+          requestNotes: requestNotes || undefined,
+          orgContactPhone, // Add this
+          orgContactEmail, // Add this
         },
-        orgContactPhone,
-        orgContactEmail,
-        requestId: params.id || null,
-        adminNotes,
-        wasEdited: 'True',
-      };
+        images.length > 0 ? images : undefined,
+      );
 
-      const response = await createOrganization(payload);
-
-      if (response.success) {
-        setSuccess(true);
-        toast.success('Organization updated successfully!');
-        router.push('/admin/dashboard/organization-requests');
+      if (!response.ok) {
+        throw new Error(
+          response.data.message ?? 'Failed to submit organization request',
+        );
       }
-    } catch (err: any) {
-      console.error('Error updating organization:', err);
-      setError(err.message ?? 'Failed to update organization');
-      toast.error(err.message ?? 'Failed to update organization');
+
+      console.log('data received:', response.data);
+      setSuccess(true);
+      toast.success('Organization request submitted successfully!');
+
+      // Clear form after successful submission
+      setTimeout(() => {
+        // You might want to add form reset logic here
+        // or navigate to a different page
+      }, 2000);
+    } catch (error) {
+      console.error('Error submitting organization request:', error);
+      setError(
+        (error as ApiError).message ??
+          'Something went wrong. Please try again.',
+      );
+      toast.error((error as ApiError).message ?? 'Failed to submit request');
     } finally {
       setLoading(false);
     }
   };
 
   const isFormValid =
-    name &&
+    organizationName &&
+    facilities.length > 0 &&
     address &&
     placeId &&
     city &&
-    facilities.length > 0 &&
-    orgContactPhone &&
-    orgContactEmail;
+    longitude !== 0 &&
+    latitude !== 0 &&
+    contactPhone &&
+    ownerEmail &&
+    orgContactPhone && // Add this
+    orgContactEmail; // Add this
 
+  // Handle back navigation
   const goBack = () => {
     router.back();
   };
 
-  const totalImagesCount = existingImages.length + newImageFiles.length;
-
-  if (fetchLoading) {
+  // Loading state while checking auth
+  if (authLoading) {
     return (
       <div className="max-w-7xl mx-auto p-6 flex items-center justify-center h-64">
         <div className="flex flex-col items-center">
@@ -238,33 +226,13 @@ export default function EditOrganizationForm() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          <p className="text-gray-600">Loading organization data...</p>
+          <p className="text-gray-600">Loading authentication...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 flex flex-col items-center">
-          <X className="h-10 w-10 text-red-500 mb-4" />
-          <h2 className="text-lg font-medium text-red-800 mb-2">
-            Error Loading Organization
-          </h2>
-          <p className="text-red-700 mb-4">{error}</p>
-          <button
-            onClick={goBack}
-            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // create input field classes
+  // Input field styling
   const inputClasses =
     'mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-gray-900';
 
@@ -277,13 +245,28 @@ export default function EditOrganizationForm() {
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Organization</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Submit Organization Request
+        </h1>
+        <p className="text-gray-600 mt-1">
+          Fill out the form below to request a new organization to be added to
+          our platform.
+        </p>
       </div>
 
       {success && (
         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
           <Check className="h-5 w-5 text-green-500 mr-2" />
-          <p className="text-green-700">Organization updated successfully!</p>
+          <p className="text-green-700">
+            Organization request submitted successfully! Redirecting...
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
+          <X className="h-5 w-5 text-red-500 mr-2" />
+          <p className="text-red-700">{error}</p>
         </div>
       )}
 
@@ -302,18 +285,67 @@ export default function EditOrganizationForm() {
                 <div className="space-y-4">
                   <div>
                     <label
-                      htmlFor="name"
+                      htmlFor="organizationName"
                       className="block text-sm font-medium text-gray-900"
                     >
                       Organization Name*
                     </label>
                     <input
                       type="text"
-                      id="name"
-                      value={name}
-                      onChange={e => setName(e.target.value)}
+                      id="organizationName"
+                      value={organizationName}
+                      onChange={e => setOrganizationName(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter organization name"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                  <Phone className="w-5 h-5 mr-2" />
+                  Contact Information
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="contactPhone"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Contact Phone*
+                    </label>
+                    <input
+                      type="tel"
+                      id="contactPhone"
+                      value={contactPhone}
+                      onChange={e => setContactPhone(e.target.value)}
+                      className={`${inputClasses} placeholder-gray-500`}
+                      placeholder="Enter contact phone number"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="ownerEmail"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Owner Email*
+                    </label>
+                    <input
+                      type="email"
+                      id="ownerEmail"
+                      value={ownerEmail}
+                      onChange={e => setOwnerEmail(e.target.value)}
+                      className={`${inputClasses} placeholder-gray-500`}
+                      placeholder="Enter owner email"
+                      required
                     />
                   </div>
 
@@ -322,7 +354,7 @@ export default function EditOrganizationForm() {
                       htmlFor="orgContactPhone"
                       className="block text-sm font-medium text-gray-900"
                     >
-                      Contact Phone*
+                      Organization Contact Phone*
                     </label>
                     <input
                       type="tel"
@@ -331,7 +363,7 @@ export default function EditOrganizationForm() {
                       onChange={e => setOrgContactPhone(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="+8801XXXXXXXXX"
-                      pattern="\+880\d{10}"
+                      required
                     />
                   </div>
 
@@ -340,7 +372,7 @@ export default function EditOrganizationForm() {
                       htmlFor="orgContactEmail"
                       className="block text-sm font-medium text-gray-900"
                     >
-                      Contact Email*
+                      Organization Contact Email*
                     </label>
                     <input
                       type="email"
@@ -349,23 +381,7 @@ export default function EditOrganizationForm() {
                       onChange={e => setOrgContactEmail(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="organization@example.com"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="adminNotes"
-                      className="block text-sm font-medium text-gray-900"
-                    >
-                      Admin Notes
-                    </label>
-                    <textarea
-                      id="adminNotes"
-                      value={adminNotes}
-                      onChange={e => setAdminNotes(e.target.value)}
-                      className={`${inputClasses} placeholder-gray-500`}
-                      placeholder="Add any administrative notes here..."
-                      rows={3}
+                      required
                     />
                   </div>
                 </div>
@@ -396,6 +412,7 @@ export default function EditOrganizationForm() {
                       onChange={e => setAddress(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter full address"
+                      required
                     />
                   </div>
 
@@ -413,6 +430,7 @@ export default function EditOrganizationForm() {
                       onChange={e => setPlaceId(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter place ID"
+                      required
                     />
                   </div>
 
@@ -430,6 +448,7 @@ export default function EditOrganizationForm() {
                       onChange={e => setCity(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter city"
+                      required
                     />
                   </div>
 
@@ -494,13 +513,14 @@ export default function EditOrganizationForm() {
                     <input
                       type="number"
                       id="longitude"
-                      value={longitude}
+                      value={longitude || ''}
                       onChange={e =>
                         setLongitude(parseFloat(e.target.value) || 0)
                       }
                       step="0.000001"
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="0.000000"
+                      required
                     />
                   </div>
 
@@ -514,13 +534,14 @@ export default function EditOrganizationForm() {
                     <input
                       type="number"
                       id="latitude"
-                      value={latitude}
+                      value={latitude || ''}
                       onChange={e =>
                         setLatitude(parseFloat(e.target.value) || 0)
                       }
                       step="0.000001"
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="0.000000"
+                      required
                     />
                   </div>
                 </div>
@@ -537,31 +558,54 @@ export default function EditOrganizationForm() {
               </div>
               <div className="p-6">
                 <div className="flex flex-wrap gap-2">
-                  {facilityOptions.length > 0 ? (
-                    facilityOptions.map(facility => (
-                      <button
-                        key={facility}
-                        type="button"
-                        onClick={() => handleFacilityToggle(facility)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                          facilities.includes(facility)
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                        }`}
-                      >
-                        {facility}{' '}
-                        {/* Display facility name exactly as received */}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-gray-500">Loading facilities...</p>
-                  )}
+                  {FACILITY_OPTIONS.map(facility => (
+                    <button
+                      key={facility}
+                      type="button"
+                      onClick={() => handleFacilityToggle(facility)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                        facilities.includes(facility)
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                      }`}
+                    >
+                      {formatFacilityName(facility)}
+                    </button>
+                  ))}
                 </div>
                 {facilities.length === 0 && (
                   <p className="mt-2 text-sm text-gray-500">
                     Please select at least one facility
                   </p>
                 )}
+              </div>
+            </div>
+
+            {/* Additional Notes */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                  <FileText className="w-5 h-5 mr-2" />
+                  Additional Notes
+                </h2>
+              </div>
+              <div className="p-6">
+                <div>
+                  <label
+                    htmlFor="requestNotes"
+                    className="block text-sm font-medium text-gray-900"
+                  >
+                    Request Notes (Optional)
+                  </label>
+                  <textarea
+                    id="requestNotes"
+                    value={requestNotes}
+                    onChange={e => setRequestNotes(e.target.value)}
+                    rows={4}
+                    className={`${inputClasses} placeholder-gray-500`}
+                    placeholder="Add any additional information about your organization request"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -574,46 +618,12 @@ export default function EditOrganizationForm() {
                   <Upload className="w-5 h-5 mr-2" />
                   Organization Images
                   <span className="ml-2 text-sm text-gray-500">
-                    ({totalImagesCount}/5 images)
+                    ({images.length}/5 images)
                   </span>
                 </h2>
               </div>
               <div className="p-6">
                 <div className="space-y-4">
-                  {/* Existing Images Preview */}
-                  {existingImages.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 mb-2">
-                        Existing Images
-                      </h3>
-                      <div className="grid grid-cols-2 gap-2">
-                        {existingImages.map((imageUrl, idx) => (
-                          <div
-                            key={`existing-${idx}`}
-                            className="relative group"
-                          >
-                            <div className="aspect-square w-full overflow-hidden rounded-md">
-                              <img
-                                src={imageUrl}
-                                alt={`Existing image ${idx + 1}`}
-                                className="object-cover w-full h-full"
-                              />
-                              <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button
-                                  type="button"
-                                  onClick={() => removeExistingImage(idx)}
-                                  className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {/* New Image Upload */}
                   <div>
                     <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -622,7 +632,7 @@ export default function EditOrganizationForm() {
                     <label
                       htmlFor="imageUpload"
                       className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${
-                        totalImagesCount >= 5
+                        images.length >= 5
                           ? 'opacity-50 cursor-not-allowed'
                           : ''
                       }`}
@@ -644,19 +654,19 @@ export default function EditOrganizationForm() {
                         multiple
                         className="hidden"
                         onChange={handleImageUpload}
-                        disabled={totalImagesCount >= 5}
+                        disabled={images.length >= 5}
                       />
                     </label>
                   </div>
 
-                  {/* New Images Preview */}
-                  {newImageFiles.length > 0 && (
+                  {/* Images Preview */}
+                  {images.length > 0 && (
                     <div>
                       <h3 className="text-sm font-medium text-gray-900 mb-2">
-                        New Images
+                        Images to Upload
                       </h3>
                       <div className="grid grid-cols-2 gap-2">
-                        {newImageFiles.map((file, idx) => (
+                        {images.map((file, idx) => (
                           <div key={`new-${idx}`} className="relative group">
                             <div className="aspect-square w-full overflow-hidden rounded-md">
                               <img
@@ -667,7 +677,7 @@ export default function EditOrganizationForm() {
                               <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <button
                                   type="button"
-                                  onClick={() => removeNewImage(idx)}
+                                  onClick={() => removeImage(idx)}
                                   className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600"
                                 >
                                   Remove
@@ -681,6 +691,22 @@ export default function EditOrganizationForm() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Submission Guidelines */}
+            <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+              <h3 className="text-sm font-medium text-blue-800 mb-2">
+                Submission Guidelines
+              </h3>
+              <ul className="text-sm text-blue-700 space-y-1 list-disc pl-5">
+                <li>
+                  All organization requests are reviewed by our admin team
+                </li>
+                <li>Approval process typically takes 2-3 business days</li>
+                <li>You will be notified via email about the status</li>
+                <li>Make sure all required fields are filled correctly</li>
+                <li>Upload clear images of your organization</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -725,10 +751,10 @@ export default function EditOrganizationForm() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Updating...
+                Submitting...
               </div>
             ) : (
-              'Update Organization'
+              'Submit Request'
             )}
           </button>
         </div>

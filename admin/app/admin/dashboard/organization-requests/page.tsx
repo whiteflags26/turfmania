@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 import { FilterPanel } from '@/component/admin/organization-requests/FilterPanel';
+import { RequestContent } from '@/component/admin/organization-requests/RequestContent';
 import {
   getOrganizationRequests,
   RequestFilters,
 } from '@/services/organizationService';
 import { OrganizationRequestsResponse } from '@/types/organization';
-import { RequestContent } from '@/component/admin/organization-requests/RequestContent';
 
 // Type alias to ensure compatibility between RequestFilters and Filters
 type FiltersType = RequestFilters;
@@ -36,7 +36,7 @@ export default function OrganizationRequestsPage() {
 
       const response = await getOrganizationRequests(filters);
 
-      if (!response || !response.data || !response.data.requests) {
+      if (!response?.success || !response?.data?.requests) {
         throw new Error('Invalid response format');
       }
 
@@ -118,10 +118,7 @@ export default function OrganizationRequestsPage() {
         </button>
       </header>
 
-      <FilterPanel
-        filters={filters}
-        setFilters={setFilters as any}
-      />
+      <FilterPanel filters={filters} setFilters={setFilters as any} />
 
       <RequestContent
         isLoading={isLoading}

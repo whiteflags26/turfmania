@@ -5,6 +5,7 @@ import {
   getMe,
   login,
   logout,
+  organizationLogin,
   register,
   resetPassword,
   verifyEmail,
@@ -29,6 +30,7 @@ router.post('/reset-password', resetPassword);
 router.get('/verify-email', verifyEmail);
 
 router.post('/admin/login',adminLogin)
+router.post('/organization/:organizationId/login',organizationLogin)
 
 router.post('/resend-verification', resendVerificationEmail);
 export default router;

@@ -166,7 +166,7 @@ export default function OrganizationRequestDetailPage() {
     } catch (err: any) {
       console.error('Failed to cancel processing:', err);
       setError(err.message ?? 'Failed to cancel processing');
-      toast.error(err.message || 'Failed to cancel processing');
+      toast.error(err.message ?? 'Failed to cancel processing');
     } finally {
       setIsCancelling(false);
     }
@@ -191,8 +191,8 @@ export default function OrganizationRequestDetailPage() {
       setRejectionNotes(''); // Reset notes after successful rejection
     } catch (err: any) {
       console.error('Failed to reject request:', err);
-      setError(err.message || 'Failed to reject request');
-      toast.error(err.message || 'Failed to reject request');
+      setError(err.message ?? 'Failed to reject request');
+      toast.error(err.message ?? 'Failed to reject request');
     } finally {
       setIsRejecting(false);
     }
@@ -258,6 +258,12 @@ export default function OrganizationRequestDetailPage() {
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  };
+
+  const getRequestStatusText = (status: string) => {
+    if (status === 'approved') return 'Approved';
+    if (status === 'approved_with_changes') return 'Approved with Changes';
+    return 'Rejected';
   };
 
   return (
@@ -435,9 +441,9 @@ export default function OrganizationRequestDetailPage() {
             </div>
             <div className="p-6">
               <div className="flex flex-wrap gap-2">
-                {request.facilities.map((facility, index) => (
+                {request.facilities.map(facility => (
                   <span
-                    key={index}
+                    key={facility} // Using facility name as the key since it's unique
                     className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
                   >
                     {formatFacilityName(facility)}
@@ -499,16 +505,14 @@ export default function OrganizationRequestDetailPage() {
                     </dt>
                     <dd className="mt-1">
                       <div className="flex flex-wrap gap-2">
-                        {request.organizationId.facilities.map(
-                          (facility, index) => (
-                            <span
-                              key={index}
-                              className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm font-medium"
-                            >
-                              {formatFacilityName(facility)}
-                            </span>
-                          ),
-                        )}
+                        {request.organizationId.facilities.map(facility => (
+                          <span
+                            key={facility} // Using facility name as the key since it's unique
+                            className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm font-medium"
+                          >
+                            {formatFacilityName(facility)}
+                          </span>
+                        ))}
                       </div>
                     </dd>
                   </div>
@@ -560,26 +564,32 @@ export default function OrganizationRequestDetailPage() {
                   {/* Thumbnails */}
                   {request.images.length > 1 && (
                     <div className="grid grid-cols-4 gap-2">
-                      {request.images.map((image, index) => (
-                        <div
-                          key={index}
-                          className={`relative aspect-square overflow-hidden rounded-md border-2 cursor-pointer ${
+                      {request.images.map(image => (
+                        <button
+                          key={image}
+                          type="button"
+                          className={`relative aspect-square w-full overflow-hidden rounded-md border-2 cursor-pointer ${
                             selectedImage === image
                               ? 'border-blue-500'
                               : 'border-gray-200'
                           }`}
                           onClick={() => setSelectedImage(image)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedImage(image);
+                            }
+                          }}
+                          aria-label={`Select ${request.organizationName} thumbnail image`}
                         >
                           <Image
                             src={image}
-                            alt={`${request.organizationName} thumbnail ${
-                              index + 1
-                            }`}
+                            alt={`${request.organizationName} thumbnail`}
                             fill
                             sizes="(max-width: 768px) 25vw, 8vw"
                             className="object-cover"
                           />
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -676,12 +686,7 @@ export default function OrganizationRequestDetailPage() {
                             <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
                               <div>
                                 <p className="text-sm text-gray-500">
-                                  Request{' '}
-                                  {request.status === 'approved'
-                                    ? 'Approved'
-                                    : request.status === 'approved_with_changes'
-                                    ? 'Approved with Changes'
-                                    : 'Rejected'}
+                                  Request {getRequestStatusText(request.status)}
                                 </p>
                               </div>
                               <div className="text-right text-sm whitespace-nowrap text-gray-500">

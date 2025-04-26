@@ -5,7 +5,7 @@ export const NAV_LINKS = [
   { href: "/", key: "home", label: "Home" },
   { href: "/about", key: "about", label: "About" },
   { href: "/venues", key: "Venues", label: "Venues" },
-  { href: "/events", key: "events", label: "Events" },
+  { href: "/organization-request", key: "organizationRequest", label: "Register Your Organization"},
 ];
 
 //Hero Section

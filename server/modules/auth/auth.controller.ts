@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { Types } from "mongoose";
 import validator from "validator";
 import asyncHandler from "../../shared/middleware/async";
 import ErrorResponse from "../../utils/errorResponse";
@@ -467,6 +468,71 @@ export const resendVerificationEmail = asyncHandler(
     res.status(200).json({
       success: true,
       message: "Verification email has been sent. Please check your inbox.",
+    });
+  }
+);
+
+export const organizationLogin = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    let { email, password } = req.body;
+    const organizationId = req.params.organizationId; // Get organization ID from request params
+    // Trim and sanitize inputs
+    // Input validation
+    if (!email || !password) {
+      return next(
+        new ErrorResponse("Please provide an email and password", 400)
+      );
+    }
+    email = validator.trim(email ?? "").toLowerCase();
+    password = validator.trim(password ?? "");
+
+    // Validate email format
+    if (!validator.isEmail(email)) {
+      return next(new ErrorResponse("Invalid email format", 400));
+    }
+
+    const user = await User.findOne({ email })
+      .collation({ locale: "en", strength: 2 })
+      .select("+password");
+
+    console.log(user, "user found");
+
+    // Check password
+    const isMatched = await authService.matchPassword(password, user);
+    console.log(isMatched, "isMatched");
+
+    if (!isMatched) {
+      return next(new ErrorResponse("Invalid credentials", 401));
+    }
+
+    if (!user) {
+      return next(new ErrorResponse("Invalid credentials", 401));
+    }
+    // Check for admin dashboard access permission
+    const hasAdminAccess = await authService.checkUserRoleInOrganization(
+      user._id,
+      organizationId
+    );
+    if (!hasAdminAccess) {
+      return next(
+        new ErrorResponse("Unauthorized access to admin dashboard", 403)
+      );
+    }
+    const token = authService.generateToken(user);
+    const userWithoutPassword = user.toObject();
+    delete userWithoutPassword.password;
+    res.cookie("org_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
+    // Send response
+    res.status(200).json({
+      success: true,
+      data: { user: userWithoutPassword },
     });
   }
 );
