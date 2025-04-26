@@ -119,7 +119,7 @@ export default function ReviewActionsDropdown({
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <ReviewForm
-            turfId={review.turf as string}
+            turfId={typeof review.turf === 'string' ? review.turf : review.turf._id}
             onSuccess={() => {
               setShowEditDialog(false);
               onReload();

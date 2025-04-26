@@ -201,11 +201,16 @@ export const adminLogin = asyncHandler(
     }
 
     // Check for admin dashboard access permission
-    const hasAdminAccess = await authService.checkAdminAccess(user._id);
-    if (!hasAdminAccess) {
-      return next(
-        new ErrorResponse("Unauthorized access to admin dashboard", 403)
-      );
+    try {
+      const hasAdminAccess = await authService.checkAdminAccess(user._id);
+      if (!hasAdminAccess) {
+        return next(
+          new ErrorResponse("Unauthorized access to admin dashboard", 403)
+        );
+      }
+    } catch (error) {
+      console.error("Admin access verification error:", error);
+      return next(new ErrorResponse("Admin access verification failed", 500));
     }
 
     // Generate token
@@ -260,6 +265,12 @@ export const logout = asyncHandler(
       //secure: process.env.NODE_ENV === 'production', // Uncomment for production
       sameSite: "lax",
     });
+    res.cookie("org_token", "", {
+      httpOnly: true,
+      expires: new Date(0), // set the cookie to expire immediately
+      //secure: process.env.NODE_ENV === 'production',
+      sameSite: "lax",
+    });
 
     res.status(200).json({
       success: true,
@@ -289,9 +300,33 @@ export const getMe = asyncHandler(
 
     // If it's an admin request, check admin access
     if (req.cookies.admin_token) {
-      const hasAdminAccess = await authService.checkAdminAccess(user._id);
-      if (!hasAdminAccess) {
-        return next(new ErrorResponse("Not authorized as admin", 403));
+      try {
+        const hasAdminAccess = await authService.checkAdminAccess(user._id);
+        if (!hasAdminAccess) {
+          return next(new ErrorResponse("Not authorized as admin", 403));
+        }
+      } catch (error) {
+        console.error("Admin access verification error:", error);
+        return next(new ErrorResponse("Admin access verification failed", 500));
+      }
+    }
+
+    // If it's an organization/turf owner request, check organization access
+    if (req.cookies.org_token && req.params.organizationId) {
+      try {
+        const hasOrgAccess = await authService.checkUserRoleInOrganization(
+          user._id,
+          req.params.organizationId
+        );
+        if (!hasOrgAccess) {
+          return next(
+            new ErrorResponse("Not authorized as organization owner", 403)
+          );
+        }
+      } catch (error) {
+        return next(
+          new ErrorResponse("Organization access verification failed", 403)
+        );
       }
     }
 

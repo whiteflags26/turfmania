@@ -28,7 +28,7 @@ export interface IOrganization extends Document {
 
 const OrganizationSchema: Schema = new Schema(
   {
-    name: { type: String, required: true },
+    name: { type: String, required: true, unique: true, trim: true },
     facilities: { type: [String], default: [] },
     images: { type: [String], default: [] },
     turfs: [{ type: Schema.Types.ObjectId, ref: "Turf" }],

@@ -275,4 +275,29 @@ export default class TurfReviewController {
       });
     }
   );
+
+  /**
+ * @route   GET /api/v1/turf-review/organization/:organizationId
+ * @desc    Get review summaries for all turfs belonging to an organization
+ * @access  Public
+ */
+  public getOrganizationTurfReviewSummary = asyncHandler(
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const { organizationId } = req.params;
+
+      if (!organizationId) {
+        throw new ErrorResponse("Organization ID is required", 400);
+      }
+
+      const result = await this.turfReviewService.getOrganizationTurfReviewSummary(organizationId);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          turfs: result.turfs,
+          summary: result.summary
+        }
+      });
+    }
+  );
 }

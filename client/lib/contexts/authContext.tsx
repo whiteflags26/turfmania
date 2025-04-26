@@ -11,14 +11,6 @@ import { useRouter } from "next/navigation";
 import {ApiError} from "@/types/api-error";
 import {IUser} from "@/types/user"
 
-// interface User {
-//   id: string;
-//   email: string;
-//   first_name: string;
-//   last_name: string;
-//   role: string;
-// }
-
 interface AuthContextType {
   user: IUser | null;
   login: (email: string, password: string) => Promise<void>;

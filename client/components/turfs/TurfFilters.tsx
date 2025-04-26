@@ -14,23 +14,8 @@ import { ITurfFilters } from "@/types/turfFilter";
 import { SetPagination } from "@/types/pagination";
 import { reverseGeocode } from "@/lib/server-apis/barikoi/reverseGeocode-api";
 import { IBarikoiSuggestion } from "@/types/barikoi";
-import axios from "axios";
-
-// Define interfaces for API responses
-interface TeamSize {
-  _id: string;
-  name: string;
-}
-
-interface Sport {
-  _id: string;
-  name: string;
-}
-
-interface Facility {
-  _id: string;
-  name: string;
-}
+import { TeamSize, Sport, Facility } from "@/types/turfFilterData";
+import { fetchAllFilterData } from "@/lib/server-apis/turf/fetchTurfsWithFilter-api";
 
 interface Props {
   turfs: ITurf[];
@@ -68,27 +53,14 @@ export default function TurfFilters({
   const [suggestions, setSuggestions] = useState<IBarikoiSuggestion[]>([]);
   const [locationLoading, setLocationLoading] = useState(false);
 
-  // Fetch team sizes, sports, and facilities from API
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL + "/api/v1";
-
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const teamSizesResponse = await axios.get(`${API_BASE_URL}/team-sizes/`);
-        if (teamSizesResponse.data.success) {
-          setTeamSizes(teamSizesResponse.data.data);
-        }
-
-        const sportsResponse = await axios.get(`${API_BASE_URL}/sports/`);
-        if (sportsResponse.data.success) {
-          setSports(sportsResponse.data.data);
-        }
-
-        const facilitiesResponse = await axios.get(`${API_BASE_URL}/facilities/`);
-        if (facilitiesResponse.data.success) {
-          setFacilities(facilitiesResponse.data.data);
-        }
+        const data = await fetchAllFilterData();
+        setTeamSizes(data.teamSizes);
+        setSports(data.sports);
+        setFacilities(data.facilities);
       } catch (error) {
         console.error("Error fetching filter data:", error);
       } finally {
@@ -98,7 +70,6 @@ export default function TurfFilters({
 
     fetchData();
   }, []);
-
 
   const handleSportFilter = (sport: string) => {
     setActiveTab(sport.toLowerCase());
@@ -132,7 +103,7 @@ export default function TurfFilters({
           }
         },
         (error) => {
-          console.error('Geolocation error:', error);
+          console.error("Geolocation error:", error);
           alert("Please enable location access to use this feature");
         }
       );
@@ -189,7 +160,9 @@ export default function TurfFilters({
   const sortedSports = [...sports].sort((a, b) => a.name.localeCompare(b.name));
 
   // Sort team sizes numerically
-  const sortedTeamSizes = [...teamSizes].sort((a, b) => parseInt(a.name) - parseInt(b.name));
+  const sortedTeamSizes = [...teamSizes].sort(
+    (a, b) => parseInt(a.name) - parseInt(b.name)
+  );
 
   return (
     <div className="mb-8">
@@ -205,7 +178,8 @@ export default function TurfFilters({
                 value={sport.name.toLowerCase()}
                 onClick={() => handleSportFilter(sport.name)}
               >
-                {sport.name.charAt(0).toUpperCase() + sport.name.slice(1).toLowerCase()}
+                {sport.name.charAt(0).toUpperCase() +
+                  sport.name.slice(1).toLowerCase()}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -296,7 +270,9 @@ export default function TurfFilters({
                     {/* Price Range */}
                     <div className="space-y-4">
                       <h3 className="font-medium flex items-center gap-2">
-                        <span className="bg-green-100 p-1.5 rounded-full">৳</span>{" "}
+                        <span className="bg-green-100 p-1.5 rounded-full">
+                          ৳
+                        </span>{" "}
                         Price Range
                       </h3>
                       <div className="px-2">
@@ -339,8 +315,12 @@ export default function TurfFilters({
                             }
                             size="sm"
                             onClick={() => {
-                              const newTeamSize = filters.teamSize.includes(size.name)
-                                ? filters.teamSize.filter((s: string) => s !== size.name)
+                              const newTeamSize = filters.teamSize.includes(
+                                size.name
+                              )
+                                ? filters.teamSize.filter(
+                                    (s: string) => s !== size.name
+                                  )
                                 : [...filters.teamSize, size.name];
 
                               setFilters({
@@ -381,9 +361,12 @@ export default function TurfFilters({
                             size="sm"
                             className="whitespace-normal break-words text-xs px-3 py-2 text-center h-auto min-w-[6rem] max-w-[10rem]"
                             onClick={() => {
-                              const updatedFacilities = filters.facilities.includes(facility.name)
-                                ? filters.facilities.filter((f) => f !== facility.name)
-                                : [...filters.facilities, facility.name];
+                              const updatedFacilities =
+                                filters.facilities.includes(facility.name)
+                                  ? filters.facilities.filter(
+                                      (f) => f !== facility.name
+                                    )
+                                  : [...filters.facilities, facility.name];
 
                               setFilters({
                                 ...filters,

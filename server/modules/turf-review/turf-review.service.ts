@@ -382,4 +382,71 @@ export default class TurfReviewService {
 
     return review !== null;
   }
+
+  // Get all reviews summary for a specific organization
+  async getOrganizationTurfReviewSummary(organizationId: string) {
+
+    const organizationExists = await mongoose.model('Organization').exists({ _id: organizationId });
+    if (!organizationExists) {
+      throw new Error("Organization not found");
+    }
+
+    // Use aggregation to efficiently get all data in a single query
+    const turfs = await Turf.aggregate([
+      // Stage 1: Match all turfs belonging to this organization
+      { $match: { organization: new mongoose.Types.ObjectId(organizationId) } },
+
+      // Stage 2: Lookup reviews for each turf
+      {
+        $lookup: {
+          from: "turfreviews", // Collection name (lowercase and plural)
+          localField: "_id",
+          foreignField: "turf",
+          as: "turfReviews"
+        }
+      },
+
+      // Stage 3: Calculate review stats for each turf
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          sports: 1,
+          team_size: 1,
+          averageRating: {
+            $cond: {
+              if: { $gt: [{ $size: "$turfReviews" }, 0] },
+              then: { $avg: "$turfReviews.rating" },
+              else: 0
+            }
+          },
+          reviewCount: { $size: "$turfReviews" }
+        }
+      }
+    ]);
+
+    // Calculate organization-level summary
+    let totalReviews = 0;
+    let ratingSum = 0;
+
+    turfs.forEach(turf => {
+      totalReviews += turf.reviewCount;
+      // Only add to ratingSum if the turf has reviews
+      // This avoids 0 values skewing the organization average
+      if (turf.reviewCount > 0) {
+        ratingSum += (turf.averageRating * turf.reviewCount);
+      }
+    });
+
+    const organizationAverageRating = totalReviews > 0 ? ratingSum / totalReviews : 0;
+
+    return {
+      turfs,
+      summary: {
+        totalTurfs: turfs.length,
+        totalReviews,
+        organizationAverageRating
+      }
+    };
+  }
 }
