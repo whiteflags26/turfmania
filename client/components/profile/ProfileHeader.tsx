@@ -2,13 +2,31 @@ import { IUser } from "@/types/user";
 import Image from "next/image";
 import { FaPhone, FaEnvelope } from "react-icons/fa";
 import { DEFAULT_AVATAR_IMAGE } from "@/constants";
-
+import { resendVerificationEmail } from "@/lib/server-apis/profile/resendVerificationEmail";
+import { useState } from "react";
+import { toast } from "react-hot-toast";
+import { ApiError } from "@/types/api-error";
 interface ProfileHeaderProps {
   user: IUser | null;
 }
 
 export default function ProfileHeader({ user }: ProfileHeaderProps) {
+  const [isResending, setIsResending] = useState(false);
+
   if (!user) return null;
+
+  const handleResendVerification = async () => {
+    try {
+      setIsResending(true);
+      const response = await resendVerificationEmail(user.email);
+      toast.success(response.message);
+    } catch (err) {
+      const error = err as ApiError;
+      toast.error(error.message || "Failed to resend verification email");
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-8">
@@ -41,17 +59,20 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
           </div>
 
           <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-            {user.user_roles.map((role, index) => (
-              <span
-                key={index}
-                className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium"
-              >
-                {role}
+            <div className="flex items-center gap-2">
+              <span className="px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-medium">
+                {user.isVerified ? "Verified User" : "Pending Verification"}
               </span>
-            ))}
-            <span className="px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-medium">
-              {user.isVerified ? "Verified User" : "Pending Verification"}
-            </span>
+              {!user.isVerified && (
+                <button
+                  onClick={handleResendVerification}
+                  disabled={isResending}
+                  className="px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isResending ? "Sending..." : "Resend Verification"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
