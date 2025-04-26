@@ -13,10 +13,10 @@ export default class TurfController {
   }
 
   /**
-   * @route POST /api/v1/turfs
-   * @desc Create a new turf with details, images, and operating hours
-   * @access Private/Admin
-   */
+ * @route POST /api/v1/turfs
+ * @desc Create a new turf with details, images, and operating hours
+ * @access Private/Admin
+ */
   createTurf = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const {
@@ -29,25 +29,57 @@ export default class TurfController {
       } = req.body;
       const images = req.files as Express.Multer.File[];
 
-      // Parse numeric fields
-      let parsedBasePrice: ITurf["basePrice"];
-      parsedBasePrice = parseFloat(basePrice);
-      if (isNaN(parsedBasePrice)) {
-        return next(new ErrorResponse("basePrice must be a valid number", 400));
-      }
-
-      // Parse sports (if sent as a JSON string)
-      let parsedSports: ITurf["sports"];
       try {
-        const rawSports =
-          typeof sports === "string" ? JSON.parse(sports) : sports;
-        parsedSports = rawSports.map(
-          (sport: string) =>
-            sport.charAt(0).toUpperCase() + sport.slice(1).toLowerCase()
-        );
+        // Validate required fields
+        if (!name || !organization) {
+          return next(new ErrorResponse('Name and organization are required', 400));
+        }
+
+        // Parse numeric fields
+        const basePriceResult = this.parseBasePrice(basePrice);
+        if (basePriceResult.error) {
+          return next(basePriceResult.error);
+        }
+
+        // Parse sports
+        const sportsResult = this.parseSports(sports);
+        if (sportsResult.error) {
+          return next(sportsResult.error);
+        }
+
+        // Parse operating hours
+        const operatingHoursResult = this.parseOperatingHours(operatingHours);
+        if (operatingHoursResult.error) {
+          return next(operatingHoursResult.error);
+        }
+
+        // Parse team size
+        const teamSizeResult = this.parseTeamSize(team_size);
+        if (teamSizeResult.error) {
+          return next(teamSizeResult.error);
+        }
+
+        // Combine all parsed data
+        const turfData: Partial<ITurf> = {
+          name,
+          organization: new mongoose.Types.ObjectId(organization),
+          ...basePriceResult.data,
+          ...sportsResult.data,
+          ...operatingHoursResult.data,
+          ...teamSizeResult.data,
+        };
+
+        // Create the turf using the service
+        const turf = await this.turfService.createTurf(turfData, images);
+
+        res.status(201).json({
+          success: true,
+          data: turf,
+          message: 'Turf created successfully',
+        });
       } catch (error) {
         console.error('Error creating turf:', error);
-        return next(
+        next(
           new ErrorResponse(
             `Failed to create turf: ${(error as Error).message}`,
             400,
