@@ -252,28 +252,68 @@ export default function ReviewSection({
           <CardContent className="pt-6">
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={distributionData}>
+                <defs>
+                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#22c55e" />
+                    <stop offset="100%" stopColor="#16a34a" />
+                  </linearGradient>
+                </defs>
                 <XAxis
                   dataKey="star"
-                  tick={{ fontSize: 12, fill: "#64748b" }}
+                  tick={{ fontSize: 14, fill: "#64748b" }}
                   tickLine={false}
+                  axisLine={{ stroke: "#e2e8f0" }}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 12, fill: "#64748b" }}
+                  tick={{ fontSize: 14, fill: "#64748b" }}
                   tickLine={false}
+                  axisLine={{ stroke: "#e2e8f0" }}
                 />
                 <Tooltip
+                  cursor={{ fill: "rgba(0, 0, 0, 0.04)" }}
                   contentStyle={{
                     background: "white",
                     border: "1px solid #e2e8f0",
-                    borderRadius: "6px",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                    padding: "8px 12px",
                   }}
+                  content={({ payload, label }) => (
+                    <div className="text-sm">
+                      <p className="font-medium text-slate-700">
+                        {label} Stars
+                      </p>
+                      <p className="text-slate-600">
+                        {payload?.[0]?.value || 0} Reviews
+                      </p>
+                    </div>
+                  )}
                 />
                 <Bar
                   dataKey="count"
-                  fill="#16a34a"
-                  radius={[4, 4, 0, 0]}
-                  barSize={24}
+                  fill="url(#barGradient)"
+                  radius={[6, 6, 0, 0]}
+                  barSize={32}
+                  animationDuration={1000}
+                  animationBegin={200}
+                  onMouseEnter={(data, index) => {
+                    const chart = document.querySelector(
+                      `#bar-${index}`
+                    ) as HTMLElement;
+                    if (chart) {
+                      chart.style.filter = "brightness(1.1)";
+                      chart.style.cursor = "pointer";
+                    }
+                  }}
+                  onMouseLeave={(data, index) => {
+                    const chart = document.querySelector(
+                      `#bar-${index}`
+                    ) as HTMLElement;
+                    if (chart) {
+                      chart.style.filter = "none";
+                    }
+                  }}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -391,7 +431,14 @@ export default function ReviewSection({
                           {review.user?.first_name} {review.user?.last_name}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {new Date(review.createdAt).toLocaleDateString()}
+                          {new Date(review.createdAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            }
+                          )}
                         </p>
                       </div>
                       <div className="flex items-center gap-4">
