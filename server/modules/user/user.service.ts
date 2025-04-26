@@ -124,11 +124,20 @@ class UserService {
         );
       }
 
-      const user = await User.findByIdAndUpdate(
-        userId,
-        { $set: updateData },
-        { new: true, runValidators: true }
-      ).select("-password -verificationToken -verificationTokenExpires");
+      // Handle empty phone number by removing it
+      const updateQuery: mongoose.UpdateQuery<UserDocument> = {
+        $set: { ...updateData },
+      };
+
+      if (updateData.phone_number === "") {
+        delete updateQuery.$set.phone_number;
+        updateQuery.$unset = { phone_number: 1 };
+      }
+
+      const user = await User.findByIdAndUpdate(userId, updateQuery, {
+        new: true,
+        runValidators: true,
+      }).select("-password -verificationToken -verificationTokenExpires");
 
       if (!user) {
         throw new ErrorResponse("User not found", 404);
@@ -156,15 +165,15 @@ class UserService {
     newPassword: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const user = await User.findById(userId).select('+password');
+      const user = await User.findById(userId).select("+password");
       if (!user) {
-        throw new ErrorResponse('User not found', 404);
+        throw new ErrorResponse("User not found", 404);
       }
 
       // Verify current password
       const isMatch = await bcrypt.compare(currentPassword, user.password);
       if (!isMatch) {
-        throw new ErrorResponse('Current password is incorrect', 401);
+        throw new ErrorResponse("Current password is incorrect", 401);
       }
 
       // Update password
@@ -174,15 +183,15 @@ class UserService {
       // Send confirmation email
       await sendEmail(
         user.email,
-        'Password Change Successful',
-        'Your password has been successfully changed. If you did not perform this action, please contact support immediately.'
+        "Password Change Successful",
+        "Your password has been successfully changed. If you did not perform this action, please contact support immediately."
       );
 
-      return { success: true, message: 'Password changed successfully' };
+      return { success: true, message: "Password changed successfully" };
     } catch (error: any) {
-      console.error('Error changing password:', error);
+      console.error("Error changing password:", error);
       throw new ErrorResponse(
-        error.message ?? 'Failed to change password',
+        error.message ?? "Failed to change password",
         error.statusCode ?? 500
       );
     }
