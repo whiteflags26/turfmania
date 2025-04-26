@@ -189,15 +189,21 @@ export default class TurfController {
   );
 
   /**
-   * @route PUT /api/v1/turfs/:id
-   * @desc Update a turf's details and images by ID
-   * @access Private/Admin
-   */
-
+ * @route PUT /api/v1/turfs/:id
+ * @desc Update a turf's details and images by ID
+ * @access Private/Admin
+ */
   updateTurfById = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const { id } = req.params;
-      const { basePrice, operatingHours, sports, ...rest } = req.body;
+      // Remove organization from request body to prevent updates
+      const { basePrice, operatingHours, sports, organization, ...rest } = req.body;
+
+      // Notify if someone tried to update organization
+      if (organization) {
+        return next(new ErrorResponse('Organization cannot be changed for an existing turf', 400));
+      }
+
       const newImages = req.files as Express.Multer.File[];
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -407,6 +413,29 @@ export default class TurfController {
       res.status(200).json({
         success: true,
         data: status,
+      });
+    }
+  );
+
+  /**
+ * @route GET /api/v1/turfs/organization/:organizationId
+ * @desc Retrieve all turfs belonging to a specific organization
+ * @access Public
+ */
+  getTurfsByOrganizationId = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { organizationId } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(organizationId)) {
+        return next(new ErrorResponse('Invalid Organization ID format', 400));
+      }
+
+      const turfs = await this.turfService.getTurfsByOrganizationId(organizationId);
+
+      res.status(200).json({
+        success: true,
+        count: turfs.length,
+        data: turfs,
       });
     }
   );
