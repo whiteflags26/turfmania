@@ -36,7 +36,7 @@ export default function SignInPage() {
 
       toast.success("Welcome back!");
       reset(); // Clear form
-      router.push("/");
+      router.push("/organization-list");
     } catch (err) {
       const error = err as ApiError;
       toast.error(error.message ?? "Failed to sign in");
