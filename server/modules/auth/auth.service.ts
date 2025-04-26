@@ -91,14 +91,18 @@ class AuthService {
 
   /** @desc Check if user has organization dashboard access **/
   public async checkUserRoleInOrganization(
-    userId: Types.ObjectId,
-    organizationId: Types.ObjectId,
+    userId: string,
+    organizationId: string,
   ) {
+
+    console.log('userId', userId);
+    console.log('organizationId', organizationId);
     const roleAssignment = await UserRoleAssignment.findOne({
       userId,
       scope: 'organization',
       scopeId: organizationId,
     });
+console.log('roleAssignment', roleAssignment);
 
     if (!roleAssignment) {
       throw new ErrorResponse(

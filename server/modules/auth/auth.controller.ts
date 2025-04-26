@@ -434,41 +434,45 @@ export const organizationLogin = asyncHandler(
     let { email, password } = req.body;
     const organizationId = req.params.organizationId; // Get organization ID from request params
     // Trim and sanitize inputs
-    email = validator.trim(email ?? '').toLowerCase();
-    password = validator.trim(password ?? '');
-
     // Input validation
     if (!email || !password) {
       return next(
         new ErrorResponse('Please provide an email and password', 400),
       );
     }
+    email = validator.trim(email ?? '').toLowerCase();
+    password = validator.trim(password ?? '');
+
+    
 
     // Validate email format
     if (!validator.isEmail(email)) {
       return next(new ErrorResponse('Invalid email format', 400));
     }
 
-    // Find user with case-insensitive email match
     const user = await User.findOne({ email })
-      .collation({ locale: 'en', strength: 2 })
-      .select('+password');
+    .collation({ locale: 'en', strength: 2 })
+    .select('+password');
 
-    if (!user) {
-      return next(new ErrorResponse('Invalid credentials', 401));
-    }
+    console.log(user, 'user found');
 
     // Check password
     const isMatched = await authService.matchPassword(password, user);
+    console.log(isMatched, 'isMatched');
+
 
     if (!isMatched) {
       return next(new ErrorResponse('Invalid credentials', 401));
     }
+ 
 
+  if (!user) {
+    return next(new ErrorResponse('Invalid credentials', 401));
+  }
     // Check for admin dashboard access permission
     const hasAdminAccess = await authService.checkUserRoleInOrganization(
       user._id,
-      new Types.ObjectId(organizationId),
+      organizationId
     );
     if (!hasAdminAccess) {
       return next(
