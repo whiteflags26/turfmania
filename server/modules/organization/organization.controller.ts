@@ -5,12 +5,15 @@ import ErrorResponse from "../../utils/errorResponse";
 import { AuthRequest } from "../auth/auth.middleware";
 import { IOrganization } from "./organization.model";
 import { organizationService } from "./organization.service";
+import validator from "validator";
 
 interface CreateOrganizationBody {
   name: string;
   facilities: string[];
   requestId?: string;
   wasEdited?: boolean;
+  orgContactPhone: string;
+  orgContactEmail: string;
   location: {
     place_id: string;
     address: string;
@@ -33,6 +36,8 @@ interface UpdateOrganizationBody
   extends Omit<Partial<CreateOrganizationBody>, "facilities"> {
   facilities?: string | string[];
   imagesToKeep?: string[];
+  orgContactPhone?: string;
+  orgContactEmail?: string;
 }
 
 // Interface for Create Role Body
@@ -57,7 +62,7 @@ export const createOrganization = asyncHandler(
     res: Response,
     next: NextFunction
   ) => {
-    const { name, facilities, requestId, adminNotes } = req.body;
+    const { name, facilities, requestId, adminNotes, orgContactEmail, orgContactPhone } = req.body;
 
     // Validate user authentication first
     if (!req.user) {
@@ -67,6 +72,12 @@ export const createOrganization = asyncHandler(
     // Input validation
     if (!name) {
       return next(new ErrorResponse("Name is required", 400));
+    }
+    if(!orgContactEmail){
+      return next(new ErrorResponse("Contact email is required", 400));
+    }
+    if(!orgContactPhone){
+      return next(new ErrorResponse("Contact phone is required", 400));
     }
 
     // Sanitize organization name
@@ -160,17 +171,32 @@ export const createOrganization = asyncHandler(
       );
     }
 
-    const images = req.files as Express.Multer.File[];
+    if (!req.body.orgContactPhone) {
+      return next(new ErrorResponse("Contact phone is required", 400));
+    }
+    
+    if (!req.body.orgContactEmail) {
+      return next(new ErrorResponse("Contact email is required", 400));
+    }
+    
+    // Validate email format
+    if (!validator.isEmail(req.body.orgContactEmail)) {
+      return next(new ErrorResponse("Invalid contact email format", 400));
+    }
 
+    const images = req.files as Express.Multer.File[];
+    
     // Create organization
     const organization = await organizationService.createOrganization(
-      sanitizedName, // Use sanitized name
-      parsedFacilities, // Already sanitized
+      sanitizedName,
+      parsedFacilities,
       location,
+      orgContactPhone,
+      orgContactEmail,
       images,
       requestId ? requestId : undefined,
       req.user.id,
-      adminNotes ? adminNotes : undefined,
+      adminNotes ? adminNotes : undefined
     );
 
     res.status(201).json({

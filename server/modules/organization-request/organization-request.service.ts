@@ -31,6 +31,8 @@ interface CreateRequestDto {
   contactPhone: string;
   ownerEmail: string;
   requestNotes?: string;
+  orgContactPhone: string;
+  orgContactEmail: string; 
 }
 
 interface ProcessingResult {
@@ -230,7 +232,9 @@ export default class OrganizationRequestService {
     requestId: string,
     orgName: string,
     facilities: string[],
-    location: any
+    location: any,
+    orgContactPhone: string,
+    orgContactEmail: string
   ): Promise<boolean> {
     try {
       // Get the original request
@@ -255,13 +259,13 @@ export default class OrganizationRequestService {
         request.location.coordinates.coordinates[0] !== location.coordinates.coordinates[0] ||
         request.location.coordinates.coordinates[1] !== location.coordinates.coordinates[1];
 
-      return nameChanged || facilitiesChanged || locationChanged;
+      const phoneChanged = request.orgContactPhone !== orgContactPhone;
+      const emailChanged = request.orgContactEmail !== orgContactEmail;
+
+      return nameChanged || facilitiesChanged || locationChanged || phoneChanged || emailChanged;
     } catch (error) {
       console.error('Error checking if request was edited:', error);
-      throw new ErrorResponse(
-        'Failed to compare request data',
-        500
-      );
+      throw new ErrorResponse('Failed to compare request data', 500);
     }
   }
 

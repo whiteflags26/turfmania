@@ -40,6 +40,8 @@ class OrganizationService {
     name: string,
     facilities: string[],
     location: IOrganization["location"],
+    orgContactPhone: string,
+    orgContactEmail: string,
     images?: Express.Multer.File[],
     requestId?: string,
     adminId?: string,
@@ -67,11 +69,14 @@ class OrganizationService {
           let wasEdited = false;
 
           // Execute all operations within a transaction
+          
           await session.withTransaction(async () => {
             // Create organization with basic information
             organization = new Organization({
               name,
               facilities,
+              orgContactPhone,
+              orgContactEmail,
               images: imageUrls,
               location,
             });
@@ -112,7 +117,9 @@ class OrganizationService {
               requestId,
               name,
               facilities,
-              location
+              location,
+              orgContactPhone,
+              orgContactEmail
             );
 
             // Approve the request with the newly created organization ID
@@ -145,6 +152,8 @@ class OrganizationService {
           facilities,
           images: imageUrls,
           location,
+          orgContactPhone,
+          orgContactEmail,
         });
 
         await organization.save();
