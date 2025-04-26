@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/lib/contexts/authContext';
-import { createOrganizationRequest } from '@/lib/server-apis/organization-request/organizationRequestService';
+import { useAuth } from "@/lib/contexts/authContext";
+import { createOrganizationRequest } from "@/lib/server-apis/organization-request/organizationRequestService";
 import {
   ArrowLeft,
   Building,
@@ -12,24 +12,25 @@ import {
   Phone,
   Upload,
   X,
-} from 'lucide-react';
-import { ApiError } from 'next/dist/server/api-utils';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
+} from "lucide-react";
+import { ApiError } from "next/dist/server/api-utils";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 
 // Mock facility options
 const FACILITY_OPTIONS = [
-  'football',
-  'cricket',
-  'basketball',
-  'tennis',
-  'badminton',
-  'volleyball',
-  'swimming_pool',
-  'gym',
-  'table_tennis',
-  'indoor_sports',
+  "football",
+  "cricket",
+  "basketball",
+  "tennis",
+  "badminton",
+  "volleyball",
+  "swimming_pool",
+  "gym",
+  "table_tennis",
+  "indoor_sports",
 ];
 
 // Create a type for create organization request
@@ -39,22 +40,22 @@ export default function CreateOrganizationRequestForm() {
   const router = useRouter();
 
   // Form state
-  const [organizationName, setOrganizationName] = useState('');
+  const [organizationName, setOrganizationName] = useState("");
   const [facilities, setFacilities] = useState<string[]>([]);
-  const [address, setAddress] = useState('');
-  const [placeId, setPlaceId] = useState('');
-  const [city, setCity] = useState('');
-  const [area, setArea] = useState('');
-  const [subArea, setSubArea] = useState('');
-  const [postCode, setPostCode] = useState('');
+  const [address, setAddress] = useState("");
+  const [placeId, setPlaceId] = useState("");
+  const [city, setCity] = useState("");
+  const [area, setArea] = useState("");
+  const [subArea, setSubArea] = useState("");
+  const [postCode, setPostCode] = useState("");
   const [longitude, setLongitude] = useState(0);
   const [latitude, setLatitude] = useState(0);
-  const [contactPhone, setContactPhone] = useState('');
-  const [ownerEmail, setOwnerEmail] = useState('');
-  const [requestNotes, setRequestNotes] = useState('');
+  const [contactPhone, setContactPhone] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [requestNotes, setRequestNotes] = useState("");
   const [images, setImages] = useState<File[]>([]);
-  const [orgContactPhone, setOrgContactPhone] = useState('');
-  const [orgContactEmail, setOrgContactEmail] = useState('');
+  const [orgContactPhone, setOrgContactPhone] = useState("");
+  const [orgContactEmail, setOrgContactEmail] = useState("");
 
   // Form submission state
   const [loading, setLoading] = useState(false);
@@ -71,41 +72,41 @@ export default function CreateOrganizationRequestForm() {
   // Redirect if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
-      toast.error('Please sign in to submit an organization request');
-      router.push('/sign-in');
+      toast.error("Please sign in to submit an organization request");
+      router.push("/sign-in");
     }
   }, [authLoading, user, router]);
 
   // Handler functions
   const handleFacilityToggle = (facility: string) => {
-    setFacilities(prev =>
+    setFacilities((prev) =>
       prev.includes(facility)
-        ? prev.filter(f => f !== facility)
-        : [...prev, facility],
+        ? prev.filter((f) => f !== facility)
+        : [...prev, facility]
     );
   };
 
   const formatFacilityName = (facility: string) => {
     return facility
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const remainingSlots = 5 - images.length;
       if (remainingSlots <= 0) {
-        toast.error('Maximum 5 images allowed');
+        toast.error("Maximum 5 images allowed");
         return;
       }
 
       const files = Array.from(e.target.files).slice(0, remainingSlots);
 
       // Validate each file
-      const validFiles = files.filter(file => {
-        const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(
-          file.type,
+      const validFiles = files.filter((file) => {
+        const isValidType = ["image/jpeg", "image/png", "image/webp"].includes(
+          file.type
         );
         const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
         return isValidType && isValidSize;
@@ -113,16 +114,16 @@ export default function CreateOrganizationRequestForm() {
 
       if (validFiles.length !== files.length) {
         toast.error(
-          'Some files were skipped. Please ensure all files are images under 5MB.',
+          "Some files were skipped. Please ensure all files are images under 5MB."
         );
       }
 
-      setImages(prev => [...prev, ...validFiles]);
+      setImages((prev) => [...prev, ...validFiles]);
     }
   };
 
   const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,7 +140,7 @@ export default function CreateOrganizationRequestForm() {
             place_id: placeId,
             address,
             coordinates: {
-              type: 'Point',
+              type: "Point",
               coordinates: [longitude, latitude],
             },
             area: area || undefined,
@@ -153,18 +154,18 @@ export default function CreateOrganizationRequestForm() {
           orgContactPhone, // Add this
           orgContactEmail, // Add this
         },
-        images.length > 0 ? images : undefined,
+        images.length > 0 ? images : undefined
       );
 
       if (!response.ok) {
         throw new Error(
-          response.data.message ?? 'Failed to submit organization request',
+          response.data.message ?? "Failed to submit organization request"
         );
       }
 
-      console.log('data received:', response.data);
+      console.log("data received:", response.data);
       setSuccess(true);
-      toast.success('Organization request submitted successfully!');
+      toast.success("Organization request submitted successfully!");
 
       // Clear form after successful submission
       setTimeout(() => {
@@ -172,12 +173,11 @@ export default function CreateOrganizationRequestForm() {
         // or navigate to a different page
       }, 2000);
     } catch (error) {
-      console.error('Error submitting organization request:', error);
+      console.error("Error submitting organization request:", error);
       setError(
-        (error as ApiError).message ??
-          'Something went wrong. Please try again.',
+        (error as ApiError).message ?? "Something went wrong. Please try again."
       );
-      toast.error((error as ApiError).message ?? 'Failed to submit request');
+      toast.error((error as ApiError).message ?? "Failed to submit request");
     } finally {
       setLoading(false);
     }
@@ -234,7 +234,7 @@ export default function CreateOrganizationRequestForm() {
 
   // Input field styling
   const inputClasses =
-    'mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-gray-900';
+    "mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-gray-900";
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -294,7 +294,7 @@ export default function CreateOrganizationRequestForm() {
                       type="text"
                       id="organizationName"
                       value={organizationName}
-                      onChange={e => setOrganizationName(e.target.value)}
+                      onChange={(e) => setOrganizationName(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter organization name"
                       required
@@ -325,7 +325,7 @@ export default function CreateOrganizationRequestForm() {
                       type="tel"
                       id="contactPhone"
                       value={contactPhone}
-                      onChange={e => setContactPhone(e.target.value)}
+                      onChange={(e) => setContactPhone(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter contact phone number"
                       required
@@ -342,7 +342,7 @@ export default function CreateOrganizationRequestForm() {
                       type="email"
                       id="ownerEmail"
                       value={ownerEmail}
-                      onChange={e => setOwnerEmail(e.target.value)}
+                      onChange={(e) => setOwnerEmail(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter owner email"
                       required
@@ -360,7 +360,7 @@ export default function CreateOrganizationRequestForm() {
                       type="tel"
                       id="orgContactPhone"
                       value={orgContactPhone}
-                      onChange={e => setOrgContactPhone(e.target.value)}
+                      onChange={(e) => setOrgContactPhone(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="+8801XXXXXXXXX"
                       required
@@ -378,7 +378,7 @@ export default function CreateOrganizationRequestForm() {
                       type="email"
                       id="orgContactEmail"
                       value={orgContactEmail}
-                      onChange={e => setOrgContactEmail(e.target.value)}
+                      onChange={(e) => setOrgContactEmail(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="organization@example.com"
                       required
@@ -409,7 +409,7 @@ export default function CreateOrganizationRequestForm() {
                       type="text"
                       id="address"
                       value={address}
-                      onChange={e => setAddress(e.target.value)}
+                      onChange={(e) => setAddress(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter full address"
                       required
@@ -427,7 +427,7 @@ export default function CreateOrganizationRequestForm() {
                       type="text"
                       id="place_id"
                       value={placeId}
-                      onChange={e => setPlaceId(e.target.value)}
+                      onChange={(e) => setPlaceId(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter place ID"
                       required
@@ -445,7 +445,7 @@ export default function CreateOrganizationRequestForm() {
                       type="text"
                       id="city"
                       value={city}
-                      onChange={e => setCity(e.target.value)}
+                      onChange={(e) => setCity(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter city"
                       required
@@ -463,7 +463,7 @@ export default function CreateOrganizationRequestForm() {
                       type="text"
                       id="area"
                       value={area}
-                      onChange={e => setArea(e.target.value)}
+                      onChange={(e) => setArea(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter area (optional)"
                     />
@@ -480,7 +480,7 @@ export default function CreateOrganizationRequestForm() {
                       type="text"
                       id="sub_area"
                       value={subArea}
-                      onChange={e => setSubArea(e.target.value)}
+                      onChange={(e) => setSubArea(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter sub area (optional)"
                     />
@@ -497,7 +497,7 @@ export default function CreateOrganizationRequestForm() {
                       type="text"
                       id="post_code"
                       value={postCode}
-                      onChange={e => setPostCode(e.target.value)}
+                      onChange={(e) => setPostCode(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter post code (optional)"
                     />
@@ -513,8 +513,8 @@ export default function CreateOrganizationRequestForm() {
                     <input
                       type="number"
                       id="longitude"
-                      value={longitude || ''}
-                      onChange={e =>
+                      value={longitude || ""}
+                      onChange={(e) =>
                         setLongitude(parseFloat(e.target.value) || 0)
                       }
                       step="0.000001"
@@ -534,8 +534,8 @@ export default function CreateOrganizationRequestForm() {
                     <input
                       type="number"
                       id="latitude"
-                      value={latitude || ''}
-                      onChange={e =>
+                      value={latitude || ""}
+                      onChange={(e) =>
                         setLatitude(parseFloat(e.target.value) || 0)
                       }
                       step="0.000001"
@@ -558,15 +558,15 @@ export default function CreateOrganizationRequestForm() {
               </div>
               <div className="p-6">
                 <div className="flex flex-wrap gap-2">
-                  {FACILITY_OPTIONS.map(facility => (
+                  {FACILITY_OPTIONS.map((facility) => (
                     <button
                       key={facility}
                       type="button"
                       onClick={() => handleFacilityToggle(facility)}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                         facilities.includes(facility)
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 text-gray-900 hover:bg-gray-200"
                       }`}
                     >
                       {formatFacilityName(facility)}
@@ -600,7 +600,7 @@ export default function CreateOrganizationRequestForm() {
                   <textarea
                     id="requestNotes"
                     value={requestNotes}
-                    onChange={e => setRequestNotes(e.target.value)}
+                    onChange={(e) => setRequestNotes(e.target.value)}
                     rows={4}
                     className={`${inputClasses} placeholder-gray-500`}
                     placeholder="Add any additional information about your organization request"
@@ -633,14 +633,14 @@ export default function CreateOrganizationRequestForm() {
                       htmlFor="imageUpload"
                       className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${
                         images.length >= 5
-                          ? 'opacity-50 cursor-not-allowed'
-                          : ''
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
                       }`}
                     >
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <Upload className="w-8 h-8 mb-2 text-gray-500" />
                         <p className="mb-2 text-sm text-gray-900">
-                          <span className="font-semibold">Click to upload</span>{' '}
+                          <span className="font-semibold">Click to upload</span>{" "}
                           or drag and drop
                         </p>
                         <p className="text-xs text-gray-500">
@@ -669,10 +669,13 @@ export default function CreateOrganizationRequestForm() {
                         {images.map((file, idx) => (
                           <div key={`new-${idx}`} className="relative group">
                             <div className="aspect-square w-full overflow-hidden rounded-md">
-                              <img
+                              <Image
                                 src={URL.createObjectURL(file)}
                                 alt={`New image ${idx + 1}`}
-                                className="object-cover w-full h-full"
+                                className="object-cover"
+                                fill
+                                sizes="(max-width: 768px) 50vw, 33vw"
+                                priority={idx === 0}
                               />
                               <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <button
@@ -725,8 +728,8 @@ export default function CreateOrganizationRequestForm() {
             disabled={loading || !isFormValid}
             className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
               loading || !isFormValid
-                ? 'bg-blue-300 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
+                ? "bg-blue-300 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
             {loading ? (
@@ -754,7 +757,7 @@ export default function CreateOrganizationRequestForm() {
                 Submitting...
               </div>
             ) : (
-              'Submit Request'
+              "Submit Request"
             )}
           </button>
         </div>
