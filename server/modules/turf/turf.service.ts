@@ -6,15 +6,43 @@ import { uploadImage, deleteImage } from "../../utils/cloudinary";
 import ErrorResponse from "./../../utils/errorResponse";
 import { extractPublicIdFromUrl } from "../../utils/extractUrl";
 import { FilterOptions } from "./../../types/filter.d";
+import SportsService from "../sports/sports.service";
+import TeamSizeService from "../team_size/team_size.service";
 
 export default class TurfService {
-  /**@desc Create new turf with image upload and data validation**/
+  private sportsService: SportsService;
+  private teamSizeService: TeamSizeService;
 
+  constructor() {
+    this.sportsService = new SportsService();
+    this.teamSizeService = new TeamSizeService();
+  }
+
+  /**
+   * @desc Validate turf data (sports and team size)
+   * @private
+   */
+  private async validateTurfData(sports: string[], teamSize: number): Promise<void> {
+    // Validate sports exist
+    await this.sportsService.validateSports(sports);
+    
+    // Validate team size exists - convert number to string for validation
+    await this.teamSizeService.validateTeamSizes([teamSize.toString()]);
+  }
+
+  /**@desc Create new turf with image upload and data validation**/
   async createTurf(
     turfData: Partial<ITurf>,
     images?: Express.Multer.File[]
   ): Promise<ITurf> {
     try {
+      // Validate sports and team size before creating turf
+      if (turfData.sports && turfData.team_size) {
+        await this.validateTurfData(turfData.sports, turfData.team_size);
+      } else {
+        throw new ErrorResponse("Sports and team size are required", 400);
+      }
+
       // Upload images if provided
       let imageUrls: string[] = [];
       if (images && images.length > 0) {
@@ -32,12 +60,14 @@ export default class TurfService {
       return await turf.save();
     } catch (error) {
       console.error(error);
-      throw new ErrorResponse("Failed to create turf", 500);
+      throw new ErrorResponse(
+        error instanceof ErrorResponse ? error.message : "Failed to create turf", 
+        error instanceof ErrorResponse ? error.statusCode : 500
+      );
     }
   }
 
   /**@desc Retrieve all turfs with basic filtering options **/
-
   async getTurfs(filters = {}): Promise<ITurf[]> {
     return await Turf.find(filters);
   }
@@ -56,6 +86,13 @@ export default class TurfService {
     try {
       const turf = await Turf.findById(id);
       if (!turf) throw new ErrorResponse("Turf not found", 404);
+
+      // Validate sports and team size if they're being updated
+      if (updateData.sports || updateData.team_size) {
+        const sportsToValidate = updateData.sports || turf.sports;
+        const teamSizeToValidate = updateData.team_size || turf.team_size;
+        await this.validateTurfData(sportsToValidate, teamSizeToValidate);
+      }
 
       // Handle image updates
       if (newImages && newImages.length > 0) {
@@ -85,7 +122,10 @@ export default class TurfService {
       return updatedTurf;
     } catch (error) {
       console.error(error);
-      throw new ErrorResponse("Failed to update turf", 500);
+      throw new ErrorResponse(
+        error instanceof ErrorResponse ? error.message : "Failed to update turf", 
+        error instanceof ErrorResponse ? error.statusCode : 500
+      );
     }
   }
 
@@ -115,7 +155,6 @@ export default class TurfService {
   }
 
   /**@desc filter turfs based on price, team_size, facilities, preferred_time, location and radius, sports**/
-
   async filterTurfs(filterOptions: FilterOptions) {
     try {
       // Parse and validate filter options
