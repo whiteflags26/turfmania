@@ -28,6 +28,7 @@ const UserSchema = new Schema<UserDocument>(
       type: String,
       validate: {
         validator: function (value: string) {
+          if (!value) return true; // Skip validation if value is empty
           const bdPhoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
           return bdPhoneRegex.test(value);
         },
