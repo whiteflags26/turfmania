@@ -12,7 +12,7 @@ export async function createTurfReview(formData: FormData) {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || "Failed to create review");
+      throw new Error(data.error || "Failed to create review");
     }
 
     return data;
