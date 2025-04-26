@@ -120,20 +120,99 @@ export async function createOrganization(
   }
 }
 
+// Get all facilities (already exists)
 export async function getAllFacilities(): Promise<any> {
-   try {
+  try {
     const response = await api.get('/api/v1/facilities', {
       headers: {
         'Content-Type': 'application/json',
       },
       withCredentials: true,
     });
-
     return response.data;
   } catch (error: any) {
     console.error('While fetching facilities:', error.response?.data);
     throw new Error(
-      error.response?.data?.message ?? 'Failed to create organization',
+      error.response?.data?.message ?? 'Failed to fetch facilities',
+    );
+  }
+}
+
+// Get facility by ID
+export async function getFacilityById(facilityId: string): Promise<any> {
+  try {
+    const response = await api.get(`/api/v1/facilities/${facilityId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('While fetching facility:', error.response?.data);
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to fetch facility',
+    );
+  }
+}
+
+// Create new facility
+export async function createFacility(facilityData: any): Promise<any> {
+  try {
+    const response = await api.post('/api/v1/facilities', facilityData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('While creating facility:', error.response?.data);
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to create facility',
+    );
+  }
+}
+
+// Update facility
+export async function updateFacility(
+  facilityId: string,
+  facilityData: any,
+): Promise<any> {
+  try {
+    const response = await api.put(
+      `/api/v1/facilities/${facilityId}`,
+      facilityData,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      },
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error('While updating facility:', error.response?.data);
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to update facility',
+    );
+  }
+}
+
+// Delete facility
+export async function deleteFacility(facilityId: string): Promise<any> {
+  try {
+    const response = await api.delete(`/api/v1/facilities/${facilityId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('While deleting facility:', error.response?.data);
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to delete facility',
     );
   }
 }
