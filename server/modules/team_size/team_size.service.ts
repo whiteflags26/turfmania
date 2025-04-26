@@ -58,15 +58,15 @@ export default class TeamSizeService {
     }
 
     /**
-   * @desc Validate if team sizes exist by names
-   * @param teamSizeNames - Array of team size names to validate
+   * @desc Validate if team sizes exist by numbers
+   * @param teamSizeNumbers - Array of team size numbers to validate
    * @throws ErrorResponse if any team size doesn't exist
    */
-    public async validateTeamSizes(teamSizeNames: string[]): Promise<void> {
-        for (const teamSizeName of teamSizeNames) {
-            const teamSizeExists = await TeamSize.findOne({ name: teamSizeName });
+    public async validateTeamSizes(teamSizeNumbers: number[]): Promise<void> {
+        for (const teamSizeNumber of teamSizeNumbers) {
+            const teamSizeExists = await TeamSize.findOne({ name: teamSizeNumber });
             if (!teamSizeExists) {
-                throw new ErrorResponse(`Team size '${teamSizeName}' does not exist`, 400);
+                throw new ErrorResponse(`Team size '${teamSizeNumber}' does not exist`, 400);
             }
         }
     }
