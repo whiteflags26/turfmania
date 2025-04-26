@@ -1,11 +1,11 @@
-import { NextFunction, Request, Response } from 'express';
-import { Types } from 'mongoose';
-import validator from 'validator';
-import asyncHandler from '../../shared/middleware/async';
-import ErrorResponse from '../../utils/errorResponse';
-import Token from '../token/token.model';
-import User, { UserDocument } from '../user/user.model';
-import authService, { resetUserPassword } from './auth.service';
+import { NextFunction, Request, Response } from "express";
+import { Types } from "mongoose";
+import validator from "validator";
+import asyncHandler from "../../shared/middleware/async";
+import ErrorResponse from "../../utils/errorResponse";
+import Token from "../token/token.model";
+import User, { UserDocument } from "../user/user.model";
+import authService, { resetUserPassword } from "./auth.service";
 
 interface RegisterBody {
   first_name: string;
@@ -34,33 +34,33 @@ export const register = asyncHandler(
   async (
     req: Request<{}, {}, RegisterBody>,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     let { first_name, last_name, email, password, role } = req.body;
     // Trim and sanitize inputs
-    first_name = validator.trim(first_name ?? '');
-    last_name = validator.trim(last_name ?? '');
-    email = validator.trim(email ?? '').toLowerCase();
-    password = validator.trim(password ?? '');
+    first_name = validator.trim(first_name ?? "");
+    last_name = validator.trim(last_name ?? "");
+    email = validator.trim(email ?? "").toLowerCase();
+    password = validator.trim(password ?? "");
 
     // Input validation
     if (!first_name || !last_name || !email || !password) {
-      return next(new ErrorResponse('All fields are required', 400));
+      return next(new ErrorResponse("All fields are required", 400));
     }
 
     // Validate email format
     if (!validator.isEmail(email)) {
-      return next(new ErrorResponse('Invalid email format', 400));
+      return next(new ErrorResponse("Invalid email format", 400));
     }
 
     // Check if user already exists (case insensitive)
     const existingUser = await User.findOne({ email }).collation({
-      locale: 'en',
+      locale: "en",
       strength: 2,
     });
 
     if (existingUser) {
-      return next(new ErrorResponse('Email already registered', 400));
+      return next(new ErrorResponse("Email already registered", 400));
     }
 
     // Create user with sanitized inputs
@@ -69,7 +69,7 @@ export const register = asyncHandler(
       last_name,
       email,
       password, // Password will be hashed by the model's pre-save hook
-      role: role ?? 'user',
+      role: role ?? "user",
     });
 
     // Send verification email
@@ -83,9 +83,9 @@ export const register = asyncHandler(
       success: true,
       data: { user: userWithoutPassword },
       message:
-        'Registration successful! Please check your email to verify your account.',
+        "Registration successful! Please check your email to verify your account.",
     });
-  },
+  }
 );
 
 /**
@@ -97,33 +97,33 @@ export const login = asyncHandler(
   async (
     req: Request<{}, {}, LoginBody>,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     let { email, password } = req.body;
     // Trim and sanitize inputs
-    email = validator.trim(email ?? '').toLowerCase();
-    password = validator.trim(password ?? '');
+    email = validator.trim(email ?? "").toLowerCase();
+    password = validator.trim(password ?? "");
 
     // Input validation
     if (!email || !password) {
       return next(
-        new ErrorResponse('Please provide an email and password', 400),
+        new ErrorResponse("Please provide an email and password", 400)
       );
     }
 
     // Validate email format
     if (!validator.isEmail(email)) {
-      return next(new ErrorResponse('Invalid email format', 400));
+      return next(new ErrorResponse("Invalid email format", 400));
     }
 
     // Find user with case-insensitive email match
     const user = await User.findOne({ email })
-      .collation({ locale: 'en', strength: 2 })
-      .select('+password');
+      .collation({ locale: "en", strength: 2 })
+      .select("+password");
 
     if (!user) {
       // Use consistent error message for security
-      return next(new ErrorResponse('Invalid credentials', 401));
+      return next(new ErrorResponse("Invalid credentials", 401));
     }
 
     // Check password
@@ -131,7 +131,7 @@ export const login = asyncHandler(
 
     if (!isMatched) {
       // Use consistent error message for security
-      return next(new ErrorResponse('Invalid credentials', 401));
+      return next(new ErrorResponse("Invalid credentials", 401));
     }
 
     // Generate token
@@ -142,18 +142,18 @@ export const login = asyncHandler(
     delete userWithoutPassword.password;
 
     // Set token in cookie
-    res.cookie('token', token, {
+    res.cookie("token", token, {
       httpOnly: true,
       //secure: process.env.NODE_ENV === "production",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      sameSite: 'lax',
+      sameSite: "lax",
     });
 
     res.status(200).json({
       success: true,
       data: { user: userWithoutPassword, token },
     });
-  },
+  }
 );
 
 /**
@@ -165,46 +165,46 @@ export const adminLogin = asyncHandler(
   async (
     req: Request<{}, {}, LoginBody>,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     let { email, password } = req.body;
     // Trim and sanitize inputs
-    email = validator.trim(email ?? '').toLowerCase();
-    password = validator.trim(password ?? '');
+    email = validator.trim(email ?? "").toLowerCase();
+    password = validator.trim(password ?? "");
 
     // Input validation
     if (!email || !password) {
       return next(
-        new ErrorResponse('Please provide an email and password', 400),
+        new ErrorResponse("Please provide an email and password", 400)
       );
     }
 
     // Validate email format
     if (!validator.isEmail(email)) {
-      return next(new ErrorResponse('Invalid email format', 400));
+      return next(new ErrorResponse("Invalid email format", 400));
     }
 
     // Find user with case-insensitive email match
     const user = await User.findOne({ email })
-      .collation({ locale: 'en', strength: 2 })
-      .select('+password');
+      .collation({ locale: "en", strength: 2 })
+      .select("+password");
 
     if (!user) {
-      return next(new ErrorResponse('Invalid credentials', 401));
+      return next(new ErrorResponse("Invalid credentials", 401));
     }
 
     // Check password
     const isMatched = await authService.matchPassword(password, user);
 
     if (!isMatched) {
-      return next(new ErrorResponse('Invalid credentials', 401));
+      return next(new ErrorResponse("Invalid credentials", 401));
     }
 
     // Check for admin dashboard access permission
     const hasAdminAccess = await authService.checkAdminAccess(user._id);
     if (!hasAdminAccess) {
       return next(
-        new ErrorResponse('Unauthorized access to admin dashboard', 403),
+        new ErrorResponse("Unauthorized access to admin dashboard", 403)
       );
     }
 
@@ -216,20 +216,20 @@ export const adminLogin = asyncHandler(
     delete userWithoutPassword.password;
 
     // Set admin token cookie
-    res.cookie('admin_token', token, {
+    res.cookie("admin_token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
     // Set regular token cookie
-    res.cookie('token', token, {
+    res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
@@ -237,7 +237,7 @@ export const adminLogin = asyncHandler(
       success: true,
       data: { user: userWithoutPassword },
     });
-  },
+  }
 );
 
 /**
@@ -248,24 +248,24 @@ export const adminLogin = asyncHandler(
 
 export const logout = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    res.cookie('token', '', {
+    res.cookie("token", "", {
       httpOnly: true,
       expires: new Date(0), // set the cookie to expire immediately
       //secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: "lax",
     });
-    res.cookie('admin_token', '', {
+    res.cookie("admin_token", "", {
       httpOnly: true,
       expires: new Date(0), // set the cookie to expire immediately
       //secure: process.env.NODE_ENV === 'production', // Uncomment for production
-      sameSite: 'lax',
+      sameSite: "lax",
     });
 
     res.status(200).json({
       success: true,
-      message: 'Logged out successfully',
+      message: "Logged out successfully",
     });
-  },
+  }
 );
 
 /**
@@ -276,22 +276,22 @@ export const logout = asyncHandler(
 export const getMe = asyncHandler(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user?.id) {
-      return next(new ErrorResponse('User not authenticated', 401));
+      return next(new ErrorResponse("User not authenticated", 401));
     }
 
     const user = await User.findById(req.user.id).select(
-      '-password -verificationToken -verificationTokenExpires',
+      "-password -verificationToken -verificationTokenExpires"
     );
 
     if (!user) {
-      return next(new ErrorResponse('User not found', 404));
+      return next(new ErrorResponse("User not found", 404));
     }
 
     // If it's an admin request, check admin access
     if (req.cookies.admin_token) {
       const hasAdminAccess = await authService.checkAdminAccess(user._id);
       if (!hasAdminAccess) {
-        return next(new ErrorResponse('Not authorized as admin', 403));
+        return next(new ErrorResponse("Not authorized as admin", 403));
       }
     }
 
@@ -299,7 +299,7 @@ export const getMe = asyncHandler(
       success: true,
       data: user,
     });
-  },
+  }
 );
 
 /**
@@ -313,13 +313,13 @@ export const forgotPassword = asyncHandler(
     const { email } = req.body;
 
     if (!email) {
-      return next(new ErrorResponse('Please provide an email', 400));
+      return next(new ErrorResponse("Please provide an email", 400));
     }
 
     const user = await User.findOne({ email });
 
     if (!user) {
-      return next(new ErrorResponse('User not found', 404));
+      return next(new ErrorResponse("User not found", 404));
     }
 
     let token = await Token.findOne({ userId: user._id });
@@ -332,27 +332,27 @@ export const forgotPassword = asyncHandler(
       res.status(200).json(result);
     } catch (error: unknown) {
       // Log the error for debugging
-      console.error('Password reset email error:', error);
+      console.error("Password reset email error:", error);
 
       // Determine if it's a known error type
       if (error instanceof Error) {
         return next(
           new ErrorResponse(
             `Failed to send password reset email: ${error.message}`,
-            500,
-          ),
+            500
+          )
         );
       }
 
       // Generic error for unknown error types
       return next(
         new ErrorResponse(
-          'An unexpected error occurred while sending reset email',
-          500,
-        ),
+          "An unexpected error occurred while sending reset email",
+          500
+        )
       );
     }
-  },
+  }
 );
 
 /**
@@ -369,7 +369,7 @@ export const resetPassword = asyncHandler(
 
       if (!token || !id || !password) {
         return next(
-          new ErrorResponse('Invalid request. Missing parameters.', 400),
+          new ErrorResponse("Invalid request. Missing parameters.", 400)
         );
       }
 
@@ -377,7 +377,7 @@ export const resetPassword = asyncHandler(
       const response = await resetUserPassword(
         id as string,
         token as string,
-        password,
+        password
       );
 
       res.status(200).json(response);
@@ -385,7 +385,7 @@ export const resetPassword = asyncHandler(
       console.error(error);
       return next(error);
     }
-  },
+  }
 );
 
 /**
@@ -399,13 +399,13 @@ export const verifyEmail = asyncHandler(
 
     // Check if token and ID are provided
     if (!token || !id) {
-      return next(new ErrorResponse('Invalid verification link', 400));
+      return next(new ErrorResponse("Invalid verification link", 400));
     }
 
     // Find the user by ID
     const user = await User.findById(id);
     if (!user) {
-      return next(new ErrorResponse('User not found', 404));
+      return next(new ErrorResponse("User not found", 404));
     }
 
     // Check if the token matches and is not expired
@@ -413,7 +413,7 @@ export const verifyEmail = asyncHandler(
       user.verificationToken !== token ||
       new Date() > user.verificationTokenExpires
     ) {
-      return next(new ErrorResponse('Invalid or expired token', 400));
+      return next(new ErrorResponse("Invalid or expired token", 400));
     }
 
     // Mark the user as verified
@@ -424,9 +424,52 @@ export const verifyEmail = asyncHandler(
 
     res.status(200).json({
       success: true,
-      message: 'Email verified successfully!',
+      message: "Email verified successfully!",
     });
-  },
+  }
+);
+
+/**
+ * @route   POST /api/v1/auth/resend-verification
+ * @desc    Resend verification email to user
+ * @access  Public
+ */
+export const resendVerificationEmail = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email } = req.body;
+
+    // Validate input
+    if (!email) {
+      return next(new ErrorResponse("Email is required", 400));
+    }
+
+    // Validate email format
+    if (!validator.isEmail(email)) {
+      return next(new ErrorResponse("Invalid email format", 400));
+    }
+
+    const user = await User.findOne({ email }).collation({
+      locale: "en",
+      strength: 2,
+    });
+
+    if (!user) {
+      return next(new ErrorResponse("User with this email not found", 404));
+    }
+
+    // Check if user is already verified
+    if (user.isVerified) {
+      return next(new ErrorResponse("Email is already verified", 400));
+    }
+
+    // Send verification email
+    await authService.sendVerificationEmail(user);
+
+    res.status(200).json({
+      success: true,
+      message: "Verification email has been sent. Please check your inbox.",
+    });
+  }
 );
 
 export const organizationLogin = asyncHandler(
@@ -437,38 +480,34 @@ export const organizationLogin = asyncHandler(
     // Input validation
     if (!email || !password) {
       return next(
-        new ErrorResponse('Please provide an email and password', 400),
+        new ErrorResponse("Please provide an email and password", 400)
       );
     }
-    email = validator.trim(email ?? '').toLowerCase();
-    password = validator.trim(password ?? '');
-
-    
+    email = validator.trim(email ?? "").toLowerCase();
+    password = validator.trim(password ?? "");
 
     // Validate email format
     if (!validator.isEmail(email)) {
-      return next(new ErrorResponse('Invalid email format', 400));
+      return next(new ErrorResponse("Invalid email format", 400));
     }
 
     const user = await User.findOne({ email })
-    .collation({ locale: 'en', strength: 2 })
-    .select('+password');
+      .collation({ locale: "en", strength: 2 })
+      .select("+password");
 
-    console.log(user, 'user found');
+    console.log(user, "user found");
 
     // Check password
     const isMatched = await authService.matchPassword(password, user);
-    console.log(isMatched, 'isMatched');
-
+    console.log(isMatched, "isMatched");
 
     if (!isMatched) {
-      return next(new ErrorResponse('Invalid credentials', 401));
+      return next(new ErrorResponse("Invalid credentials", 401));
     }
- 
 
-  if (!user) {
-    return next(new ErrorResponse('Invalid credentials', 401));
-  }
+    if (!user) {
+      return next(new ErrorResponse("Invalid credentials", 401));
+    }
     // Check for admin dashboard access permission
     const hasAdminAccess = await authService.checkUserRoleInOrganization(
       user._id,
@@ -476,17 +515,17 @@ export const organizationLogin = asyncHandler(
     );
     if (!hasAdminAccess) {
       return next(
-        new ErrorResponse('Unauthorized access to admin dashboard', 403),
+        new ErrorResponse("Unauthorized access to admin dashboard", 403)
       );
     }
     const token = authService.generateToken(user);
     const userWithoutPassword = user.toObject();
     delete userWithoutPassword.password;
-    res.cookie('org_token', token, {
+    res.cookie("org_token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
@@ -495,5 +534,5 @@ export const organizationLogin = asyncHandler(
       success: true,
       data: { user: userWithoutPassword },
     });
-  },
+  }
 );

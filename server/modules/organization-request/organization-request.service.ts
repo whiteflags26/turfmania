@@ -487,7 +487,7 @@ export default class OrganizationRequestService {
   ): Promise<IOrganizationRequest[]> {
     return OrganizationRequest.find({ requesterId: userId })
       .sort({ createdAt: -1 })
-      .select("-adminNotes -processingAdminId -processingStartedAt -__v")
+      .select("-processingAdminId -__v")
       .lean();
   }
 

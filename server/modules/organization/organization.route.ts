@@ -10,6 +10,7 @@ import {
   deleteOrganization,
   createOrganizationRole,
   fetchOtherTurfs,
+  getOrganization
 } from "./organization.controller";
 import { getOrganizationRoles } from "../role/role.controller";
 import { assignOrganizationRole } from "../role_assignment/userRoleAssignmentController";
@@ -59,6 +60,9 @@ router.delete(
 
   deleteOrganization
 );
+
+// Get Organization Details
+router.get("/:id", getOrganization);
 
 router.post(
   "/:id/roles", // Use :id for organizationId for consistency

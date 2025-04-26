@@ -6,15 +6,58 @@ import { uploadImage, deleteImage } from "../../utils/cloudinary";
 import ErrorResponse from "./../../utils/errorResponse";
 import { extractPublicIdFromUrl } from "../../utils/extractUrl";
 import { FilterOptions } from "./../../types/filter.d";
+import SportsService from "../sports/sports.service";
+import TeamSizeService from "../team_size/team_size.service";
+import { TurfReview } from "../turf-review/turf-review.model";
+import User from "../user/user.model";
 
 export default class TurfService {
-  /**@desc Create new turf with image upload and data validation**/
+  private sportsService: SportsService;
+  private teamSizeService: TeamSizeService;
 
+  constructor() {
+    this.sportsService = new SportsService();
+    this.teamSizeService = new TeamSizeService();
+  }
+
+  /**
+   * @desc Validate turf data (sports and team size)
+   * @private
+   */
+  private async validateTurfData(sports: string[], teamSize: number): Promise<void> {
+    // Validate sports exist
+    await this.sportsService.validateSports(sports);
+
+    // Validate team size exists - convert number to string for validation
+    await this.teamSizeService.validateTeamSizes([teamSize.toString()]);
+  }
+
+  /**@desc Create new turf with image upload and data validation**/
   async createTurf(
     turfData: Partial<ITurf>,
     images?: Express.Multer.File[]
   ): Promise<ITurf> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
+      // Validate sports and team size before creating turf
+      if (turfData.sports && turfData.team_size) {
+        await this.validateTurfData(turfData.sports, turfData.team_size);
+      } else {
+        throw new ErrorResponse("Sports and team size are required", 400);
+      }
+
+      // Check if a turf with the same name already exists in this organization
+      const existingTurf = await Turf.findOne({
+        name: turfData.name,
+        organization: turfData.organization
+      });
+
+      if (existingTurf) {
+        throw new ErrorResponse("A turf with this name already exists in the organization", 400);
+      }
+
       // Upload images if provided
       let imageUrls: string[] = [];
       if (images && images.length > 0) {
@@ -29,22 +72,44 @@ export default class TurfService {
         images: imageUrls,
       });
 
-      return await turf.save();
+      const savedTurf = await turf.save({ session });
+
+      // Update organization by pushing turf ID
+      await Organization.findByIdAndUpdate(
+        turfData.organization,
+        { $push: { turfs: savedTurf._id } },
+        { session }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return savedTurf;
     } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+
       console.error(error);
-      throw new ErrorResponse("Failed to create turf", 500);
+      throw new ErrorResponse(
+        error instanceof ErrorResponse ? error.message : "Failed to create turf",
+        error instanceof ErrorResponse ? error.statusCode : 500
+      );
     }
   }
 
   /**@desc Retrieve all turfs with basic filtering options **/
-
   async getTurfs(filters = {}): Promise<ITurf[]> {
     return await Turf.find(filters);
   }
 
   /**@desc Retrieve turf by ID **/
   async getTurfById(id: string): Promise<ITurf | null> {
-    return await Turf.findById(id).populate("organization");
+    // Since we're already storing turf IDs in the organization model,
+    // we can use a simpler, more efficient population strategy
+    return await Turf.findById(id).populate({
+      path: "organization",
+      select: "_id name facilities location images orgContactPhone orgContactEmail" // Select only needed fields
+    });
   }
 
   /**@desc Update turf by ID with image upload and data validation **/
@@ -56,6 +121,31 @@ export default class TurfService {
     try {
       const turf = await Turf.findById(id);
       if (!turf) throw new ErrorResponse("Turf not found", 404);
+
+      // Prevent organization updates
+      if (updateData.organization && !updateData.organization.equals(turf.organization)) {
+        throw new ErrorResponse("Cannot change the organization of an existing turf", 400);
+      }
+
+      // If updating name, check uniqueness within organization
+      if (updateData.name && updateData.name !== turf.name) {
+        const existingTurf = await Turf.findOne({
+          name: updateData.name,
+          organization: turf.organization,
+          _id: { $ne: id } // exclude current turf
+        });
+
+        if (existingTurf) {
+          throw new ErrorResponse("A turf with this name already exists in the organization", 400);
+        }
+      }
+
+      // Validate sports and team size if they're being updated
+      if (updateData.sports || updateData.team_size) {
+        const sportsToValidate = updateData.sports || turf.sports;
+        const teamSizeToValidate = updateData.team_size || turf.team_size;
+        await this.validateTurfData(sportsToValidate, teamSizeToValidate);
+      }
 
       // Handle image updates
       if (newImages && newImages.length > 0) {
@@ -85,12 +175,18 @@ export default class TurfService {
       return updatedTurf;
     } catch (error) {
       console.error(error);
-      throw new ErrorResponse("Failed to update turf", 500);
+      throw new ErrorResponse(
+        error instanceof ErrorResponse ? error.message : "Failed to update turf",
+        error instanceof ErrorResponse ? error.statusCode : 500
+      );
     }
   }
 
-  /**@desc Delete turf by ID **/
+  /**@desc Delete turf by ID and all associated reviews **/
   async deleteTurf(id: string): Promise<ITurf | null> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
       const turf = await Turf.findById(id);
       if (!turf) return null;
@@ -107,15 +203,58 @@ export default class TurfService {
         );
       }
 
-      return await Turf.findByIdAndDelete(id);
+      // First, find all associated reviews
+      const reviews = await TurfReview.find({ turf: id });
+
+      // Process each review
+      for (const review of reviews) {
+        // Delete review images from Cloudinary if they exist
+        if (review.images && review.images.length > 0) {
+          await Promise.all(
+            review.images.map(async (imageUrl) => {
+              const publicId = extractPublicIdFromUrl(imageUrl);
+              if (publicId) {
+                await deleteImage(publicId);
+              }
+            })
+          );
+        }
+
+        // Update User document to remove reference to this review
+        await User.findByIdAndUpdate(
+          review.user,
+          { $pull: { reviews: review._id } },
+          { session }
+        );
+      }
+
+      // Delete all reviews associated with this turf
+      await TurfReview.deleteMany({ turf: id }).session(session);
+
+      // Remove turf ID from organization
+      await Organization.findByIdAndUpdate(
+        turf.organization,
+        { $pull: { turfs: turf._id } },
+        { session }
+      );
+
+      // Delete the turf itself
+      const deletedTurf = await Turf.findByIdAndDelete(id).session(session);
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return deletedTurf;
     } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+
       console.error("Error deleting turf:", error);
       throw new ErrorResponse("Failed to delete turf", 500);
     }
   }
 
   /**@desc filter turfs based on price, team_size, facilities, preferred_time, location and radius, sports**/
-
   async filterTurfs(filterOptions: FilterOptions) {
     try {
       // Parse and validate filter options
@@ -133,6 +272,23 @@ export default class TurfService {
       if (aggregatePipeline.length > 0) {
         // If we need aggregation (for facilities or complex filters)
         aggregatePipeline.unshift({ $match: query });
+
+        // Add population of organization with only necessary fields
+        aggregatePipeline.push({
+          $lookup: {
+            from: "organizations",
+            localField: "organization",
+            foreignField: "_id",
+            as: "organization"
+          }
+        });
+
+        // Convert array to single object
+        aggregatePipeline.push({
+          $addFields: {
+            organization: { $arrayElemAt: ["$organization", 0] }
+          }
+        });
 
         // Add pagination to aggregation
         const skip = (Number(page) - 1) * Number(limit);
@@ -160,7 +316,7 @@ export default class TurfService {
         turfs = await Turf.find(query)
           .skip(skip)
           .limit(Number(limit))
-          .populate("organization")
+          .populate("organization", "_id name facilities location images orgContactPhone orgContactEmail")
           .exec();
 
         totalResults = await Turf.countDocuments(query);
@@ -426,5 +582,35 @@ export default class TurfService {
       status: isOpen ? "OPEN" : "CLOSED",
       message: isOpen ? `Open until ${todayHours.close}` : "Currently closed",
     };
+  }
+
+  /**
+ * @desc Get all turfs belonging to a specific organization
+ * @param organizationId - The ID of the organization
+ * @returns Array of turfs belonging to the organization
+ */
+  async getTurfsByOrganizationId(organizationId: string): Promise<ITurf[]> {
+    try {
+      // First verify the organization exists
+      const organization = await Organization.findById(organizationId);
+      if (!organization) {
+        throw new ErrorResponse('Organization not found', 404);
+      }
+
+      // Get all turfs for this organization
+      const turfs = await Turf.find({ organization: organizationId })
+        .populate({
+          path: 'organization',
+          select: '_id name location' // Only include necessary fields
+        });
+
+      return turfs;
+    } catch (error) {
+      console.error('Error fetching turfs by organization:', error);
+      throw new ErrorResponse(
+        error instanceof ErrorResponse ? error.message : 'Failed to fetch turfs',
+        error instanceof ErrorResponse ? error.statusCode : 500
+      );
+    }
   }
 }

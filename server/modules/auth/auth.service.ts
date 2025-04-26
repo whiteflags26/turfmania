@@ -148,9 +148,6 @@ console.log('roleAssignment', roleAssignment);
   }
 }
 
-
-
-
 /** @desc matches hashed token and saves new password **/
 
 export const resetUserPassword = async (
