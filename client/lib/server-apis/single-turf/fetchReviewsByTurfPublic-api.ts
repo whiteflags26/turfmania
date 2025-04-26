@@ -9,7 +9,7 @@ interface FetchReviewsOptions {
   maxRating?: number;
 }
 
-export async function fetchReviewsByTurf(
+export async function fetchReviewsByTurfPublic(
   turfId: string,
   options: FetchReviewsOptions = {}
 ) {
@@ -25,11 +25,8 @@ export async function fetchReviewsByTurf(
     if (options.maxRating) params.append('maxRating', options.maxRating.toString());
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/turf/${turfId}?${params.toString()}`,
-      { 
-        credentials: 'include', // Important for sending auth cookies
-        cache: "no-store"
-      }
+      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/turf/${turfId}/public?${params.toString()}`,
+      { cache: "no-store" }
     );
 
     if (!res.ok) throw new Error("Failed to fetch reviews");

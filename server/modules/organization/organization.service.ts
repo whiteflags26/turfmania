@@ -10,6 +10,7 @@ import User from "../user/user.model";
 import Organization, { IOrganization } from "./organization.model";
 import { Turf } from "../turf/turf.model";
 import OrganizationRequestService from "../organization-request/organization-request.service";
+import FaciltyService from "../facility/facility.service";
 import mongoose from "mongoose";
 
 export interface IOrganizationRoleAssignment {
@@ -19,6 +20,7 @@ export interface IOrganizationRoleAssignment {
 
 class OrganizationService {
   organizationRequestService = new OrganizationRequestService();
+  facilityService = new FaciltyService();
 
   /**
  * Create a new organization (Admin only)
@@ -38,12 +40,17 @@ class OrganizationService {
     name: string,
     facilities: string[],
     location: IOrganization["location"],
+    orgContactPhone: string,
+    orgContactEmail: string,
     images?: Express.Multer.File[],
     requestId?: string,
     adminId?: string,
     adminNotes?: string
   ): Promise<IOrganization | null> {
     try {
+      // Validate facilities
+      await this.facilityService.validateFacilities(facilities);
+
       let imageUrls: string[] = [];
 
       // Only process images if they exist
@@ -62,11 +69,14 @@ class OrganizationService {
           let wasEdited = false;
 
           // Execute all operations within a transaction
+          
           await session.withTransaction(async () => {
             // Create organization with basic information
             organization = new Organization({
               name,
               facilities,
+              orgContactPhone,
+              orgContactEmail,
               images: imageUrls,
               location,
             });
@@ -107,7 +117,9 @@ class OrganizationService {
               requestId,
               name,
               facilities,
-              location
+              location,
+              orgContactPhone,
+              orgContactEmail
             );
 
             // Approve the request with the newly created organization ID
@@ -140,6 +152,8 @@ class OrganizationService {
           facilities,
           images: imageUrls,
           location,
+          orgContactPhone,
+          orgContactEmail,
         });
 
         await organization.save();
@@ -278,6 +292,11 @@ class OrganizationService {
     try {
       const organization = await Organization.findById(id);
       if (!organization) throw new ErrorResponse("Organization not found", 404);
+
+      // Validate facilities if they're being updated
+    if (updateData.facilities && updateData.facilities.length > 0) {
+      await this.facilityService.validateFacilities(updateData.facilities);
+    }
 
       // Handle image updates
       if (newImages && newImages.length > 0) {
