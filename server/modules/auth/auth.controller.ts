@@ -265,6 +265,12 @@ export const logout = asyncHandler(
       //secure: process.env.NODE_ENV === 'production', // Uncomment for production
       sameSite: "lax",
     });
+    res.cookie("org_token", "", {
+      httpOnly: true,
+      expires: new Date(0), // set the cookie to expire immediately
+      //secure: process.env.NODE_ENV === 'production',
+      sameSite: "lax",
+    });
 
     res.status(200).json({
       success: true,
