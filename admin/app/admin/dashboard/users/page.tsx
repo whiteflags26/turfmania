@@ -56,7 +56,7 @@ export default function UsersManagement() {
 
     try {
       await axios.post(
-        `http://localhost:5000/api/v1/role-assignments/users/${selectedUser._id}/assignments/global`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/role-assignments/users/${selectedUser._id}/assignments/global`,
         { roleId: selectedRole },
         { withCredentials: true },
       );
