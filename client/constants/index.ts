@@ -172,6 +172,9 @@ export const VENUES_SLIDER_IMAGES = [
   "/images/VenuesHeroSection-id3.avif"   
 ];
 
+//Default Profile Avatar Image
+export const DEFAULT_AVATAR_IMAGE = "/images/avatar.png";
+
 //layout.tsx conditional render for Navbar:
 export const authRoutes=[
   "/sign-in",
