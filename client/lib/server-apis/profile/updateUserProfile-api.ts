@@ -1,17 +1,24 @@
 import { IUser } from "@/types/user";
-import { UpdateProfileData } from "@/types/profile";
 
-export async function updateUserProfile(profileData: UpdateProfileData): Promise<IUser> {
+interface UpdateProfileData {
+  first_name?: string;
+  last_name?: string;
+  phone_number?: string;
+}
+
+export async function updateUserProfile(
+  updateData: UpdateProfileData
+): Promise<IUser> {
   try {
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/me`,
       {
         method: "PUT",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(profileData),
+        credentials: "include",
+        body: JSON.stringify(updateData),
       }
     );
 
