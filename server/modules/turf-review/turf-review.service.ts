@@ -211,7 +211,7 @@ export default class TurfReviewService {
     matchStage: any,
     populateOptions: { populateField: string; populateSelect: string },
     options: ReviewFilterOptions = {},
-    requestingUserId?: string // Add parameter for requesting user
+    requestingUserId?: string
   ): Promise<ReviewSummary> {
     // Apply rating filters
     this.applyRatingFilters(filter, matchStage, options);
@@ -233,43 +233,36 @@ export default class TurfReviewService {
       ])
     ]);
 
-    // Fetch all reviews according to filter and sorting
-    let allReviews = await TurfReview.find(filter)
+    let userReview: any = null;
+
+    // If requesting user ID is provided, efficiently fetch their review first
+    // This leverages the compound index {turf: 1, user: 1}
+    if (requestingUserId && filter.turf) {
+      userReview = await TurfReview.findOne({
+        turf: filter.turf,
+        user: requestingUserId
+      })
+        .populate(populateOptions.populateField, populateOptions.populateSelect)
+        .lean();
+    }
+
+    // Modify the filter to exclude the user's review if we already found it
+    // This prevents duplicate retrieval and ensures efficient pagination
+    const reviewsFilter = userReview
+      ? { ...filter, _id: { $ne: userReview._id } }
+      : filter;
+
+    // Fetch all other reviews according to filter and sorting
+    let allReviews = await TurfReview.find(reviewsFilter)
       .sort(paginationSort.sort)
       .skip(options.skip ?? 0)
-      .limit(options.limit ?? 10)
+      .limit(userReview ? (options.limit ? options.limit - 1 : 9) : (options.limit ?? 10))
       .populate(populateOptions.populateField, populateOptions.populateSelect)
       .lean();
 
-    // If requesting user ID is provided, find their review and prioritize it
-    if (requestingUserId) {
-      // Find if the user's review is already in the result set
-      const userReviewIndex = allReviews.findIndex(
-        review => review.user._id.toString() === requestingUserId
-      );
-
-      // If user's review exists in the fetched results, move it to the top
-      if (userReviewIndex > 0) {
-        const userReview = allReviews.splice(userReviewIndex, 1)[0];
-        allReviews.unshift(userReview);
-      }
-      // If we're on the first page and user's review is not in results, check if it exists at all
-      else if (userReviewIndex === -1 && (options.skip ?? 0) === 0) {
-        const userReview = await TurfReview.findOne({
-          ...filter,
-          user: requestingUserId
-        })
-          .populate(populateOptions.populateField, populateOptions.populateSelect)
-          .lean();
-
-        // If user review exists and passes filters, add it at the top and remove last item to maintain limit
-        if (userReview) {
-          allReviews.unshift(userReview);
-          if (options.limit && allReviews.length > options.limit) {
-            allReviews.pop();
-          }
-        }
-      }
+    // If we found the user's review, add it to the beginning of the results
+    if (userReview) {
+      allReviews.unshift(userReview);
     }
 
     return {
