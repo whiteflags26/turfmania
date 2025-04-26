@@ -216,3 +216,179 @@ export async function deleteFacility(facilityId: string): Promise<any> {
     );
   }
 }
+
+// Add with other interfaces at the top
+export interface Sport {
+  _id: string;
+  name: string;
+  // Add other sport properties if needed
+}
+
+// Get all sports
+export async function getAllSports(): Promise<any> {
+  try {
+    const response = await api.get('/api/v1/sports', {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('While fetching sports:', error.response?.data);
+    throw new Error(error.response?.data?.message ?? 'Failed to fetch sports');
+  }
+}
+
+// Get sport by ID
+export async function getSportById(sportId: string): Promise<any> {
+  try {
+    const response = await api.get(`/api/v1/sports/${sportId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('While fetching sport:', error.response?.data);
+    throw new Error(error.response?.data?.message ?? 'Failed to fetch sport');
+  }
+}
+
+// Create new sport
+export async function createSport(sportData: any): Promise<any> {
+  try {
+    const response = await api.post('/api/v1/sports', sportData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('While creating sport:', error.response?.data);
+    throw new Error(error.response?.data?.message ?? 'Failed to create sport');
+  }
+}
+
+// Update sport
+export async function updateSport(
+  sportId: string,
+  sportData: any,
+): Promise<any> {
+  try {
+    const response = await api.put(`/api/v1/sports/${sportId}`, sportData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('While updating sport:', error.response?.data);
+    throw new Error(error.response?.data?.message ?? 'Failed to update sport');
+  }
+}
+
+// Delete sport
+export async function deleteSport(sportId: string): Promise<any> {
+  try {
+    const response = await api.delete(`/api/v1/sports/${sportId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('While deleting sport:', error.response?.data);
+    throw new Error(error.response?.data?.message ?? 'Failed to delete sport');
+  }
+}
+
+// Add with other interfaces at the top
+export interface TeamSize {
+  _id: string;
+  name: string;
+  // Add other team size properties if needed
+}
+
+// Get all team sizes
+export async function getAllTeamSizes(): Promise<any> {
+  try {
+    const response = await api.get('/api/v1/team-sizes', {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('While fetching team sizes:', error.response?.data);
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to fetch team sizes',
+    );
+  }
+}
+
+// Create new team size
+export async function createTeamSize(teamSizeData: any): Promise<any> {
+  try {
+    const response = await api.post('/api/v1/team-sizes', teamSizeData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('While creating team size:', error.response?.data);
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to create team size',
+    );
+  }
+}
+
+// Update team size
+export async function updateTeamSize(
+  teamSizeId: string,
+  teamSizeData: any,
+): Promise<any> {
+  try {
+    const response = await api.put(
+      `/api/v1/team-sizes/${teamSizeId}`,
+      teamSizeData,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      },
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error('While updating team size:', error.response?.data);
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to update team size',
+    );
+  }
+}
+
+// Delete team size
+export async function deleteTeamSize(teamSizeId: string): Promise<any> {
+  try {
+    const response = await api.delete(`/api/v1/team-sizes/${teamSizeId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('While deleting team size:', error.response?.data);
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to delete team size',
+    );
+  }
+}

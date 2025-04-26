@@ -75,7 +75,7 @@ export default function EditOrganizationForm() {
         }
       } catch (err: any) {
         console.error('Error fetching organization data:', err);
-        setError(err.message || 'Failed to load organization data');
+        setError(err.message ?? 'Failed to load organization data');
       } finally {
         setFetchLoading(false);
       }
@@ -114,12 +114,7 @@ export default function EditOrganizationForm() {
     );
   };
 
-  const formatFacilityName = (facility: string) => {
-    return facility
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
+
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
