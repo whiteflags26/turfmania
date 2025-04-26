@@ -33,25 +33,6 @@ const FACILITY_OPTIONS = [
 ];
 
 // Create a type for create organization request
-interface CreateRequestDto {
-  organizationName: string;
-  facilities: string[];
-  location: {
-    place_id: string;
-    address: string;
-    coordinates: {
-      type: "Point";
-      coordinates: [number, number];
-    };
-    area?: string;
-    sub_area?: string;
-    city: string;
-    post_code?: string;
-  };
-  contactPhone: string;
-  ownerEmail: string;
-  requestNotes?: string;
-}
 
 export default function CreateOrganizationRequestForm() {
   const { user, isLoading: authLoading } = useAuth();
@@ -72,6 +53,8 @@ export default function CreateOrganizationRequestForm() {
   const [ownerEmail, setOwnerEmail] = useState('');
   const [requestNotes, setRequestNotes] = useState('');
   const [images, setImages] = useState<File[]>([]);
+  const [orgContactPhone, setOrgContactPhone] = useState('');
+  const [orgContactEmail, setOrgContactEmail] = useState('');
 
   // Form submission state
   const [loading, setLoading] = useState(false);
@@ -146,9 +129,8 @@ export default function CreateOrganizationRequestForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-  
+
     try {
-      // Send the request with images
       const response = await createOrganizationRequest(
         {
           organizationName,
@@ -168,31 +150,34 @@ export default function CreateOrganizationRequestForm() {
           contactPhone,
           ownerEmail,
           requestNotes: requestNotes || undefined,
+          orgContactPhone, // Add this
+          orgContactEmail, // Add this
         },
-        // Pass the images array to the API function
-        images.length > 0 ? images : undefined
+        images.length > 0 ? images : undefined,
       );
-  
+
       if (!response.ok) {
         throw new Error(
           response.data.message ?? 'Failed to submit organization request',
         );
       }
-      
-      console.log("data received:", response.data);
+
+      console.log('data received:', response.data);
       setSuccess(true);
       toast.success('Organization request submitted successfully!');
-  
+
       // Clear form after successful submission
       setTimeout(() => {
         // You might want to add form reset logic here
         // or navigate to a different page
       }, 2000);
-      
-    } catch (err: any) {
-      console.error('Error submitting organization request:', err);
-      setError(err.message ?? 'Something went wrong. Please try again.');
-      toast.error(err.message ?? 'Failed to submit request');
+    } catch (error) {
+      console.error('Error submitting organization request:', error);
+      setError(
+        (error as ApiError).message ??
+          'Something went wrong. Please try again.',
+      );
+      toast.error((error as ApiError).message ?? 'Failed to submit request');
     } finally {
       setLoading(false);
     }
@@ -207,7 +192,9 @@ export default function CreateOrganizationRequestForm() {
     longitude !== 0 &&
     latitude !== 0 &&
     contactPhone &&
-    ownerEmail;
+    ownerEmail &&
+    orgContactPhone && // Add this
+    orgContactEmail; // Add this
 
   // Handle back navigation
   const goBack = () => {
@@ -358,6 +345,42 @@ export default function CreateOrganizationRequestForm() {
                       onChange={e => setOwnerEmail(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter owner email"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="orgContactPhone"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Organization Contact Phone*
+                    </label>
+                    <input
+                      type="tel"
+                      id="orgContactPhone"
+                      value={orgContactPhone}
+                      onChange={e => setOrgContactPhone(e.target.value)}
+                      className={`${inputClasses} placeholder-gray-500`}
+                      placeholder="+8801XXXXXXXXX"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="orgContactEmail"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Organization Contact Email*
+                    </label>
+                    <input
+                      type="email"
+                      id="orgContactEmail"
+                      value={orgContactEmail}
+                      onChange={e => setOrgContactEmail(e.target.value)}
+                      className={`${inputClasses} placeholder-gray-500`}
+                      placeholder="organization@example.com"
                       required
                     />
                   </div>

@@ -1,28 +1,11 @@
 'use client';
 
 import {
-  Building,
-  Check,
-  MapPin,
-  Package,
-  Upload,
-  X,
-} from 'lucide-react';
-import { useState } from 'react';
-import { createOrganization } from '@/services/organizationService'; // Import the backend service
-
-const FACILITY_OPTIONS = [
-  'football',
-  'cricket',
-  'basketball',
-  'tennis',
-  'badminton',
-  'volleyball',
-  'swimming_pool',
-  'gym',
-  'table_tennis',
-  'indoor_sports',
-];
+  createOrganization,
+  getAllFacilities,
+} from '@/services/organizationService'; // Import the backend service
+import { Building, Check, MapPin, Package, Upload, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function OrganizationForm() {
   const [name, setName] = useState('');
@@ -39,6 +22,28 @@ export default function OrganizationForm() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [orgContactPhone, setOrgContactPhone] = useState('');
+  const [orgContactEmail, setOrgContactEmail] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [facilityOptions, setFacilityOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchFacilities = async () => {
+      try {
+        const response = await getAllFacilities();
+        if (response.success) {
+          setFacilityOptions(
+            response.data.map((facility: any) => facility.name),
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching facilities:', error);
+        setError('Failed to load facilities');
+      }
+    };
+
+    fetchFacilities();
+  }, []);
 
   const handleFacilityToggle = (facility: string) => {
     setFacilities(prev =>
@@ -48,20 +53,12 @@ export default function OrganizationForm() {
     );
   };
 
-  const formatFacilityName = (facility: string) => {
-    return facility
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const filesArray = Array.from(e.target.files);
     const total = imageFiles.length + filesArray.length;
-    const allowedFiles = total > 5
-      ? filesArray.slice(0, 5 - imageFiles.length)
-      : filesArray;
+    const allowedFiles =
+      total > 5 ? filesArray.slice(0, 5 - imageFiles.length) : filesArray;
     setImageFiles(prev => [...prev, ...allowedFiles]);
   };
 
@@ -75,10 +72,10 @@ export default function OrganizationForm() {
     setError(null);
 
     try {
-      // Prepare form data
       const formData = new FormData();
-      formData.set('organizationName', name);
-      formData.set('facilities[]', JSON.stringify(facilities));
+      formData.set('name', name);
+      // Update how facilities are sent
+      formData.set('facilities', JSON.stringify(facilities)); // Send facilities exactly as stored
       formData.set(
         'location',
         JSON.stringify({
@@ -94,7 +91,15 @@ export default function OrganizationForm() {
           },
         }),
       );
+      formData.set('orgContactPhone', orgContactPhone);
+      formData.set('orgContactEmail', orgContactEmail);
+      formData.set('adminNotes', adminNotes);
       formData.set('wasEdited', 'False');
+
+      // Add images if any
+      imageFiles.forEach((file, index) => {
+        formData.append(`images`, file);
+      });
 
       // Call the backend service
       const response = await createOrganization(formData);
@@ -110,7 +115,13 @@ export default function OrganizationForm() {
   };
 
   const isFormValid =
-    name && address && placeId && city && facilities.length > 0;
+    name &&
+    address &&
+    placeId &&
+    city &&
+    facilities.length > 0 &&
+    orgContactPhone &&
+    orgContactEmail;
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -145,11 +156,16 @@ export default function OrganizationForm() {
             <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b bg-gray-50 flex items-center">
                 <Building className="w-5 h-5 mr-2 text-gray-700" />
-                <h2 className="text-lg font-medium text-gray-800">Basic Information</h2>
+                <h2 className="text-lg font-medium text-gray-800">
+                  Basic Information
+                </h2>
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-900">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-900"
+                  >
                     Organization Name*
                   </label>
                   <input
@@ -160,6 +176,58 @@ export default function OrganizationForm() {
                     placeholder="Enter organization name"
                   />
                 </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="orgContactPhone"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Contact Phone*
+                    </label>
+                    <input
+                      id="orgContactPhone"
+                      value={orgContactPhone}
+                      onChange={e => setOrgContactPhone(e.target.value)}
+                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="+8801XXXXXXXXX"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="orgContactEmail"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Contact Email*
+                    </label>
+                    <input
+                      id="orgContactEmail"
+                      type="email"
+                      value={orgContactEmail}
+                      onChange={e => setOrgContactEmail(e.target.value)}
+                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="organization@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="adminNotes"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Admin Notes
+                    </label>
+                    <textarea
+                      id="adminNotes"
+                      value={adminNotes}
+                      onChange={e => setAdminNotes(e.target.value)}
+                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                      rows={3}
+                      placeholder="Add any administrative notes here..."
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -167,11 +235,16 @@ export default function OrganizationForm() {
             <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b bg-gray-50 flex items-center">
                 <MapPin className="w-5 h-5 mr-2 text-gray-700" />
-                <h2 className="text-lg font-medium text-gray-800">Location Details</h2>
+                <h2 className="text-lg font-medium text-gray-800">
+                  Location Details
+                </h2>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-900">
+                  <label
+                    htmlFor="address"
+                    className="block text-sm font-medium text-gray-900"
+                  >
                     Full Address*
                   </label>
                   <input
@@ -184,7 +257,10 @@ export default function OrganizationForm() {
                 </div>
 
                 <div>
-                  <label htmlFor="placeId" className="block text-sm font-medium text-gray-900">
+                  <label
+                    htmlFor="placeId"
+                    className="block text-sm font-medium text-gray-900"
+                  >
                     Place ID*
                   </label>
                   <input
@@ -197,7 +273,10 @@ export default function OrganizationForm() {
                 </div>
 
                 <div>
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-900">
+                  <label
+                    htmlFor="city"
+                    className="block text-sm font-medium text-gray-900"
+                  >
                     City*
                   </label>
                   <input
@@ -210,7 +289,10 @@ export default function OrganizationForm() {
                 </div>
 
                 <div>
-                  <label htmlFor="longitude" className="block text-sm font-medium text-gray-900">
+                  <label
+                    htmlFor="longitude"
+                    className="block text-sm font-medium text-gray-900"
+                  >
                     Longitude*
                   </label>
                   <input
@@ -225,7 +307,10 @@ export default function OrganizationForm() {
                 </div>
 
                 <div>
-                  <label htmlFor="latitude" className="block text-sm font-medium text-gray-900">
+                  <label
+                    htmlFor="latitude"
+                    className="block text-sm font-medium text-gray-900"
+                  >
                     Latitude*
                   </label>
                   <input
@@ -245,23 +330,30 @@ export default function OrganizationForm() {
             <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b bg-gray-50 flex items-center">
                 <Package className="w-5 h-5 mr-2 text-gray-700" />
-                <h2 className="text-lg font-medium text-gray-800">Facilities</h2>
+                <h2 className="text-lg font-medium text-gray-800">
+                  Facilities
+                </h2>
               </div>
               <div className="p-6 flex flex-wrap gap-2">
-                {FACILITY_OPTIONS.map(facility => (
-                  <button
-                    key={facility}
-                    type="button"
-                    onClick={() => handleFacilityToggle(facility)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium ${
-                      facilities.includes(facility)
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {formatFacilityName(facility)}
-                  </button>
-                ))}
+                {facilityOptions.length > 0 ? (
+                  facilityOptions.map(facility => (
+                    <button
+                      key={facility}
+                      type="button"
+                      onClick={() => handleFacilityToggle(facility)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium ${
+                        facilities.includes(facility)
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {facility}{' '}
+                      {/* Display facility name exactly as received */}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-gray-500">Loading facilities...</p>
+                )}
               </div>
             </div>
           </div>
@@ -270,21 +362,28 @@ export default function OrganizationForm() {
           <div className="space-y-6">
             <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b bg-gray-50">
-                <h2 className="text-lg font-medium text-gray-800">Organization Images</h2>
+                <h2 className="text-lg font-medium text-gray-800">
+                  Organization Images
+                </h2>
               </div>
               <div className="p-6 space-y-4">
                 <label
                   htmlFor="imageUpload"
                   className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${
-                    imageFiles.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''
+                    imageFiles.length >= 5
+                      ? 'opacity-50 cursor-not-allowed'
+                      : ''
                   }`}
                 >
                   <div className="flex flex-col items-center pt-5 pb-6">
                     <Upload className="w-8 h-8 mb-2 text-gray-500" />
                     <p className="mb-2 text-sm text-gray-500">
-                      <span className="font-semibold">Click to upload</span> or drag and drop
+                      <span className="font-semibold">Click to upload</span> or
+                      drag and drop
                     </p>
-                    <p className="text-xs text-gray-500">PNG, JPG, or WEBP (Max: 5 images)</p>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, or WEBP (Max: 5 images)
+                    </p>
                   </div>
                   <input
                     id="imageUpload"

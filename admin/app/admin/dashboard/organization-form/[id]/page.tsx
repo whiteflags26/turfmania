@@ -2,6 +2,7 @@
 
 import {
   createOrganization,
+  getAllFacilities,
   getSingleOrganizationRequest,
 } from '@/services/organizationService';
 import {
@@ -18,18 +19,6 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 // Mock facility options
-const FACILITY_OPTIONS = [
-  'football',
-  'cricket',
-  'basketball',
-  'tennis',
-  'badminton',
-  'volleyball',
-  'swimming_pool',
-  'gym',
-  'table_tennis',
-  'indoor_sports',
-];
 
 export default function EditOrganizationForm() {
   const router = useRouter();
@@ -53,6 +42,10 @@ export default function EditOrganizationForm() {
   const [fetchLoading, setFetchLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [orgContactPhone, setOrgContactPhone] = useState('');
+  const [orgContactEmail, setOrgContactEmail] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [facilityOptions, setFacilityOptions] = useState<string[]>([]);
 
   // Fetch organization data
   useEffect(() => {
@@ -77,6 +70,8 @@ export default function EditOrganizationForm() {
 
           setFacilities(orgData.facilities);
           setExistingImages(orgData.images || []);
+          setOrgContactPhone(orgData.orgContactPhone || '');
+          setOrgContactEmail(orgData.orgContactEmail || '');
         }
       } catch (err: any) {
         console.error('Error fetching organization data:', err);
@@ -90,6 +85,25 @@ export default function EditOrganizationForm() {
       fetchOrganizationData();
     }
   }, [organizationId]);
+
+  // Add after the existing useEffect
+  useEffect(() => {
+    const fetchFacilities = async () => {
+      try {
+        const response = await getAllFacilities();
+        if (response.success) {
+          setFacilityOptions(
+            response.data.map((facility: any) => facility.name),
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching facilities:', error);
+        setError('Failed to load facilities');
+      }
+    };
+
+    fetchFacilities();
+  }, []);
 
   // Handler functions
   const handleFacilityToggle = (facility: string) => {
@@ -111,7 +125,7 @@ export default function EditOrganizationForm() {
     if (e.target.files && e.target.files.length > 0) {
       const totalImagesCount = existingImages.length + newImageFiles.length;
       const remainingSlots = 5 - totalImagesCount;
-      
+
       if (remainingSlots <= 0) {
         toast.error('Maximum 5 images allowed');
         return;
@@ -151,49 +165,30 @@ export default function EditOrganizationForm() {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-
-      // Add organization name
-      formData.append('organizationName', name);
-
-      // Add facilities
-      facilities.forEach(facility => {
-        formData.append(`facilities[]`, facility);
-      });
-
-      // Add location details
-      const locationData = {
-        place_id: placeId,
-        address: address,
-        coordinates: {
-          type: 'Point',
-          coordinates: [longitude, latitude], // [longitude, latitude]
+      // Create the payload object
+      const payload = {
+        name,
+        facilities,
+        location: {
+          place_id: placeId,
+          address,
+          coordinates: {
+            type: 'Point',
+            coordinates: [longitude, latitude],
+          },
+          area: area || undefined,
+          sub_area: subArea || undefined,
+          city,
+          post_code: postCode || undefined,
         },
-        area: area || undefined,
-        sub_area: subArea || undefined,
-        city: city,
-        post_code: postCode || undefined,
+        orgContactPhone,
+        orgContactEmail,
+        requestId: params.id || null,
+        adminNotes,
+        wasEdited: 'True',
       };
 
-      formData.append('location', JSON.stringify(locationData));
-
-      // Add existing images
-      existingImages.forEach(imgUrl => {
-        formData.append('existingImages[]', imgUrl);
-      });
-
-      // Add new image files
-      newImageFiles.forEach(file => {
-        formData.append('images', file);
-      });
-
-      // Add request ID and wasEdited flag
-      if (params.id) {
-        formData.append('requestId', params.id);
-      }
-      formData.append('wasEdited', 'True');
-
-      const response = await createOrganization(formData);
+      const response = await createOrganization(payload);
 
       if (response.success) {
         setSuccess(true);
@@ -210,7 +205,13 @@ export default function EditOrganizationForm() {
   };
 
   const isFormValid =
-    name && address && placeId && city && facilities.length > 0;
+    name &&
+    address &&
+    placeId &&
+    city &&
+    facilities.length > 0 &&
+    orgContactPhone &&
+    orgContactEmail;
 
   const goBack = () => {
     router.back();
@@ -281,9 +282,7 @@ export default function EditOrganizationForm() {
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Edit Organization
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Edit Organization</h1>
       </div>
 
       {success && (
@@ -320,6 +319,58 @@ export default function EditOrganizationForm() {
                       onChange={e => setName(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter organization name"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="orgContactPhone"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Contact Phone*
+                    </label>
+                    <input
+                      type="tel"
+                      id="orgContactPhone"
+                      value={orgContactPhone}
+                      onChange={e => setOrgContactPhone(e.target.value)}
+                      className={`${inputClasses} placeholder-gray-500`}
+                      placeholder="+8801XXXXXXXXX"
+                      pattern="\+880\d{10}"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="orgContactEmail"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Contact Email*
+                    </label>
+                    <input
+                      type="email"
+                      id="orgContactEmail"
+                      value={orgContactEmail}
+                      onChange={e => setOrgContactEmail(e.target.value)}
+                      className={`${inputClasses} placeholder-gray-500`}
+                      placeholder="organization@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="adminNotes"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Admin Notes
+                    </label>
+                    <textarea
+                      id="adminNotes"
+                      value={adminNotes}
+                      onChange={e => setAdminNotes(e.target.value)}
+                      className={`${inputClasses} placeholder-gray-500`}
+                      placeholder="Add any administrative notes here..."
+                      rows={3}
                     />
                   </div>
                 </div>
@@ -491,20 +542,25 @@ export default function EditOrganizationForm() {
               </div>
               <div className="p-6">
                 <div className="flex flex-wrap gap-2">
-                  {FACILITY_OPTIONS.map(facility => (
-                    <button
-                      key={facility}
-                      type="button"
-                      onClick={() => handleFacilityToggle(facility)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        facilities.includes(facility)
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                      }`}
-                    >
-                      {formatFacilityName(facility)}
-                    </button>
-                  ))}
+                  {facilityOptions.length > 0 ? (
+                    facilityOptions.map(facility => (
+                      <button
+                        key={facility}
+                        type="button"
+                        onClick={() => handleFacilityToggle(facility)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          facilities.includes(facility)
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                        }`}
+                      >
+                        {facility}{' '}
+                        {/* Display facility name exactly as received */}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">Loading facilities...</p>
+                  )}
                 </div>
                 {facilities.length === 0 && (
                   <p className="mt-2 text-sm text-gray-500">
@@ -537,7 +593,10 @@ export default function EditOrganizationForm() {
                       </h3>
                       <div className="grid grid-cols-2 gap-2">
                         {existingImages.map((imageUrl, idx) => (
-                          <div key={`existing-${idx}`} className="relative group">
+                          <div
+                            key={`existing-${idx}`}
+                            className="relative group"
+                          >
                             <div className="aspect-square w-full overflow-hidden rounded-md">
                               <img
                                 src={imageUrl}

@@ -101,18 +101,9 @@ export async function rejectOrganizationRequest(
 }
 
 export async function createOrganization(
-  formData: FormData,
+  payload: any,
 ): Promise<SingleOrganizationResponse> {
   try {
-    // Extract data from FormData
-    const payload = {
-      name: formData.get('organizationName'),
-      facilities: formData.getAll('facilities[]'),
-      location: JSON.parse(formData.get('location') as string),
-      requestId: formData.get('requestId') || null, // Optional requestId
-      wasEdited: formData.get('wasEdited') || 'False',
-    };
-
     const response = await api.post('/api/v1/organizations', payload, {
       headers: {
         'Content-Type': 'application/json',
@@ -123,6 +114,24 @@ export async function createOrganization(
     return response.data;
   } catch (error: any) {
     console.error('Create organization error:', error.response?.data);
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to create organization',
+    );
+  }
+}
+
+export async function getAllFacilities(): Promise<any> {
+   try {
+    const response = await api.get('/api/v1/facilities', {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('While fetching facilities:', error.response?.data);
     throw new Error(
       error.response?.data?.message ?? 'Failed to create organization',
     );
