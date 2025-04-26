@@ -211,7 +211,7 @@ export default class TurfReviewService {
     matchStage: any,
     populateOptions: { populateField: string; populateSelect: string },
     options: ReviewFilterOptions = {},
-    requestingUserId?: string // Add parameter for requesting user
+    requestingUserId?: string
   ): Promise<ReviewSummary> {
     // Apply rating filters
     this.applyRatingFilters(filter, matchStage, options);
@@ -233,43 +233,36 @@ export default class TurfReviewService {
       ])
     ]);
 
-    // Fetch all reviews according to filter and sorting
-    let allReviews = await TurfReview.find(filter)
+    let userReview: any = null;
+
+    // If requesting user ID is provided, efficiently fetch their review first
+    // This leverages the compound index {turf: 1, user: 1}
+    if (requestingUserId && filter.turf) {
+      userReview = await TurfReview.findOne({
+        turf: filter.turf,
+        user: requestingUserId
+      })
+        .populate(populateOptions.populateField, populateOptions.populateSelect)
+        .lean();
+    }
+
+    // Modify the filter to exclude the user's review if we already found it
+    // This prevents duplicate retrieval and ensures efficient pagination
+    const reviewsFilter = userReview
+      ? { ...filter, _id: { $ne: userReview._id } }
+      : filter;
+
+    // Fetch all other reviews according to filter and sorting
+    let allReviews = await TurfReview.find(reviewsFilter)
       .sort(paginationSort.sort)
       .skip(options.skip ?? 0)
-      .limit(options.limit ?? 10)
+      .limit(userReview ? (options.limit ? options.limit - 1 : 9) : (options.limit ?? 10))
       .populate(populateOptions.populateField, populateOptions.populateSelect)
       .lean();
 
-    // If requesting user ID is provided, find their review and prioritize it
-    if (requestingUserId) {
-      // Find if the user's review is already in the result set
-      const userReviewIndex = allReviews.findIndex(
-        review => review.user._id.toString() === requestingUserId
-      );
-
-      // If user's review exists in the fetched results, move it to the top
-      if (userReviewIndex > 0) {
-        const userReview = allReviews.splice(userReviewIndex, 1)[0];
-        allReviews.unshift(userReview);
-      }
-      // If we're on the first page and user's review is not in results, check if it exists at all
-      else if (userReviewIndex === -1 && (options.skip ?? 0) === 0) {
-        const userReview = await TurfReview.findOne({
-          ...filter,
-          user: requestingUserId
-        })
-          .populate(populateOptions.populateField, populateOptions.populateSelect)
-          .lean();
-
-        // If user review exists and passes filters, add it at the top and remove last item to maintain limit
-        if (userReview) {
-          allReviews.unshift(userReview);
-          if (options.limit && allReviews.length > options.limit) {
-            allReviews.pop();
-          }
-        }
-      }
+    // If we found the user's review, add it to the beginning of the results
+    if (userReview) {
+      allReviews.unshift(userReview);
     }
 
     return {
@@ -380,7 +373,6 @@ export default class TurfReviewService {
     };
   }
 
-
   // Check if a user has already reviewed a turf
   async hasUserReviewedTurf(userId: string, turfId: string): Promise<boolean> {
     const review = await TurfReview.findOne({
@@ -389,5 +381,72 @@ export default class TurfReviewService {
     });
 
     return review !== null;
+  }
+
+  // Get all reviews summary for a specific organization
+  async getOrganizationTurfReviewSummary(organizationId: string) {
+
+    const organizationExists = await mongoose.model('Organization').exists({ _id: organizationId });
+    if (!organizationExists) {
+      throw new Error("Organization not found");
+    }
+
+    // Use aggregation to efficiently get all data in a single query
+    const turfs = await Turf.aggregate([
+      // Stage 1: Match all turfs belonging to this organization
+      { $match: { organization: new mongoose.Types.ObjectId(organizationId) } },
+
+      // Stage 2: Lookup reviews for each turf
+      {
+        $lookup: {
+          from: "turfreviews", // Collection name (lowercase and plural)
+          localField: "_id",
+          foreignField: "turf",
+          as: "turfReviews"
+        }
+      },
+
+      // Stage 3: Calculate review stats for each turf
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          sports: 1,
+          team_size: 1,
+          averageRating: {
+            $cond: {
+              if: { $gt: [{ $size: "$turfReviews" }, 0] },
+              then: { $avg: "$turfReviews.rating" },
+              else: 0
+            }
+          },
+          reviewCount: { $size: "$turfReviews" }
+        }
+      }
+    ]);
+
+    // Calculate organization-level summary
+    let totalReviews = 0;
+    let ratingSum = 0;
+
+    turfs.forEach(turf => {
+      totalReviews += turf.reviewCount;
+      // Only add to ratingSum if the turf has reviews
+      // This avoids 0 values skewing the organization average
+      if (turf.reviewCount > 0) {
+        ratingSum += (turf.averageRating * turf.reviewCount);
+      }
+    });
+
+    const organizationAverageRating = totalReviews > 0 ? ratingSum / totalReviews : 0;
+
+    return {
+      turfs,
+      summary: {
+        totalTurfs: turfs.length,
+        totalReviews,
+        organizationAverageRating
+      }
+    };
   }
 }

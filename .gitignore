@@ -103,3 +103,5 @@ desktop.ini
 # testing
 /cypress/videos/
 /cypress/screenshots/
+package.lock.json
+package.json

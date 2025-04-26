@@ -10,6 +10,8 @@ import OrganizationRequest, {
 import { uploadImage } from "../../utils/cloudinary";
 import ErrorResponse from "../../utils/errorResponse";
 import { sendEmail } from "../../utils/email";
+import FaciltyService from "../facility/facility.service";
+
 
 interface CreateRequestDto {
   organizationName: string;
@@ -29,6 +31,8 @@ interface CreateRequestDto {
   contactPhone: string;
   ownerEmail: string;
   requestNotes?: string;
+  orgContactPhone: string;
+  orgContactEmail: string; 
 }
 
 interface ProcessingResult {
@@ -60,6 +64,8 @@ export interface RequestsResult {
 }
 
 export default class OrganizationRequestService {
+  facilityService = new FaciltyService();
+
   // Validates the owner email by checking if it exists in the user database
   public async validateOwnerEmail(email: string): Promise<boolean> {
     if (!email || !validator.isEmail(email)) {
@@ -88,6 +94,9 @@ export default class OrganizationRequestService {
           400
         );
       }
+
+      // Validate facilities
+      await this.facilityService.validateFacilities(requestData.facilities);
 
       // Upload images directly to Cloudinary
       const imageUrls: string[] = [];
@@ -223,7 +232,9 @@ export default class OrganizationRequestService {
     requestId: string,
     orgName: string,
     facilities: string[],
-    location: any
+    location: any,
+    orgContactPhone: string,
+    orgContactEmail: string
   ): Promise<boolean> {
     try {
       // Get the original request
@@ -248,13 +259,13 @@ export default class OrganizationRequestService {
         request.location.coordinates.coordinates[0] !== location.coordinates.coordinates[0] ||
         request.location.coordinates.coordinates[1] !== location.coordinates.coordinates[1];
 
-      return nameChanged || facilitiesChanged || locationChanged;
+      const phoneChanged = request.orgContactPhone !== orgContactPhone;
+      const emailChanged = request.orgContactEmail !== orgContactEmail;
+
+      return nameChanged || facilitiesChanged || locationChanged || phoneChanged || emailChanged;
     } catch (error) {
       console.error('Error checking if request was edited:', error);
-      throw new ErrorResponse(
-        'Failed to compare request data',
-        500
-      );
+      throw new ErrorResponse('Failed to compare request data', 500);
     }
   }
 
@@ -476,7 +487,7 @@ export default class OrganizationRequestService {
   ): Promise<IOrganizationRequest[]> {
     return OrganizationRequest.find({ requesterId: userId })
       .sort({ createdAt: -1 })
-      .select("-adminNotes -processingAdminId -processingStartedAt -__v")
+      .select("-processingAdminId -__v")
       .lean();
   }
 

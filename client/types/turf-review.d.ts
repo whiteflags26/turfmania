@@ -1,13 +1,25 @@
 import { ITurf } from "./turf";
-import { IUser } from "./user";
 
 export interface ITurfReview {
   _id: string;
-  turf: ITurf | string;
-  user: IUser ;
+  turf: ITurf;
+  user: {
+    _id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    isVerified: boolean;
+  };
   rating: number;
   review?: string;
-  images?: string[];
+  images: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UpdateReviewData {
+  rating?: number;
+  review?: string;
+  images?: File[];
+  existingImages?: string[];
 }
