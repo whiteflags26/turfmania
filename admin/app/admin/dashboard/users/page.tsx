@@ -19,7 +19,7 @@ export default function UsersManagement() {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5000/api/v1/users', {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users`, {
           withCredentials: true,
         });
         setUsers(response.data.data);
