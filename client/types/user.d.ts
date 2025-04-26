@@ -6,7 +6,6 @@ export interface IUser {
   last_name: string;
   email: string;
   phone_number?: string;
-  user_roles: string[];
   isVerified: boolean;
   verificationToken: string;
   verificationTokenExpires: string; // ISO date string

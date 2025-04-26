@@ -24,6 +24,8 @@ export interface Organization {
   facilities: string[];
   images?: string[];
   turfs?: string[];
+  orgContactPhone: string;
+  orgContactEmail: string;
   createdAt?: string;
   updatedAt?: string;
   __v?: number;
@@ -32,7 +34,12 @@ export interface Organization {
 export interface OrganizationRequest {
   _id: string;
   organizationName: string;
-  status: 'pending' | 'approved' | 'rejected' | 'processing' | 'approved_with_changes';
+  status:
+    | 'pending'
+    | 'approved'
+    | 'rejected'
+    | 'processing'
+    | 'approved_with_changes';
   location: Location;
   requesterId: RequesterInfo;
   createdAt: string;

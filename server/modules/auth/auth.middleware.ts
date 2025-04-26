@@ -246,3 +246,44 @@ export const logAdminAction = (action: string, entityType: string) => {
     next();
   };
 };
+
+
+export const restrictToOrganizationMembers = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.user) {
+      return next(new ErrorResponse('User not authenticated', 401));
+    }
+
+    const organizationId =  req.params.organizationId;
+
+    if (!organizationId) {
+      return next(
+        new ErrorResponse('Organization ID is required to access this resource', 400),
+      );
+    }
+
+    const roleAssignment = await UserRoleAssignment.findOne({
+      userId: new mongoose.Types.ObjectId(req.user.id),
+      scope: 'organization',
+      scopeId: new mongoose.Types.ObjectId(organizationId),
+    });
+
+    if (!roleAssignment) {
+      return next(
+        new ErrorResponse(
+          'You are not authorized to access this organization dashboard',
+          403,
+        ),
+      );
+    }
+
+    return next();
+  } catch (error) {
+    console.error('Authorization error:', error);
+    return next(new ErrorResponse('Authorization failed', 500));
+  }
+};

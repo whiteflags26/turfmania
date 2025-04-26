@@ -53,6 +53,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           permission: 'view_organizations',
         },
         { name: 'Organization Form', href: '/admin/dashboard/organization-form' },
+        { name: 'Manage Facilities', href: '/admin/dashboard/facilities' },
+        { name: 'Manage Sports', href: '/admin/dashboard/sports' },
+        { name: 'Manage Team Size', href: '/admin/dashboard/team_size' }
       ];
 
       const availableNavItems = await Promise.all(

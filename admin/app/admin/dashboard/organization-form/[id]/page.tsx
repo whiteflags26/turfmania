@@ -2,6 +2,7 @@
 
 import {
   createOrganization,
+  getAllFacilities,
   getSingleOrganizationRequest,
 } from '@/services/organizationService';
 import {
@@ -18,18 +19,6 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 // Mock facility options
-const FACILITY_OPTIONS = [
-  'football',
-  'cricket',
-  'basketball',
-  'tennis',
-  'badminton',
-  'volleyball',
-  'swimming_pool',
-  'gym',
-  'table_tennis',
-  'indoor_sports',
-];
 
 export default function EditOrganizationForm() {
   const router = useRouter();
@@ -47,12 +36,16 @@ export default function EditOrganizationForm() {
   const [longitude, setLongitude] = useState(0);
   const [latitude, setLatitude] = useState(0);
   const [facilities, setFacilities] = useState<string[]>([]);
-  const [images, setImages] = useState<string[]>([]);
-  const [newImages, setNewImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [orgContactPhone, setOrgContactPhone] = useState('');
+  const [orgContactEmail, setOrgContactEmail] = useState('');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [facilityOptions, setFacilityOptions] = useState<string[]>([]);
 
   // Fetch organization data
   useEffect(() => {
@@ -69,19 +62,20 @@ export default function EditOrganizationForm() {
           setAddress(orgData.location.address);
           setPlaceId(orgData.location.place_id);
           setCity(orgData.location.city);
-          setArea(orgData.location.area || '');
-          setSubArea(orgData.location.sub_area || '');
-          setPostCode(orgData.location.post_code || '');
+          setArea(orgData.location.area ?? '');
+          setSubArea(orgData.location.sub_area ?? '');
+          setPostCode(orgData.location.post_code ?? '');
           setLongitude(orgData.location.coordinates.coordinates[0]);
           setLatitude(orgData.location.coordinates.coordinates[1]);
 
           setFacilities(orgData.facilities);
-          setImages(orgData.images);
-          setNewImages(orgData.images);
+          setExistingImages(orgData.images || []);
+          setOrgContactPhone(orgData.orgContactPhone || '');
+          setOrgContactEmail(orgData.orgContactEmail || '');
         }
       } catch (err: any) {
         console.error('Error fetching organization data:', err);
-        setError(err.message || 'Failed to load organization data');
+        setError(err.message ?? 'Failed to load organization data');
       } finally {
         setFetchLoading(false);
       }
@@ -92,6 +86,25 @@ export default function EditOrganizationForm() {
     }
   }, [organizationId]);
 
+  // Add after the existing useEffect
+  useEffect(() => {
+    const fetchFacilities = async () => {
+      try {
+        const response = await getAllFacilities();
+        if (response.success) {
+          setFacilityOptions(
+            response.data.map((facility: any) => facility.name),
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching facilities:', error);
+        setError('Failed to load facilities');
+      }
+    };
+
+    fetchFacilities();
+  }, []);
+
   // Handler functions
   const handleFacilityToggle = (facility: string) => {
     setFacilities(prev =>
@@ -101,17 +114,17 @@ export default function EditOrganizationForm() {
     );
   };
 
-  const formatFacilityName = (facility: string) => {
-    return facility
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
+
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const remainingSlots = 5 - (images.length + newImages.length);
-      if (remainingSlots <= 0) return;
+      const totalImagesCount = existingImages.length + newImageFiles.length;
+      const remainingSlots = 5 - totalImagesCount;
+
+      if (remainingSlots <= 0) {
+        toast.error('Maximum 5 images allowed');
+        return;
+      }
 
       const files = Array.from(e.target.files).slice(0, remainingSlots);
 
@@ -130,20 +143,16 @@ export default function EditOrganizationForm() {
         );
       }
 
-      setNewImages(prev => [...prev, ...validFiles]);
+      setNewImageFiles(prev => [...prev, ...validFiles]);
     }
   };
 
-  const removeImage = (index: number) => {
-    // Remove existing image
-    if (index < images.length) {
-      const updatedImages = [...images];
-      updatedImages.splice(index, 1);
-      setImages(updatedImages);
-    } else {
-      // Remove newly added image (not in the original images array)
-      setNewImages(prev => prev.filter((_, i) => i !== index));
-    }
+  const removeExistingImage = (index: number) => {
+    setExistingImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeNewImage = (index: number) => {
+    setNewImageFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -151,60 +160,59 @@ export default function EditOrganizationForm() {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-
-      // Add organization name
-      formData.append('organizationName', name);
-
-      // Add facilities
-      facilities.forEach((facility, index) => {
-        formData.append(`facilities[]`, facility);
-      });
-
-      // Add location details
-      const locationData = {
-        place_id: placeId,
-        address: address,
-        coordinates: {
-          type: 'Point',
-          coordinates: [longitude, latitude], // [longitude, latitude]
+      // Create the payload object
+      const payload = {
+        name,
+        facilities,
+        location: {
+          place_id: placeId,
+          address,
+          coordinates: {
+            type: 'Point',
+            coordinates: [longitude, latitude],
+          },
+          area: area || undefined,
+          sub_area: subArea || undefined,
+          city,
+          post_code: postCode || undefined,
         },
-        area: area || undefined,
-        sub_area: subArea || undefined,
-        city: city,
-        post_code: postCode || undefined,
+        orgContactPhone,
+        orgContactEmail,
+        requestId: params.id || null,
+        adminNotes,
+        wasEdited: 'True',
       };
 
-      formData.append('location', JSON.stringify(locationData));
-
-      // Add request ID and wasEdited flag
-      if (params.id) {
-        formData.append('requestId', params.id);
-      }
-      formData.append('wasEdited', 'False');
-
-      const response = await createOrganization(formData);
+      const response = await createOrganization(payload);
 
       if (response.success) {
         setSuccess(true);
-        toast.success('Organization created successfully!');
+        toast.success('Organization updated successfully!');
         router.push('/admin/dashboard/organization-requests');
       }
     } catch (err: any) {
-      console.error('Error creating organization:', err);
-      setError(err.message || 'Failed to create organization');
-      toast.error(err.message || 'Failed to create organization');
+      console.error('Error updating organization:', err);
+      setError(err.message ?? 'Failed to update organization');
+      toast.error(err.message ?? 'Failed to update organization');
     } finally {
       setLoading(false);
     }
   };
 
   const isFormValid =
-    name && address && placeId && city && facilities.length > 0;
+    name &&
+    address &&
+    placeId &&
+    city &&
+    facilities.length > 0 &&
+    orgContactPhone &&
+    orgContactEmail;
 
   const goBack = () => {
     router.back();
   };
+
+  const totalImagesCount = existingImages.length + newImageFiles.length;
 
   if (fetchLoading) {
     return (
@@ -269,15 +277,13 @@ export default function EditOrganizationForm() {
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Create Organization
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Edit Organization</h1>
       </div>
 
       {success && (
         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
           <Check className="h-5 w-5 text-green-500 mr-2" />
-          <p className="text-green-700">Organization created successfully!</p>
+          <p className="text-green-700">Organization updated successfully!</p>
         </div>
       )}
 
@@ -308,6 +314,58 @@ export default function EditOrganizationForm() {
                       onChange={e => setName(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter organization name"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="orgContactPhone"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Contact Phone*
+                    </label>
+                    <input
+                      type="tel"
+                      id="orgContactPhone"
+                      value={orgContactPhone}
+                      onChange={e => setOrgContactPhone(e.target.value)}
+                      className={`${inputClasses} placeholder-gray-500`}
+                      placeholder="+8801XXXXXXXXX"
+                      pattern="\+880\d{10}"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="orgContactEmail"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Contact Email*
+                    </label>
+                    <input
+                      type="email"
+                      id="orgContactEmail"
+                      value={orgContactEmail}
+                      onChange={e => setOrgContactEmail(e.target.value)}
+                      className={`${inputClasses} placeholder-gray-500`}
+                      placeholder="organization@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="adminNotes"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Admin Notes
+                    </label>
+                    <textarea
+                      id="adminNotes"
+                      value={adminNotes}
+                      onChange={e => setAdminNotes(e.target.value)}
+                      className={`${inputClasses} placeholder-gray-500`}
+                      placeholder="Add any administrative notes here..."
+                      rows={3}
                     />
                   </div>
                 </div>
@@ -479,20 +537,25 @@ export default function EditOrganizationForm() {
               </div>
               <div className="p-6">
                 <div className="flex flex-wrap gap-2">
-                  {FACILITY_OPTIONS.map(facility => (
-                    <button
-                      key={facility}
-                      type="button"
-                      onClick={() => handleFacilityToggle(facility)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        facilities.includes(facility)
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                      }`}
-                    >
-                      {formatFacilityName(facility)}
-                    </button>
-                  ))}
+                  {facilityOptions.length > 0 ? (
+                    facilityOptions.map(facility => (
+                      <button
+                        key={facility}
+                        type="button"
+                        onClick={() => handleFacilityToggle(facility)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          facilities.includes(facility)
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                        }`}
+                      >
+                        {facility}{' '}
+                        {/* Display facility name exactly as received */}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">Loading facilities...</p>
+                  )}
                 </div>
                 {facilities.length === 0 && (
                   <p className="mt-2 text-sm text-gray-500">
@@ -511,12 +574,46 @@ export default function EditOrganizationForm() {
                   <Upload className="w-5 h-5 mr-2" />
                   Organization Images
                   <span className="ml-2 text-sm text-gray-500">
-                    ({newImages.length}/5 images)
+                    ({totalImagesCount}/5 images)
                   </span>
                 </h2>
               </div>
               <div className="p-6">
                 <div className="space-y-4">
+                  {/* Existing Images Preview */}
+                  {existingImages.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 mb-2">
+                        Existing Images
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        {existingImages.map((imageUrl, idx) => (
+                          <div
+                            key={`existing-${idx}`}
+                            className="relative group"
+                          >
+                            <div className="aspect-square w-full overflow-hidden rounded-md">
+                              <img
+                                src={imageUrl}
+                                alt={`Existing image ${idx + 1}`}
+                                className="object-cover w-full h-full"
+                              />
+                              <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button
+                                  type="button"
+                                  onClick={() => removeExistingImage(idx)}
+                                  className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* New Image Upload */}
                   <div>
                     <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -525,7 +622,7 @@ export default function EditOrganizationForm() {
                     <label
                       htmlFor="imageUpload"
                       className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${
-                        newImages.length >= 5
+                        totalImagesCount >= 5
                           ? 'opacity-50 cursor-not-allowed'
                           : ''
                       }`}
@@ -547,19 +644,19 @@ export default function EditOrganizationForm() {
                         multiple
                         className="hidden"
                         onChange={handleImageUpload}
-                        disabled={newImages.length >= 5}
+                        disabled={totalImagesCount >= 5}
                       />
                     </label>
                   </div>
 
                   {/* New Images Preview */}
-                  {newImages.length > 0 && (
+                  {newImageFiles.length > 0 && (
                     <div>
                       <h3 className="text-sm font-medium text-gray-900 mb-2">
-                        Images to Upload
+                        New Images
                       </h3>
                       <div className="grid grid-cols-2 gap-2">
-                        {newImages.map((file, idx) => (
+                        {newImageFiles.map((file, idx) => (
                           <div key={`new-${idx}`} className="relative group">
                             <div className="aspect-square w-full overflow-hidden rounded-md">
                               <img
@@ -570,11 +667,7 @@ export default function EditOrganizationForm() {
                               <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setNewImages(prev =>
-                                      prev.filter((_, i) => i !== idx),
-                                    );
-                                  }}
+                                  onClick={() => removeNewImage(idx)}
                                   className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600"
                                 >
                                   Remove
@@ -632,10 +725,10 @@ export default function EditOrganizationForm() {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                Creating...
+                Updating...
               </div>
             ) : (
-              'Create Organization'
+              'Update Organization'
             )}
           </button>
         </div>

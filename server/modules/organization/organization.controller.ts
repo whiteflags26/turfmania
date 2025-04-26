@@ -58,11 +58,23 @@ interface AssignRoleBody {
  */
 export const createOrganization = asyncHandler(
   async (
-    req: AuthRequest & { body: CreateOrganizationBody & { requestId?: string, adminNotes?: string } },
+    req: AuthRequest & {
+      body: CreateOrganizationBody & {
+        requestId?: string;
+        adminNotes?: string;
+      };
+    },
     res: Response,
     next: NextFunction
   ) => {
-    const { name, facilities, requestId, adminNotes, orgContactEmail, orgContactPhone } = req.body;
+    const {
+      name,
+      facilities,
+      requestId,
+      adminNotes,
+      orgContactEmail,
+      orgContactPhone,
+    } = req.body;
 
     // Validate user authentication first
     if (!req.user) {
@@ -73,15 +85,16 @@ export const createOrganization = asyncHandler(
     if (!name) {
       return next(new ErrorResponse("Name is required", 400));
     }
-    if(!orgContactEmail){
+    if (!orgContactEmail) {
       return next(new ErrorResponse("Contact email is required", 400));
     }
-    if(!orgContactPhone){
+    if (!orgContactPhone) {
       return next(new ErrorResponse("Contact phone is required", 400));
     }
 
     // Sanitize organization name
-    const sanitizedName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    const sanitizedName =
+      name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 
     let parsedFacilities: IOrganization["facilities"];
     let location: IOrganization["location"];
@@ -115,8 +128,9 @@ export const createOrganization = asyncHandler(
       }
 
       // Sanitize facility names
-      parsedFacilities = parsedFacilities.map(facility => 
-        facility.charAt(0).toUpperCase() + facility.slice(1).toLowerCase()
+      parsedFacilities = parsedFacilities.map(
+        (facility) =>
+          facility.charAt(0).toUpperCase() + facility.slice(1).toLowerCase()
       );
     } catch (error) {
       console.error("Facilities parsing error:", error);
@@ -174,18 +188,18 @@ export const createOrganization = asyncHandler(
     if (!req.body.orgContactPhone) {
       return next(new ErrorResponse("Contact phone is required", 400));
     }
-    
+
     if (!req.body.orgContactEmail) {
       return next(new ErrorResponse("Contact email is required", 400));
     }
-    
+
     // Validate email format
     if (!validator.isEmail(req.body.orgContactEmail)) {
       return next(new ErrorResponse("Invalid contact email format", 400));
     }
 
     const images = req.files as Express.Multer.File[];
-    
+
     // Create organization
     const organization = await organizationService.createOrganization(
       sanitizedName,
@@ -203,8 +217,8 @@ export const createOrganization = asyncHandler(
       success: true,
       data: organization,
       message: requestId
-        ? 'Organization created and request approved successfully'
-        : 'Organization created successfully',
+        ? "Organization created and request approved successfully"
+        : "Organization created successfully",
     });
   }
 );
@@ -271,21 +285,29 @@ export const updateOrganization = asyncHandler(
 
     // Sanitize and add name if provided
     if (name) {
-      updateData.name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+      updateData.name =
+        name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
     }
 
     // Sanitize and add facilities if provided
     if (facilities) {
-      let parsedFacilities = typeof facilities === "string" ? JSON.parse(facilities) : facilities;
-      
+      let parsedFacilities =
+        typeof facilities === "string" ? JSON.parse(facilities) : facilities;
+
       // Validate array elements are strings
-      if (!Array.isArray(parsedFacilities) || !parsedFacilities.every((facility) => typeof facility === "string")) {
-        return next(new ErrorResponse("Facilities must be an array of strings", 400));
+      if (
+        !Array.isArray(parsedFacilities) ||
+        !parsedFacilities.every((facility) => typeof facility === "string")
+      ) {
+        return next(
+          new ErrorResponse("Facilities must be an array of strings", 400)
+        );
       }
-      
+
       // Sanitize facility names
-      updateData.facilities = parsedFacilities.map(facility => 
-        facility.charAt(0).toUpperCase() + facility.slice(1).toLowerCase()
+      updateData.facilities = parsedFacilities.map(
+        (facility) =>
+          facility.charAt(0).toUpperCase() + facility.slice(1).toLowerCase()
       );
     }
 
@@ -404,3 +426,21 @@ export const fetchOtherTurfs = async (
     next(error);
   }
 };
+
+/**
+ * @route   GET /api/v1/organizations/:id
+ * @desc    Get organization by ID
+ * @access  Public
+ */
+export const getOrganization = asyncHandler(
+  async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    const organization = await organizationService.getOrganizationById(id);
+
+    res.status(200).json({
+      success: true,
+      data: organization,
+    });
+  }
+);
