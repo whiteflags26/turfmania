@@ -110,16 +110,14 @@ export default function ReviewsSection() {
           <div className="text-center">
             <div className="flex justify-center space-x-2">
               {[5, 4, 3, 2, 1].map((rating) => (
-                <div
-                  key={rating}
-                  className="flex flex-col items-center gap-1"
-                >
+                <div key={rating} className="flex flex-col items-center gap-1">
                   <div className="h-20 w-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="bg-yellow-400 w-full transition-all duration-500 ease-out"
                       style={{
                         height: `${
-                          ((data.ratingDistribution[rating] || 0) / data.total) *
+                          ((data.ratingDistribution[rating] || 0) /
+                            data.total) *
                           100
                         }%`,
                       }}
@@ -144,7 +142,7 @@ export default function ReviewsSection() {
             <div className="flex flex-col md:flex-row justify-between gap-4">
               <div className="space-y-1">
                 <Link
-                  href={`/turf/${review.turf._id}`}
+                  href={`/venues/${review.turf._id}`}
                   className="text-lg font-semibold text-gray-900 hover:text-primary"
                 >
                   {review.turf.name}
