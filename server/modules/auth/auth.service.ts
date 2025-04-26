@@ -1,16 +1,16 @@
-import { organizationService } from './../organization/organization.service';
-import { ObjectId } from 'mongoose';
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
-import jwt, { SignOptions } from 'jsonwebtoken';
-import { Types } from 'mongoose';
-import { sendEmail } from '../../utils/email';
-import ErrorResponse from '../../utils/errorResponse';
-import Token from '../token/token.model';
-import { PermissionScope } from './../permission/permission.model';
-import User, { UserDocument } from './../user/user.model';
+import { organizationService } from "./../organization/organization.service";
+import { ObjectId } from "mongoose";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import jwt, { SignOptions } from "jsonwebtoken";
+import { Types } from "mongoose";
+import { sendEmail } from "../../utils/email";
+import ErrorResponse from "../../utils/errorResponse";
+import Token from "../token/token.model";
+import { PermissionScope } from "./../permission/permission.model";
+import User, { UserDocument } from "./../user/user.model";
 
-import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
+import UserRoleAssignment from "../role_assignment/userRoleAssignment.model";
 
 interface IPermission {
   _id: Types.ObjectId;
@@ -22,7 +22,7 @@ class AuthService {
 
   constructor() {
     if (!process.env.JWT_SECRET || !process.env.JWT_EXPIRE) {
-      throw new Error('JWT configuration is missing');
+      throw new Error("JWT configuration is missing");
     }
     this.JWT_SECRET = process.env.JWT_SECRET;
   }
@@ -31,14 +31,14 @@ class AuthService {
 
   public generateToken(user: UserDocument): string {
     const signOptions: SignOptions = {
-      expiresIn: '30d',
+      expiresIn: "30d",
     };
     return jwt.sign(
       {
         id: user._id,
       },
       this.JWT_SECRET,
-      signOptions,
+      signOptions
     );
   }
 
@@ -52,7 +52,7 @@ class AuthService {
 
   public async sendVerificationEmail(user: UserDocument) {
     // Generate verification token
-    const verificationToken = crypto.randomBytes(20).toString('hex');
+    const verificationToken = crypto.randomBytes(20).toString("hex");
     user.verificationToken = verificationToken;
     user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     await user.save();
@@ -61,8 +61,8 @@ class AuthService {
     const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}&id=${user._id}`;
     await sendEmail(
       user.email,
-      'Verify Your Email',
-      `Click the link to verify your email:\n\n${verificationUrl}\n\nThis link is valid for 24 hours.`,
+      "Verify Your Email",
+      `Click the link to verify your email:\n\n${verificationUrl}\n\nThis link is valid for 24 hours.`
     );
   }
 
@@ -70,7 +70,7 @@ class AuthService {
 
   public async sendPasswordResetEmail(user: UserDocument) {
     //generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetToken = crypto.randomBytes(32).toString("hex");
 
     const salt = 10;
     const hashedToken = await bcrypt.hash(resetToken, Number(salt));
@@ -84,36 +84,34 @@ class AuthService {
     // Send reset email
     return await sendEmail(
       user.email,
-      'Password Reset Request',
-      `Click the link to reset your password:\n\n${resetUrl}\n\nThis link is valid for 10 minutes.`,
+      "Password Reset Request",
+      `Click the link to reset your password:\n\n${resetUrl}\n\nThis link is valid for 10 minutes.`
     );
   }
 
   /** @desc Check if user has organization dashboard access **/
   public async checkUserRoleInOrganization(
     userId: string,
-    organizationId: string,
+    organizationId: string
   ) {
-
-    console.log('userId', userId);
-    console.log('organizationId', organizationId);
+    console.log("userId", userId);
+    console.log("organizationId", organizationId);
     const roleAssignment = await UserRoleAssignment.findOne({
       userId,
-      scope: 'organization',
+      scope: "organization",
       scopeId: organizationId,
     });
-console.log('roleAssignment', roleAssignment);
+    console.log("roleAssignment", roleAssignment);
 
     if (!roleAssignment) {
       throw new ErrorResponse(
-        'You do not have access to this organization dashboard',
-        403,
+        "You do not have access to this organization dashboard",
+        403
       );
     }
 
     return roleAssignment;
   }
-
 
   /** @desc Check if user has admin dashboard access **/
   public async checkAdminAccess(userId: Types.ObjectId): Promise<boolean> {
@@ -126,11 +124,11 @@ console.log('roleAssignment', roleAssignment);
           permissions: IPermission[];
         };
       }>({
-        path: 'roleId',
-        select: 'permissions',
+        path: "roleId",
+        select: "permissions",
         populate: {
-          path: 'permissions',
-          select: '_id name',
+          path: "permissions",
+          select: "_id name",
         },
       });
 
@@ -139,10 +137,10 @@ console.log('roleAssignment', roleAssignment);
       }
 
       return assignments.roleId.permissions.some(
-        permission => permission.name === 'access_admin_dashboard',
+        (permission) => permission.name === "access_admin_dashboard"
       );
     } catch (error) {
-      console.error('Error checking admin access:', error);
+      console.error("Error checking admin access:", error);
       return false;
     }
   }
@@ -153,24 +151,24 @@ console.log('roleAssignment', roleAssignment);
 export const resetUserPassword = async (
   id: string,
   token: string,
-  newPassword: string,
+  newPassword: string
 ) => {
   // Check if token exists in DB
   const tokenRecord = await Token.findOne({ userId: id });
   if (!tokenRecord) {
-    throw new ErrorResponse('Invalid or expired token', 400);
+    throw new ErrorResponse("Invalid or expired token", 400);
   }
 
   // Compare provided token with hashed token in DB
   const isMatch = await bcrypt.compare(token, tokenRecord.token);
   if (!isMatch) {
-    throw new ErrorResponse('Invalid or expired token', 400);
+    throw new ErrorResponse("Invalid or expired token", 400);
   }
 
   // Find user by ID
   const user = await User.findById(id);
   if (!user) {
-    throw new ErrorResponse('User not found', 404);
+    throw new ErrorResponse("User not found", 404);
   }
 
   // Update user password
@@ -183,11 +181,11 @@ export const resetUserPassword = async (
   // Send success email
   await sendEmail(
     user.email,
-    'Password Reset Successful',
-    'Your password has been successfully reset. If you did not perform this action, please contact support immediately.',
+    "Password Reset Successful",
+    "Your password has been successfully reset. If you did not perform this action, please contact support immediately."
   );
 
-  return { success: true, message: 'Password reset successful!' };
+  return { success: true, message: "Password reset successful!" };
 };
 
 export const authService = new AuthService();
