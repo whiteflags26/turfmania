@@ -33,7 +33,7 @@ export interface Organization {
   __v?: number;
 }
 
-interface OrganizationRequest {
+export interface OrganizationRequest {
   _id: string;
   organizationName: string;
   status: 'pending' | 'approved' | 'rejected' | 'processing' | 'approved_with_changes';

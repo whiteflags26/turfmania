@@ -37,6 +37,16 @@ export default class OrganizationRequestController {
         orgContactEmail,
         requestNotes,
       } = req.body;
+      console.log("Request body:", req.body);
+
+      console.log(organizationName)
+      console.log(facilities)
+      console.log(location)
+      console.log(contactPhone)
+      console.log(ownerEmail) 
+      console.log(orgContactPhone)
+      console.log(orgContactEmail)  
+        
       // Validate required fields
       if (
         !organizationName ||
@@ -52,7 +62,7 @@ export default class OrganizationRequestController {
 
       // Sanitize and validate email field
       const sanitizedOwnerEmail = validator
-        .trim(ownerEmail || "")
+        .trim(ownerEmail ?? "")
         .toLowerCase();
 
       // Validate email format

@@ -16,6 +16,6 @@ export interface CreateRequestDto {
   contactPhone: string;
   ownerEmail: string;
   requestNotes?: string;
-  orgContactPhone: string; // Add this
-  orgContactEmail: string; // Add this
+  orgContactPhone: string; // Fixed naming
+  orgContactEmail: string; // Keep consistent naming
 }

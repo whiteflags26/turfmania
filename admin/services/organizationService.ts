@@ -1,7 +1,7 @@
 import api from '@/lib/axios';
 import {
   OrganizationRequestsResponse,
-  SingleOrganizationRequestResponse, // Updated import name
+  SingleOrganizationRequestResponse,
 } from '@/types/organization';
 
 export interface RequestFilters {
@@ -35,8 +35,7 @@ export async function getOrganizationRequests(
 
 export async function getSingleOrganizationRequest(
   requestId: string,
-): Promise<any> {
-  // Updated return type
+): Promise<SingleOrganizationRequestResponse> {
   try {
     const { data } = await api.get(
       `/api/v1/organization-requests/admin/${requestId}`,
@@ -54,20 +53,37 @@ export async function getSingleOrganizationRequest(
 
 export async function processOrganizationRequest(
   requestId: string,
-): Promise<any> {
-  // ...existing code...
+): Promise<{ success: boolean; data: OrganizationRequestsResponse }> {
+  try {
+    const response = await api.put(
+      `/api/v1/organization-requests/${requestId}/process`,
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to process request',
+    );
+  }
 }
-
 export async function CancelProcessOrganizationRequest(
   requestId: string,
-): Promise<any> {
-  // ...existing code...
+): Promise<{ success: boolean; data: OrganizationRequestsResponse }> {
+  try {
+    const response = await api.put(
+      `/api/v1/organization-requests/${requestId}/cancel-processing`,
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ?? 'Failed to process request',
+    );
+  }
 }
 
 export async function rejectOrganizationRequest(
   requestId: string,
   adminNotes: string,
-): Promise<any> {
+): Promise<{ success: boolean; data: OrganizationRequestsResponse }> {
   try {
     const requestData = {
       adminNotes: adminNotes,
