@@ -10,7 +10,7 @@ export async function verifyEmail(token: string, userId: string) {
 
   if (!response.ok) {
     throw new Error(
-      data.message || "Email verification failed. Please try again."
+      data.message ?? "Email verification failed. Please try again."
     );
   }
 

@@ -4,7 +4,6 @@ import asyncHandler from '../../shared/middleware/async';
 import ErrorResponse from '../../utils/errorResponse';
 import { AuthRequest } from '../auth/auth.middleware';
 import { roleService } from './role.service';
-import { PermissionScope } from '../permission/permission.model';
 
 interface UpdateRoleBody {
   name?: string;
@@ -100,13 +99,17 @@ export const createGlobalRole = asyncHandler(
     next: NextFunction,
   ) => {
     const { name, permissions, isDefault } = req.body;
+    
+    
 
     // Validate request body
     if (!name || !permissions?.length) {
       return next(new ErrorResponse('Name and permissions are required', 400));
     }
 
-    if (!permissions.every((id: string) => mongoose.Types.ObjectId.isValid(id))) {
+    if (
+      !permissions.every((id: string) => mongoose.Types.ObjectId.isValid(id))
+    ) {
       return next(new ErrorResponse('Invalid permission ID(s) provided', 400));
     }
 
@@ -143,7 +146,9 @@ export const createOrganizationRole = asyncHandler(
     }
 
     // Validate permission IDs
-    if (!permissions.every((id: string) => mongoose.Types.ObjectId.isValid(id))) {
+    if (
+      !permissions.every((id: string) => mongoose.Types.ObjectId.isValid(id))
+    ) {
       return next(new ErrorResponse('Invalid permission ID(s) provided', 400));
     }
 
@@ -173,9 +178,9 @@ export const getGlobalRoles = asyncHandler(
     res.status(200).json({
       success: true,
       count: roles.length,
-      data: roles
+      data: roles,
     });
-  }
+  },
 );
 
 /**
@@ -187,7 +192,7 @@ export const getRoleById = asyncHandler(
   async (
     req: AuthRequest & { params: { roleId: string } },
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) => {
     const { roleId } = req.params;
 
@@ -199,9 +204,35 @@ export const getRoleById = asyncHandler(
 
     res.status(200).json({
       success: true,
-      data: role
+      data: role,
     });
-  }
+  },
+);
+
+/**
+ * @desc    Get permissions for a role
+ * @route   GET /api/v1/roles/:roleId/permissions
+ * @access  Private
+ */
+export const getRolePermissions = asyncHandler(
+  async (
+    req: AuthRequest & { params: { roleId: string } },
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const { roleId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(roleId)) {
+      return next(new ErrorResponse('Invalid role ID', 400));
+    }
+
+    const permissions = await roleService.getRolePermissions(roleId);
+
+    res.status(200).json({
+      success: true,
+      data: permissions,
+    });
+  },
 );
 
 /**
@@ -213,7 +244,7 @@ export const deleteRole = asyncHandler(
   async (
     req: AuthRequest & { params: { roleId: string } },
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) => {
     const { roleId } = req.params;
 
@@ -225,7 +256,7 @@ export const deleteRole = asyncHandler(
 
     res.status(200).json({
       success: true,
-      message: 'Role deleted successfully'
+      message: 'Role deleted successfully',
     });
-  }
+  },
 );

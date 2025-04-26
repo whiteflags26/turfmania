@@ -186,7 +186,8 @@ export default class TurfReviewService {
   // Get all reviews for a specific turf and their average rating and rating distribution
   async getReviewsByTurf(
     turfId: string,
-    options: ReviewFilterOptions = {}
+    options: ReviewFilterOptions = {},
+    requestingUserId?: string // Add parameter for requesting user
   ): Promise<ReviewSummary> {
     const filter = { turf: turfId };
     const matchStage = { turf: new mongoose.Types.ObjectId(turfId) };
@@ -199,8 +200,76 @@ export default class TurfReviewService {
         populateField: "user",
         populateSelect: "_id first_name last_name email isVerified",
       },
-      options
+      options,
+      requestingUserId
     );
+  }
+
+  // Common method for retrieving reviews with stats
+  private async getReviewsWithStats(
+    filter: any,
+    matchStage: any,
+    populateOptions: { populateField: string; populateSelect: string },
+    options: ReviewFilterOptions = {},
+    requestingUserId?: string
+  ): Promise<ReviewSummary> {
+    // Apply rating filters
+    this.applyRatingFilters(filter, matchStage, options);
+
+    // Get pagination and sorting options
+    const paginationSort = this.getPaginationAndSortOptions(options);
+
+    // Execute all promises in parallel for efficiency
+    const [totalCount, ratingStats] = await Promise.all([
+      TurfReview.countDocuments(filter),
+      TurfReview.aggregate([
+        { $match: matchStage },
+        {
+          $group: {
+            _id: "$rating",
+            count: { $sum: 1 },
+          },
+        },
+      ])
+    ]);
+
+    let userReview: any = null;
+
+    // If requesting user ID is provided, efficiently fetch their review first
+    // This leverages the compound index {turf: 1, user: 1}
+    if (requestingUserId && filter.turf) {
+      userReview = await TurfReview.findOne({
+        turf: filter.turf,
+        user: requestingUserId
+      })
+        .populate(populateOptions.populateField, populateOptions.populateSelect)
+        .lean();
+    }
+
+    // Modify the filter to exclude the user's review if we already found it
+    // This prevents duplicate retrieval and ensures efficient pagination
+    const reviewsFilter = userReview
+      ? { ...filter, _id: { $ne: userReview._id } }
+      : filter;
+
+    // Fetch all other reviews according to filter and sorting
+    let allReviews = await TurfReview.find(reviewsFilter)
+      .sort(paginationSort.sort)
+      .skip(options.skip ?? 0)
+      .limit(userReview ? (options.limit ? options.limit - 1 : 9) : (options.limit ?? 10))
+      .populate(populateOptions.populateField, populateOptions.populateSelect)
+      .lean();
+
+    // If we found the user's review, add it to the beginning of the results
+    if (userReview) {
+      allReviews.unshift(userReview);
+    }
+
+    return {
+      reviews: allReviews,
+      total: totalCount,
+      ...this.calculateRatingStats(ratingStats),
+    };
   }
 
   // Get a single review by ID
@@ -245,45 +314,6 @@ export default class TurfReviewService {
       },
       options
     );
-  }
-
-  // Common method for retrieving reviews with stats
-  private async getReviewsWithStats(
-    filter: any,
-    matchStage: any,
-    populateOptions: { populateField: string; populateSelect: string },
-    options: ReviewFilterOptions = {}
-  ): Promise<ReviewSummary> {
-    // Apply rating filters
-    this.applyRatingFilters(filter, matchStage, options);
-
-    // Get pagination and sorting options
-    const paginationSort = this.getPaginationAndSortOptions(options);
-
-    const [reviews, total, ratingStats] = await Promise.all([
-      TurfReview.find(filter)
-        .sort(paginationSort.sort)
-        .skip(paginationSort.skip)
-        .limit(paginationSort.limit)
-        .populate(populateOptions.populateField, populateOptions.populateSelect)
-        .lean(),
-      TurfReview.countDocuments(filter),
-      TurfReview.aggregate([
-        { $match: matchStage },
-        {
-          $group: {
-            _id: "$rating",
-            count: { $sum: 1 },
-          },
-        },
-      ]),
-    ]);
-
-    return {
-      reviews,
-      total,
-      ...this.calculateRatingStats(ratingStats),
-    };
   }
 
   // Helper to apply rating filters to both filter object and match stage
@@ -340,6 +370,83 @@ export default class TurfReviewService {
     return {
       averageRating,
       ratingDistribution,
+    };
+  }
+
+  // Check if a user has already reviewed a turf
+  async hasUserReviewedTurf(userId: string, turfId: string): Promise<boolean> {
+    const review = await TurfReview.findOne({
+      turf: turfId,
+      user: userId
+    });
+
+    return review !== null;
+  }
+
+  // Get all reviews summary for a specific organization
+  async getOrganizationTurfReviewSummary(organizationId: string) {
+
+    const organizationExists = await mongoose.model('Organization').exists({ _id: organizationId });
+    if (!organizationExists) {
+      throw new Error("Organization not found");
+    }
+
+    // Use aggregation to efficiently get all data in a single query
+    const turfs = await Turf.aggregate([
+      // Stage 1: Match all turfs belonging to this organization
+      { $match: { organization: new mongoose.Types.ObjectId(organizationId) } },
+
+      // Stage 2: Lookup reviews for each turf
+      {
+        $lookup: {
+          from: "turfreviews", // Collection name (lowercase and plural)
+          localField: "_id",
+          foreignField: "turf",
+          as: "turfReviews"
+        }
+      },
+
+      // Stage 3: Calculate review stats for each turf
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          sports: 1,
+          team_size: 1,
+          averageRating: {
+            $cond: {
+              if: { $gt: [{ $size: "$turfReviews" }, 0] },
+              then: { $avg: "$turfReviews.rating" },
+              else: 0
+            }
+          },
+          reviewCount: { $size: "$turfReviews" }
+        }
+      }
+    ]);
+
+    // Calculate organization-level summary
+    let totalReviews = 0;
+    let ratingSum = 0;
+
+    turfs.forEach(turf => {
+      totalReviews += turf.reviewCount;
+      // Only add to ratingSum if the turf has reviews
+      // This avoids 0 values skewing the organization average
+      if (turf.reviewCount > 0) {
+        ratingSum += (turf.averageRating * turf.reviewCount);
+      }
+    });
+
+    const organizationAverageRating = totalReviews > 0 ? ratingSum / totalReviews : 0;
+
+    return {
+      turfs,
+      summary: {
+        totalTurfs: turfs.length,
+        totalReviews,
+        organizationAverageRating
+      }
     };
   }
 }

@@ -25,6 +25,11 @@ const buttonVariants = cva(
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors duration-300 shadow-[0_0_15px_-3px] shadow-destructive/30 hover:shadow-destructive/50",
         success:
           "bg-green-600 text-white hover:bg-green-700 transition-colors duration-300 shadow-[0_0_15px_-3px] shadow-green-600/30 hover:shadow-green-600/50",
+        outline: `
+          bg-transparent border border-primary text-primary
+          hover:bg-primary/10 transition-colors duration-300
+          shadow-none hover:shadow-[0_0_10px_-3px] hover:shadow-primary/30
+        `,
       },
       size: {
         default: "h-10 py-2 px-4 rounded-full",
