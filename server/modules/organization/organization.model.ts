@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
+import validator from 'validator';
 
 interface ILocation {
   place_id: string; // Unique identifier from Barikoi
@@ -20,6 +21,9 @@ export interface IOrganization extends Document {
   images: string[];
   turfs: mongoose.Types.ObjectId[];
   location: ILocation;
+
+  orgContactPhone: string; // Mandatory
+  orgContactEmail: string; // Mandatory
 }
 
 const OrganizationSchema: Schema = new Schema(
@@ -53,6 +57,31 @@ const OrganizationSchema: Schema = new Schema(
       sub_area: String,
       city: { type: String, required: true },
       post_code: String,
+    },
+    orgContactPhone: {
+      type: String,
+      required: true,
+      trim: true,
+      validate: {
+        validator: function (value: string) {
+          // Bangladeshi phone number regex pattern
+          const bdPhoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
+          return bdPhoneRegex.test(value);
+        },
+        message: "Please provide a valid Bangladeshi phone number",
+      },
+    },
+    orgContactEmail: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      validate: {
+        validator: function (value: string) {
+          return validator.isEmail(value);
+        },
+        message: "Please provide a valid email address",
+      },
     },
   },
   { timestamps: true }

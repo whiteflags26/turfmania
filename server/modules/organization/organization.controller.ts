@@ -5,12 +5,15 @@ import ErrorResponse from "../../utils/errorResponse";
 import { AuthRequest } from "../auth/auth.middleware";
 import { IOrganization } from "./organization.model";
 import { organizationService } from "./organization.service";
+import validator from "validator";
 
 interface CreateOrganizationBody {
   name: string;
   facilities: string[];
   requestId?: string;
   wasEdited?: boolean;
+  orgContactPhone: string;
+  orgContactEmail: string;
   location: {
     place_id: string;
     address: string;
@@ -33,6 +36,8 @@ interface UpdateOrganizationBody
   extends Omit<Partial<CreateOrganizationBody>, "facilities"> {
   facilities?: string | string[];
   imagesToKeep?: string[];
+  orgContactPhone?: string;
+  orgContactEmail?: string;
 }
 
 // Interface for Create Role Body
@@ -57,7 +62,7 @@ export const createOrganization = asyncHandler(
     res: Response,
     next: NextFunction
   ) => {
-    const { name, facilities, requestId, adminNotes } = req.body;
+    const { name, facilities, requestId, adminNotes, orgContactEmail, orgContactPhone } = req.body;
 
     // Validate user authentication first
     if (!req.user) {
@@ -68,6 +73,15 @@ export const createOrganization = asyncHandler(
     if (!name) {
       return next(new ErrorResponse("Name is required", 400));
     }
+    if(!orgContactEmail){
+      return next(new ErrorResponse("Contact email is required", 400));
+    }
+    if(!orgContactPhone){
+      return next(new ErrorResponse("Contact phone is required", 400));
+    }
+
+    // Sanitize organization name
+    const sanitizedName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 
     let parsedFacilities: IOrganization["facilities"];
     let location: IOrganization["location"];
@@ -99,6 +113,11 @@ export const createOrganization = asyncHandler(
       if (!parsedFacilities.every((facility) => typeof facility === "string")) {
         return next(new ErrorResponse("All facilities must be strings", 400));
       }
+
+      // Sanitize facility names
+      parsedFacilities = parsedFacilities.map(facility => 
+        facility.charAt(0).toUpperCase() + facility.slice(1).toLowerCase()
+      );
     } catch (error) {
       console.error("Facilities parsing error:", error);
       return next(
@@ -152,17 +171,32 @@ export const createOrganization = asyncHandler(
       );
     }
 
-    const images = req.files as Express.Multer.File[];
+    if (!req.body.orgContactPhone) {
+      return next(new ErrorResponse("Contact phone is required", 400));
+    }
+    
+    if (!req.body.orgContactEmail) {
+      return next(new ErrorResponse("Contact email is required", 400));
+    }
+    
+    // Validate email format
+    if (!validator.isEmail(req.body.orgContactEmail)) {
+      return next(new ErrorResponse("Invalid contact email format", 400));
+    }
 
+    const images = req.files as Express.Multer.File[];
+    
     // Create organization
     const organization = await organizationService.createOrganization(
-      name,
+      sanitizedName,
       parsedFacilities,
       location,
+      orgContactPhone,
+      orgContactEmail,
       images,
       requestId ? requestId : undefined,
       req.user.id,
-      adminNotes ? adminNotes : undefined,
+      adminNotes ? adminNotes : undefined
     );
 
     res.status(201).json({
@@ -233,13 +267,27 @@ export const updateOrganization = asyncHandler(
 
     const newImages = req.files as Express.Multer.File[];
 
-    const updateData: Partial<IOrganization> = {
-      ...(name && { name }),
-      ...(facilities && {
-        facilities:
-          typeof facilities === "string" ? JSON.parse(facilities) : facilities,
-      }),
-    };
+    const updateData: Partial<IOrganization> = {};
+
+    // Sanitize and add name if provided
+    if (name) {
+      updateData.name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    }
+
+    // Sanitize and add facilities if provided
+    if (facilities) {
+      let parsedFacilities = typeof facilities === "string" ? JSON.parse(facilities) : facilities;
+      
+      // Validate array elements are strings
+      if (!Array.isArray(parsedFacilities) || !parsedFacilities.every((facility) => typeof facility === "string")) {
+        return next(new ErrorResponse("Facilities must be an array of strings", 400));
+      }
+      
+      // Sanitize facility names
+      updateData.facilities = parsedFacilities.map(facility => 
+        facility.charAt(0).toUpperCase() + facility.slice(1).toLowerCase()
+      );
+    }
 
     if (location) {
       updateData.location =

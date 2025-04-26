@@ -11,6 +11,9 @@ import turfRoutes from '../modules/turf/turf.route';
 import userRouter from '../modules/user/user.routes';
 import adminActionsRouter from '../modules/admin_actions/adminActions.routes'
 import organizationRequestRouter from '../modules/organization-request/organization-request.route';
+import teamSizeRouter from '../modules/team_size/team_size.route';
+import sportsRouter from '../modules/sports/sports.route';
+import facilityRouter from '../modules/facility/facility.route';
 
 const router = Router();
 
@@ -30,5 +33,8 @@ router.use('/api/v1/users', userRouter);
 router.use('/api/v1/permissions', permissionRoutes);
 router.use('/api/v1/admin/logs',adminActionsRouter)
 router.use('/api/v1/organization-requests', organizationRequestRouter);
+router.use('/api/v1/team-sizes', teamSizeRouter);
+router.use('/api/v1/sports', sportsRouter);
+router.use('/api/v1/facilities', facilityRouter);
 
 export default router;
