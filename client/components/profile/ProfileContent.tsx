@@ -13,7 +13,6 @@ import {
   BuildingOfficeIcon,
 } from "@heroicons/react/24/outline";
 
-// Import components
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import UpdateProfileForm from "@/components/profile/UpdateProfileForm";
 import ChangePasswordForm from "@/components/profile/ChangePasswordForm";
@@ -37,7 +36,6 @@ export default function ProfileContent({ initialUser }: ProfileContentProps) {
     async function fetchUserProfile() {
       setLoading(true);
       try {
-        // Fetch complete user profile data if needed
         const userData = await getCurrentUserProfile();
         setUser(userData);
       } catch (err) {
@@ -48,11 +46,11 @@ export default function ProfileContent({ initialUser }: ProfileContentProps) {
         setLoading(false);
       }
     }
-
+    fetchUserProfile();
     // Only fetch if we need additional user data
-    if (initialUser && !initialUser.phone_number) {
-      fetchUserProfile();
-    }
+    // if (initialUser && !initialUser.phone_number) {
+    //   fetchUserProfile();
+    // }
   }, [initialUser]);
 
   const tabs = [

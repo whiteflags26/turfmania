@@ -1,20 +1,3 @@
-// import { auth } from "@/lib/server-auth/auth";
-// import { redirect } from "next/navigation";
-
-// export default async function ProfilePage() {
-//   const session = await auth();
-
-//   if (!session?.user) {
-//     redirect("/auth/login");
-//   }
-
-//   return (
-//     <main className="min-h-screen bg-gray-50">
-
-//     </main>
-//   );
-// }
-
 import { auth } from "@/lib/server-auth/auth";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
