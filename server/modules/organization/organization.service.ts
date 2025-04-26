@@ -11,6 +11,7 @@ import Organization, { IOrganization } from "./organization.model";
 import { Turf } from "../turf/turf.model";
 import OrganizationRequestService from "../organization-request/organization-request.service";
 import FaciltyService from "../facility/facility.service";
+import { TurfReview } from "../turf-review/turf-review.model";
 import mongoose from "mongoose";
 
 export interface IOrganizationRoleAssignment {
@@ -360,11 +361,14 @@ class OrganizationService {
   }
 
   /**
-   * Delete an organization
-   * @param id - Organization ID
-   * @returns Promise<DeleteResult>
-   */
+ * Delete an organization and all associated resources
+ * @param id - Organization ID
+ * @returns Promise<DeleteResult>
+ */
   public async deleteOrganization(id: string): Promise<DeleteResult> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
       const organization = await Organization.findById(id);
       if (!organization) throw new ErrorResponse("Organization not found", 404);
@@ -379,11 +383,74 @@ class OrganizationService {
         );
       }
 
-      // Delete from database
-      return await Organization.deleteOne({ _id: id });
+      // Find all turfs associated with this organization
+      const turfs = await Turf.find({ organization: id }).session(session);
+
+      // Process each turf and its associated reviews
+      for (const turf of turfs) {
+        // Find all reviews for this turf
+        const turfReviews = await TurfReview.find({ turf: turf._id }).session(session);
+
+        // Process each review - delete its images and remove references from user models
+        for (const review of turfReviews) {
+          // Delete review images from Cloudinary if they exist
+          if (review.images && review.images.length > 0) {
+            await Promise.all(
+              review.images.map((imgUrl) => {
+                const publicId = extractPublicIdFromUrl(imgUrl);
+                return publicId ? deleteImage(publicId) : Promise.resolve();
+              })
+            );
+          }
+
+          // Remove review reference from user's document
+          await User.findByIdAndUpdate(
+            review.user,
+            { $pull: { reviews: review._id } },
+            { session }
+          );
+        }
+
+        // Delete all reviews for this turf
+        await TurfReview.deleteMany({ turf: turf._id }).session(session);
+
+        // Delete turf images from Cloudinary
+        if (turf.images && turf.images.length > 0) {
+          await Promise.all(
+            turf.images.map((imgUrl) => {
+              const publicId = extractPublicIdFromUrl(imgUrl);
+              return publicId ? deleteImage(publicId) : Promise.resolve();
+            })
+          );
+        }
+      }
+
+      // Delete all turfs for this organization
+      await Turf.deleteMany({ organization: id }).session(session);
+
+      // Delete role assignments for this organization
+      await UserRoleAssignment.deleteMany({
+        scope: PermissionScope.ORGANIZATION,
+        scopeId: id
+      }).session(session);
+
+      // Delete custom roles for this organization
+      await Role.deleteMany({
+        scope: PermissionScope.ORGANIZATION,
+        scopeId: id
+      }).session(session);
+
+      // Delete the organization itself
+      const deleteResult = await Organization.deleteOne({ _id: id }).session(session);
+
+      await session.commitTransaction();
+      return deleteResult;
     } catch (error) {
-      console.error(error);
+      await session.abortTransaction();
+      console.error("Error deleting organization:", error);
       throw new ErrorResponse("Failed to delete organization", 500);
+    } finally {
+      session.endSession();
     }
   }
 
@@ -479,6 +546,6 @@ class OrganizationService {
     })
       .limit(6)
       .populate("organization");
-  }; 
+  };
 }
 export const organizationService = new OrganizationService();

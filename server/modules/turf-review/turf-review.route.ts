@@ -34,7 +34,8 @@ router.get("/has-reviewed/:turfId", protect, turfReviewController.hasUserReviewe
 // Public routes
 router.get("/turf/:turfId/public", turfReviewController.getReviewsByTurfPublic);
 router.get("/review/:reviewId", turfReviewController.getReviewById);
-router.get("/summary/:turfId", turfReviewController.getTurfReviewSummary);
+router.get("/turf-summary/:turfId", turfReviewController.getTurfReviewSummary);
+router.get("/organization-summary/:organizationId", turfReviewController.getOrganizationTurfReviewSummary);
 
 
 export default router;

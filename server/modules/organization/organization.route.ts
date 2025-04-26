@@ -77,6 +77,7 @@ router.get(
   checkPermission("view_roles"),
   getOrganizationRoles
 );
+
 router.post(
   "/:organizationId/users/:userId/assignments",
   protect,
