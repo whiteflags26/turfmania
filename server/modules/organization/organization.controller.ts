@@ -440,7 +440,7 @@ export const getOrganization = asyncHandler(
 
     res.status(200).json({
       success: true,
-      data: organization
+      data: organization,
     });
   }
 );
