@@ -1,6 +1,7 @@
-import { IUser } from '@/types/user';
-import Image from 'next/image';
-import { FaPhone, FaEnvelope } from 'react-icons/fa';
+import { IUser } from "@/types/user";
+import Image from "next/image";
+import { FaPhone, FaEnvelope } from "react-icons/fa";
+import { DEFAULT_AVATAR_IMAGE } from "@/constants";
 
 interface ProfileHeaderProps {
   user: IUser | null;
@@ -14,9 +15,11 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
       <div className="flex flex-col sm:flex-row items-center gap-8">
         <div className="relative w-36 h-36 sm:w-44 sm:h-44">
           <Image
-            src="/default-avatar.png"
+            src={DEFAULT_AVATAR_IMAGE}
             alt={`${user.first_name} ${user.last_name}`}
             fill
+            sizes="(max-width: 640px) 64px, 96px"
+            priority
             className="rounded-full object-cover border-4 border-primary/20 shadow-md"
           />
         </div>
@@ -36,7 +39,7 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
               )}
             </div>
           </div>
-          
+
           <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
             {user.user_roles.map((role, index) => (
               <span
@@ -47,7 +50,7 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
               </span>
             ))}
             <span className="px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-medium">
-              {user.isVerified ? 'Verified User' : 'Pending Verification'}
+              {user.isVerified ? "Verified User" : "Pending Verification"}
             </span>
           </div>
         </div>
