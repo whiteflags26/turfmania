@@ -1,8 +1,11 @@
 import api from '@/lib/axios';
+import { ApiResponse } from '@/types/api';
 import {
+  OrganizationRequest,
   OrganizationRequestsResponse,
   SingleOrganizationRequestResponse,
 } from '@/types/organization';
+import { AxiosError } from 'axios';
 
 export interface RequestFilters {
   requesterEmail: string;
@@ -26,7 +29,7 @@ export async function getOrganizationRequests(
     console.log('Received response:', data);
     return data;
   } catch (error: any) {
-    console.error('API Error:', error.response?.data);
+    const err = error as AxiosError<{ message: string }>;
     throw new Error(
       error.response?.data?.message ?? 'Failed to fetch organization requests',
     );
@@ -35,15 +38,15 @@ export async function getOrganizationRequests(
 
 export async function getSingleOrganizationRequest(
   requestId: string,
-): Promise<SingleOrganizationRequestResponse> {
+): Promise<OrganizationRequest> {
   try {
-    const { data } = await api.get(
+    const response = await api.get<ApiResponse<OrganizationRequest>>(
       `/api/v1/organization-requests/admin/${requestId}`,
       {
         withCredentials: true,
       },
     );
-    return data;
+    return response.data.data;
   } catch (error: any) {
     throw new Error(
       error.response?.data?.message ?? 'Failed to fetch organization request',
@@ -53,12 +56,12 @@ export async function getSingleOrganizationRequest(
 
 export async function processOrganizationRequest(
   requestId: string,
-): Promise<{ success: boolean; data: OrganizationRequestsResponse }> {
+): Promise<OrganizationRequest> {
   try {
-    const response = await api.put(
+    const response = await api.put<ApiResponse<OrganizationRequest>>(
       `/api/v1/organization-requests/${requestId}/process`,
     );
-    return response.data;
+    return response.data.data;
   } catch (error: any) {
     throw new Error(
       error.response?.data?.message ?? 'Failed to process request',
@@ -67,12 +70,12 @@ export async function processOrganizationRequest(
 }
 export async function CancelProcessOrganizationRequest(
   requestId: string,
-): Promise<{ success: boolean; data: OrganizationRequestsResponse }> {
+): Promise<OrganizationRequest> {
   try {
-    const response = await api.put(
+    const response = await api.put<ApiResponse<OrganizationRequest>>(
       `/api/v1/organization-requests/${requestId}/cancel-processing`,
     );
-    return response.data;
+    return response.data.data;
   } catch (error: any) {
     throw new Error(
       error.response?.data?.message ?? 'Failed to process request',
@@ -83,16 +86,16 @@ export async function CancelProcessOrganizationRequest(
 export async function rejectOrganizationRequest(
   requestId: string,
   adminNotes: string,
-): Promise<{ success: boolean; data: OrganizationRequestsResponse }> {
+): Promise<OrganizationRequest> {
   try {
     const requestData = {
       adminNotes: adminNotes,
     };
-    const response = await api.put(
+    const response = await api.put<ApiResponse<OrganizationRequest>>(
       `/api/v1/organization-requests/${requestId}/reject`,
       requestData,
     );
-    return response.data;
+    return response.data.data;
   } catch (error: any) {
     throw new Error(
       error.response?.data?.message ?? 'Failed to process request',

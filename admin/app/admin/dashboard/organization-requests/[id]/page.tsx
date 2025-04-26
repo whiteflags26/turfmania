@@ -28,6 +28,7 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { OrganizationRequest } from '@/types/organization';
 
 // Types
 interface Coordinates {
@@ -64,24 +65,6 @@ interface Organization {
   __v: number;
 }
 
-interface OrganizationRequest {
-  location: Location;
-  _id: string;
-  requesterId: User;
-  status: string;
-  organizationName: string;
-  facilities: string[];
-  contactPhone: string;
-  ownerEmail: string;
-  requestNotes: string;
-  images: string[];
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
-  processingAdminId?: User;
-  processingStartedAt?: string;
-  organizationId?: Organization;
-}
 
 interface ApiResponse {
   success: boolean;
@@ -137,7 +120,7 @@ export default function OrganizationRequestDetailPage() {
       const response = await processOrganizationRequest(params.id as string);
 
       // Update the local state with the new request data
-      setRequest(response.data);
+      setRequest(response);
 
       // Show success message
       toast.success('Request processing started successfully');
@@ -162,7 +145,7 @@ export default function OrganizationRequestDetailPage() {
       const response = await CancelProcessOrganizationRequest(
         params.id as string,
       );
-      setRequest(response.data);
+      setRequest(response);
       toast.success('Processing cancelled successfully');
     } catch (err: any) {
       console.error('Failed to cancel processing:', err);
@@ -187,7 +170,7 @@ export default function OrganizationRequestDetailPage() {
         params.id as string,
         rejectionNotes.trim(),
       );
-      setRequest(response.data);
+      setRequest(response);
       toast.success('Request rejected successfully');
       setRejectionNotes(''); // Reset notes after successful rejection
     } catch (err: any) {
@@ -368,11 +351,11 @@ export default function OrganizationRequestDetailPage() {
                     <User className="w-4 h-4 mr-1" />
                     Requester
                   </dt>
-                  <dd className="mt-1 text-sm text-gray-900">
+                  {/* <dd className="mt-1 text-sm text-gray-900">
                     {request.requesterId.first_name}{' '}
                     {request.requesterId.last_name} ({request.requesterId.email}
                     )
-                  </dd>
+                  </dd> */}
                 </div>
 
                 {request.processingAdminId && (
@@ -382,9 +365,9 @@ export default function OrganizationRequestDetailPage() {
                       Processing Admin
                     </dt>
                     <dd className="mt-1 text-sm text-gray-900">
-                      {request.processingAdminId.first_name}{' '}
+                      {/* {request.}{' '}
                       {request.processingAdminId.last_name} (
-                      {request.processingAdminId.email})
+                      {request.processingAdminId.email}) */}
                     </dd>
                   </div>
                 )}
@@ -486,7 +469,7 @@ export default function OrganizationRequestDetailPage() {
                       Organization Name
                     </dt>
                     <dd className="mt-1 text-sm text-gray-900">
-                      {request.organizationId.name}
+                      {request.orgContactEmail}
                     </dd>
                   </div>
 
