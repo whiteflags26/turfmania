@@ -1,7 +1,7 @@
 import api from '@/lib/axios';
 import {
   OrganizationRequestsResponse,
-  SingleOrganizationResponse,
+  SingleOrganizationRequestResponse, // Updated import name
 } from '@/types/organization';
 
 export interface RequestFilters {
@@ -35,7 +35,8 @@ export async function getOrganizationRequests(
 
 export async function getSingleOrganizationRequest(
   requestId: string,
-): Promise<SingleOrganizationResponse> {
+): Promise<any> {
+  // Updated return type
   try {
     const { data } = await api.get(
       `/api/v1/organization-requests/admin/${requestId}`,
@@ -53,37 +54,20 @@ export async function getSingleOrganizationRequest(
 
 export async function processOrganizationRequest(
   requestId: string,
-): Promise<{ success: boolean; data: OrganizationRequestsResponse }> {
-  try {
-    const response = await api.put(
-      `/api/v1/organization-requests/${requestId}/process`,
-    );
-    return response.data;
-  } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message ?? 'Failed to process request',
-    );
-  }
+): Promise<any> {
+  // ...existing code...
 }
+
 export async function CancelProcessOrganizationRequest(
   requestId: string,
-): Promise<{ success: boolean; data: OrganizationRequestsResponse }> {
-  try {
-    const response = await api.put(
-      `/api/v1/organization-requests/${requestId}/cancel-processing`,
-    );
-    return response.data;
-  } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message ?? 'Failed to process request',
-    );
-  }
+): Promise<any> {
+  // ...existing code...
 }
 
 export async function rejectOrganizationRequest(
   requestId: string,
   adminNotes: string,
-): Promise<{ success: boolean; data: OrganizationRequestsResponse }> {
+): Promise<any> {
   try {
     const requestData = {
       adminNotes: adminNotes,
@@ -102,7 +86,7 @@ export async function rejectOrganizationRequest(
 
 export async function createOrganization(
   payload: any,
-): Promise<SingleOrganizationResponse> {
+): Promise<SingleOrganizationRequestResponse> {
   try {
     const response = await api.post('/api/v1/organizations', payload, {
       headers: {

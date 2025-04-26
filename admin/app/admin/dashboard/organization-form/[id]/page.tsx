@@ -70,8 +70,8 @@ export default function EditOrganizationForm() {
 
           setFacilities(orgData.facilities);
           setExistingImages(orgData.images || []);
-          setOrgContactPhone(orgData.orgContactPhone || '');
-          setOrgContactEmail(orgData.orgContactEmail || '');
+          setOrgContactPhone(orgData.orgContactPhone ?? '');
+          setOrgContactEmail(orgData.orgContactEmail ?? '');
         }
       } catch (err: any) {
         console.error('Error fetching organization data:', err);
