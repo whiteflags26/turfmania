@@ -310,7 +310,7 @@ export async function deleteSport(sportId: string): Promise<any> {
 // Add with other interfaces at the top
 export interface TeamSize {
   _id: string;
-  name: string;
+  name: number;
   // Add other team size properties if needed
 }
 
