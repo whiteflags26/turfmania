@@ -1,3 +1,5 @@
+import { organizationService } from './../organization/organization.service';
+import { ObjectId } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt, { SignOptions } from 'jsonwebtoken';
@@ -87,6 +89,28 @@ class AuthService {
     );
   }
 
+  /** @desc Check if user has organization dashboard access **/
+  public async checkUserRoleInOrganization(
+    userId: Types.ObjectId,
+    organizationId: Types.ObjectId,
+  ) {
+    const roleAssignment = await UserRoleAssignment.findOne({
+      userId,
+      scope: 'organization',
+      scopeId: organizationId,
+    });
+
+    if (!roleAssignment) {
+      throw new ErrorResponse(
+        'You do not have access to this organization dashboard',
+        403,
+      );
+    }
+
+    return roleAssignment;
+  }
+
+
   /** @desc Check if user has admin dashboard access **/
   public async checkAdminAccess(userId: Types.ObjectId): Promise<boolean> {
     try {
@@ -119,6 +143,9 @@ class AuthService {
     }
   }
 }
+
+
+
 
 /** @desc matches hashed token and saves new password **/
 
