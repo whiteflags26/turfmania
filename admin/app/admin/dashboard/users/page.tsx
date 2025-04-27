@@ -45,10 +45,10 @@ export default function UsersManagement() {
           'http://localhost:5000/api/v1/roles/global',
           { withCredentials: true },
         );
-        setGlobalRoles(response.data.data);
+       
       } catch (err:unknown) {
         const errorMessage = handleAxiosError(err, 'Error Fetch role');
-        setError(errorMessage);
+        
         
       }
     };
@@ -88,7 +88,7 @@ export default function UsersManagement() {
       <div className="max-w-7xl mx-auto p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <h2 className="text-xl font-semibold text-red-700 mb-2">
-            {error}
+            You are not authorized to view this page
           </h2>
           <p className="text-red-600 mb-4">{error}</p>
           <button
