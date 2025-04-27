@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import AdminSidebar from '../AdminSideBar';
 import MobileMenu from '../MobileMenu';
+import { useAuth } from '@/lib/contexts/authContext';
 
 interface NavigationItem {
   readonly name: string;
@@ -27,10 +28,15 @@ const dummyCheckPermission = async (permission: string) => true;
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [navigation, setNavigation] = useState<NavigationItem[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
-
+  const { logout, user } = useAuth();
   // Dummy logout function
-  const handleLogout = () => {
-    console.log('Logout clicked');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      console.log('Logged out successfully');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   useEffect(() => {
