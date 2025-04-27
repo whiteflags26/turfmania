@@ -1,8 +1,9 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import mongoose from 'mongoose';
 import asyncHandler from '../../shared/middleware/async';
 import ErrorResponse from '../../utils/errorResponse';
 import SportsService from './sports.service';
+import { AuthenticatedRequest } from '../../types/request';
 
 export default class SportsController {
   private readonly sportsService: SportsService;
@@ -16,7 +17,7 @@ export default class SportsController {
    * @access Private/Admin
    */
   createSports = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { name } = req.body;
   
       if (!name) {
@@ -41,7 +42,7 @@ export default class SportsController {
    * @access Public
    */
   getAllSports = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const sports = await this.sportsService.getAllSports();
 
       res.status(200).json({
@@ -58,7 +59,7 @@ export default class SportsController {
    * @access Public
    */
   getSportsById = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { id } = req.params;
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return next(new ErrorResponse('Invalid Sports ID format', 404));
@@ -82,7 +83,7 @@ export default class SportsController {
    * @access Private/Admin
    */
   updateSports = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { id } = req.params;
       const { name } = req.body;
   
@@ -116,7 +117,7 @@ export default class SportsController {
    * @access Private/Admin
    */
   deleteSports = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {

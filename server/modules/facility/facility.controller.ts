@@ -4,6 +4,8 @@ import asyncHandler from '../../shared/middleware/async';
 import ErrorResponse from '../../utils/errorResponse';
 import FacilityService from './facility.service';
 import validator from 'validator';
+import { AuthRequest } from '../auth/auth.middleware';
+import { AuthenticatedRequest } from '../../types/request';
 
 export default class FacilityController {
   private readonly facilityService: FacilityService;
@@ -17,7 +19,7 @@ export default class FacilityController {
    * @access Private/Admin
    */
   createFacility = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { name } = req.body;
 
       if (!name) {
@@ -55,7 +57,7 @@ export default class FacilityController {
    * @access Public
    */
   getAllFacilities = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const facilities = await this.facilityService.getAllFacilities();
 
       res.status(200).json({
@@ -72,7 +74,7 @@ export default class FacilityController {
    * @access Public
    */
   getFacilityById = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { id } = req.params;
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return next(new ErrorResponse('Invalid Facility ID format', 404));
@@ -96,7 +98,7 @@ export default class FacilityController {
    * @access Private/Admin
    */
   updateFacility = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { id } = req.params;
       const { name } = req.body;
 
@@ -143,7 +145,7 @@ export default class FacilityController {
    * @access Private/Admin
    */
   deleteFacility = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {

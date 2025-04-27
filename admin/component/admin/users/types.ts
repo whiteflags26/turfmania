@@ -1,7 +1,8 @@
 // src/component/admin/users/types.ts
 export interface User {
   _id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   createdAt: string;
   // Add any additional fields from your backend

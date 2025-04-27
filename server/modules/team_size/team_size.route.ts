@@ -6,10 +6,10 @@ import { checkPermission, protect } from "../auth/auth.middleware";
 const router = Router();
 const teamSizeController = new TeamSizeController();
 
-router.post("/", checkPermission("manage_tags"), teamSizeController.createTeamSize);
+router.post("/",protect, checkPermission("manage_tags"), teamSizeController.createTeamSize);
 router.get("/", teamSizeController.getAllTeamSizes);
-router.get("/:id", teamSizeController.getTeamSizeById);
-router.put("/:id", checkPermission("manage_tags"), teamSizeController.updateTeamSize);
-router.delete("/:id", checkPermission("manage_tags"), teamSizeController.deleteTeamSize);
+router.get("/:id",teamSizeController.getTeamSizeById);
+router.put("/:id",protect, checkPermission("manage_tags"), teamSizeController.updateTeamSize);
+router.delete("/:id",protect, checkPermission("manage_tags"), teamSizeController.deleteTeamSize);
 
 export default router;

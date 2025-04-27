@@ -22,7 +22,7 @@ const RoleAssignmentModal: React.FC<Props> = ({
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-md w-full">
         <h3 className="text-lg font-medium text-gray-900 mb-4">
-          Assign Global Role to {user.name}
+          Assign Global Role to {user.first_name}
         </h3>
         <div className="mb-4">
           <label

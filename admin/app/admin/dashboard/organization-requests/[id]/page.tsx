@@ -7,7 +7,7 @@ import {
   rejectOrganizationRequest,
 } from '@/services/organizationService';
 
-import { ActionButton } from '@/components/buttons/ActionButton';
+import { ActionButton } from '@/component/buttons/ActionButton';
 import { OrganizationRequest } from '@/types/organization';
 import { format } from 'date-fns';
 import {
