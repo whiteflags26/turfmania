@@ -54,8 +54,8 @@ export default function EditOrganizationForm() {
         setFetchLoading(true);
         const response = await getSingleOrganizationRequest(organizationId);
 
-        if (response.success && response.data) {
-          const orgData = response.data;
+        if (response) {
+          const orgData = response;
 
           // Populate form fields
           setName(orgData.organizationName);

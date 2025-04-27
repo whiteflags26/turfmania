@@ -23,7 +23,7 @@ export interface ImageUploadOptions {
     existingImages: string[] = [],
     options: ImageUploadOptions = {}
   ): ImageUploadResult {
-    const { maxImages = 2, allowedTypes = ["image/*"] } = options;
+    const { maxImages = 5 } = options;
     
     // Convert FileList to array if needed
     const fileArray = Array.from(files);

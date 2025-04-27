@@ -77,3 +77,38 @@ export interface OrganizationResponse {
   success: boolean;
   data: Organization | Organization[];
 }
+
+
+
+export interface Coordinates {
+  type: "Point";
+  coordinates: [number, number];
+}
+
+export interface Location {
+  coordinates: Coordinates;
+  place_id: string;
+  address: string;
+  city: string;
+}
+
+export type RequestStatus = "pending" | "processing" | "approved" | "approved_with_changes" | "rejected";
+
+export interface OrganizationRequest {
+  _id: string;
+  requesterId: string;
+  processingAdminId?: string;
+  status: RequestStatus;
+  organizationName: string;
+  facilities: string[];
+  contactPhone: string;
+  ownerEmail: string;
+  requestNotes?: string;
+  orgContactPhone: string;
+  orgContactEmail: string;
+  images: string[];
+  location: Location;
+  createdAt: string;
+  updatedAt: string;
+  processingStartedAt?: string;
+}
