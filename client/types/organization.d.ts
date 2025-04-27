@@ -1,3 +1,6 @@
+import { ITurf } from "./turf.d.ts";
+import { ILocation } from "./location.d.ts";
+
 export interface CreateRequestDto {
   organizationName: string;
   facilities: string[];
@@ -5,7 +8,7 @@ export interface CreateRequestDto {
     place_id: string;
     address: string;
     coordinates: {
-      type: 'Point';
+      type: "Point";
       coordinates: [number, number];
     };
     area?: string;
@@ -16,6 +19,22 @@ export interface CreateRequestDto {
   contactPhone: string;
   ownerEmail: string;
   requestNotes?: string;
-  orgContactPhone: string; // Fixed naming
-  orgContactEmail: string; // Keep consistent naming
+  orgContactPhone: string;
+  orgContactEmail: string;
+}
+
+
+
+export interface IOrganization {
+  _id: string;
+  name: string;
+  facilities: string[];
+  images: string[];
+  turfs: ITurf[];
+  location: ILocation;
+  orgContactPhone: string;
+  orgContactEmail: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
 }
