@@ -24,9 +24,16 @@ export default function UsersManagement() {
         });
         setUsers(response.data.data);
         setError(null);
-      } catch (err) {
+      } catch (err:unknown) {
         console.error('Error fetching users:', err);
-        setError('Failed to load users. Please try again later.');
+        if (axios.isAxiosError(err)) {
+          setError(err.response?.data?.message || 'An error occurred while fetching users');
+        } else if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unknown error occurred');
+        }
+        setError( 'An error occurred while fetching users');
       } finally {
         setLoading(false);
       }
@@ -43,7 +50,15 @@ export default function UsersManagement() {
           { withCredentials: true },
         );
         setGlobalRoles(response.data.data);
-      } catch (err) {
+      } catch (err:unknown) {
+        if (axios.isAxiosError(err)) {
+          console.error('Error fetching global roles:', err.response?.data?.message);
+        }
+        else if (err instanceof Error) {
+          console.error('Error fetching global roles:', err.message);
+        } else {
+          console.error('Error fetching global roles:', 'An unknown error occurred');
+        }
         console.error('Error fetching global roles:', err);
       }
     };
@@ -64,7 +79,17 @@ export default function UsersManagement() {
       alert(`Role successfully assigned`);
       setSelectedUser(null);
       setSelectedRole('');
-    } catch (err) {
+    } catch (err:unknown) {
+      if (axios.isAxiosError(err)) {
+        console.error('Error assigning role:', err.response?.data?.message);
+        alert(`Failed to assign role: ${err.response?.data?.message}`);
+      } else if (err instanceof Error) {
+        console.error('Error assigning role:', err.message);
+        alert(`Failed to assign role: ${err.message}`);
+      } else {
+        console.error('Error assigning role:', 'An unknown error occurred');
+        alert('Failed to assign role. Please try again.');
+      }
       console.error('Error assigning role:', err);
       alert('Failed to assign role. Please try again.');
     }
@@ -83,7 +108,7 @@ export default function UsersManagement() {
       <div className="max-w-7xl mx-auto p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <h2 className="text-xl font-semibold text-red-700 mb-2">
-            Error Loading Users
+            {error}
           </h2>
           <p className="text-red-600 mb-4">{error}</p>
           <button
