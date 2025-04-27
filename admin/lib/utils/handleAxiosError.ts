@@ -1,17 +1,10 @@
-// utils/handleAxiosError.ts
 import axios from 'axios';
 
-export function handleAxiosError(
-  error: unknown,
-  fallbackMessage = 'An error occurred',
-): string {
+export function handleAxiosError(error: unknown, fallbackMessage = 'An error occurred'): string {
   if (axios.isAxiosError(error)) {
     // Handle specific status codes
     if (error.response?.status === 403) {
-      return (
-        error.response.data?.message ||
-        'You are not authorized to perform this action'
-      );
+      return error.response.data?.message || 'You are not authorized to perform this action';
     }
     if (error.response?.status === 401) {
       return 'Please login to continue';
@@ -27,11 +20,9 @@ export function handleAxiosError(
     }
 
     // Return the error message from the response if it exists
-    return (
-      error.response?.data?.message || error.response?.data || fallbackMessage
-    );
-  }
-
+    return error.response?.data?.message || error.response?.data || fallbackMessage;
+  } 
+  
   if (error instanceof Error) {
     return error.message;
   }

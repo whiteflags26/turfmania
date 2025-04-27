@@ -123,7 +123,7 @@ export default function RolesManagement() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-600">{error}</div>
+        <div className="text-red-600">UnAuthourized To Access This Route</div>
       </div>
     );
   }

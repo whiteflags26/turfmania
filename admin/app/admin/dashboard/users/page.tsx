@@ -21,7 +21,7 @@ export default function UsersManagement() {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/admin`, {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/without-global-roles`, {
           withCredentials: true,
         });
         setUsers(response.data.data);
@@ -45,9 +45,12 @@ export default function UsersManagement() {
           'http://localhost:5000/api/v1/roles/global',
           { withCredentials: true },
         );
+        setGlobalRoles(response.data.data);
        
       } catch (err:unknown) {
         const errorMessage = handleAxiosError(err, 'Error Fetch role');
+        setError(errorMessage);
+        setGlobalRoles([]);
         
         
       }

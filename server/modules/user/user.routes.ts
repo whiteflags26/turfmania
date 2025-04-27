@@ -6,6 +6,7 @@ import {
   updateUserProfile,
   changePassword,
   getUserOrganizations,
+  getUsersWithoutGlobalRoles,
 } from "./user.controller";
 import { protect } from "../auth/auth.middleware";
 
@@ -41,5 +42,7 @@ router.put("/change-password", protect, changePassword);
 
 // Get user's organizations
 router.get("/organizations", protect, getUserOrganizations);
+
+router.get('/without-global-roles', protect,getUsersWithoutGlobalRoles)
 
 export default router;
