@@ -72,7 +72,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       }
 
       setUser(data.data.user);
-      router.push("/");
+      // No automatic navigation here, will be handled after org selection
       router.refresh();
     } catch (err) {
       const error= err as ApiError;
