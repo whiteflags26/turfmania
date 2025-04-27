@@ -7,12 +7,14 @@ interface Props {
   users: User[];
   canAssignRoles: boolean;
   onAssignClick: (user: User) => void;
+  assigningUser?: string; // Add this prop
 }
 
 const UserTable: React.FC<Props> = ({
   users,
   canAssignRoles,
   onAssignClick,
+  assigningUser,
 }) => {
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
@@ -46,7 +48,7 @@ const UserTable: React.FC<Props> = ({
             {users.map(user => (
               <tr key={user._id} className="hover:bg-gray-50 transition-colors">
                 <td className="whitespace-nowrap py-4 pl-6 pr-3 text-sm text-gray-900">
-                  {user.name}
+                  {user.first_name + ' ' + user.last_name}
                 </td>
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                   {user.email}
@@ -58,10 +60,19 @@ const UserTable: React.FC<Props> = ({
                   <td className="whitespace-nowrap py-4 pl-3 pr-6 text-right">
                     <button
                       onClick={() => onAssignClick(user)}
-                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                      disabled={assigningUser === user._id}
+                      className={`inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md 
+                    ${
+                      assigningUser === user._id
+                        ? 'bg-gray-100 cursor-not-allowed'
+                        : 'bg-white hover:bg-gray-50'
+                    } 
+                    text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors`}
                     >
                       <Settings className="w-4 h-4 mr-1.5" />
-                      Manage Role
+                      {assigningUser === user._id
+                        ? 'Assigning...'
+                        : 'Manage Role'}
                     </button>
                   </td>
                 )}

@@ -5,6 +5,7 @@ import {
   getUsersAdmin,
   updateUserProfile,
   changePassword,
+  getUserOrganizations,
 } from "./user.controller";
 import { protect } from "../auth/auth.middleware";
 
@@ -37,5 +38,8 @@ router.put("/me", protect, updateUserProfile);
 
 // Change user password
 router.put("/change-password", protect, changePassword);
+
+// Get user's organizations
+router.get("/organizations", protect, getUserOrganizations);
 
 export default router;

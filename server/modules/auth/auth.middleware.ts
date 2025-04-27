@@ -40,17 +40,16 @@ export const protect = async (
   try {
     const token = req.cookies.token;
     const adminToken = req.cookies.admin_token;
-    const orgToken = req.cookies.org_token;
 
-    if (!token && !adminToken && !orgToken) {
+    if (!token && !adminToken) {
       return next(
         new ErrorResponse("Not authorized to access this route", 401)
       );
     }
 
     try {
-      // Determine which token to use (priority: adminToken > orgToken > token)
-      const activeToken = adminToken ?? orgToken ?? token;
+      // Determine which token to use (priority: adminToken > token)
+      const activeToken = adminToken ?? token;
       const decoded = jwt.verify(
         activeToken,
         process.env.JWT_SECRET!
@@ -65,7 +64,6 @@ export const protect = async (
       req.user = {
         id: user._id.toString(),
         isAdmin: Boolean(adminToken), // Set isAdmin based on which token was used
-        isOrgOwner: Boolean(orgToken), // Set isOrgOwner based on which token was used
       };
 
       next();

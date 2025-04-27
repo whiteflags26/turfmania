@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import connectDB from './config/db';
 import router from './routes/index';
 import errorHandler from './shared/middleware/error';
+import { setupHealthMonitoring } from './modules/health-metrics/index';
 
 connectDB();
 
@@ -13,7 +14,7 @@ const app = express();
 
 // CORS configuration
 const corsOptions = {
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
@@ -31,6 +32,9 @@ app.use(helmet());
 
 // Add pre-flight handling for all routes
 app.options('*', cors(corsOptions));
+
+// Health monitoring middleware
+setupHealthMonitoring(app);
 
 app.use(router);
 app.use(errorHandler);

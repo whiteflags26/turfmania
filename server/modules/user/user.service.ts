@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import ErrorResponse from "../../utils/errorResponse";
 import User, { UserDocument } from "./user.model";
 import { sendEmail } from "../../utils/email";
+import UserRoleAssignment from "../role_assignment/userRoleAssignment.model";
+import { PermissionScope } from "../permission/permission.model";
 
 class UserService {
   /**
@@ -192,6 +194,54 @@ class UserService {
       console.error("Error changing password:", error);
       throw new ErrorResponse(
         error.message ?? "Failed to change password",
+        error.statusCode ?? 500
+      );
+    }
+  }
+
+  /**
+   * Get all organizations where the user has a role
+   * @param userId - The ID of the logged in user
+   * @returns Promise<Array> - List of organizations
+   */
+  public async getUserOrganizations(userId: string): Promise<any[]> {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw new ErrorResponse("Invalid User ID", 400);
+      }
+
+      // Find all role assignments for this user with ORGANIZATION scope
+      const userRoleAssignments = await UserRoleAssignment.find({
+        userId,
+        scope: PermissionScope.ORGANIZATION
+      })
+      .populate({
+        path: "scopeId",
+        model: "Organization",
+        select: "name" 
+      })
+      .lean();
+
+      // Extract organizations and filter out any undefined/null values
+      const organizations = userRoleAssignments
+        .filter(assignment => assignment.scopeId !== null && assignment.scopeId !== undefined)
+        .map(assignment => assignment.scopeId);
+
+      // Remove duplicate organizations using a Map with string IDs as keys
+      const uniqueOrganizationsMap = new Map();
+      organizations.forEach(org => {
+        if (org && org._id) {
+          uniqueOrganizationsMap.set(org._id.toString(), org);
+        }
+      });
+
+      const uniqueOrganizations = Array.from(uniqueOrganizationsMap.values());
+
+      return uniqueOrganizations;
+    } catch (error: any) {
+      console.error("Error fetching user organizations:", error);
+      throw new ErrorResponse(
+        error.message ?? "Failed to fetch organizations",
         error.statusCode ?? 500
       );
     }

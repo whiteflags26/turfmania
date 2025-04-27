@@ -108,3 +108,24 @@ export const changePassword = asyncHandler(
     res.status(200).json(result);
   }
 );
+
+/**
+ * @desc    Get organizations where user has a role
+ * @route   GET /api/v1/users/organizations
+ * @access  Private
+ */
+export const getUserOrganizations = asyncHandler(
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user?.id) {
+      throw new ErrorResponse('Not authorized to access this route', 401);
+    }
+
+    const organizations = await userService.getUserOrganizations(req.user.id);
+
+    res.status(200).json({
+      success: true,
+      count: organizations.length,
+      data: organizations,
+    });
+  }
+);

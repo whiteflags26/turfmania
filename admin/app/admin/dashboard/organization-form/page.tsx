@@ -1,5 +1,6 @@
 'use client';
 
+import ErrorDisplay from '@/component/errors/ErrorDisplay';
 import {
   createOrganization,
   getAllFacilities,
@@ -10,6 +11,7 @@ import {
 } from '@/utils/image-upload';
 import { Building, Check, MapPin, Package, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 
 export default function OrganizationForm() {
   const [name, setName] = useState('');
@@ -118,9 +120,16 @@ export default function OrganizationForm() {
       console.log('Organization created:', response);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    } catch (error: any) {
-      console.error('Error creating organization:', error);
-      setError(error.message);
+    } catch (err: any) {
+      const statusCode = err.response?.status;
+      const errorMessage = err.response?.data?.message || err.message;
+
+      if (statusCode === 403) {
+        return <ErrorDisplay statusCode={403} />;
+      }
+
+      setError(errorMessage);
+      toast.error(errorMessage || 'Failed to create organization');
     } finally {
       setLoading(false);
     }
@@ -134,6 +143,11 @@ export default function OrganizationForm() {
     facilities.length > 0 &&
     orgContactPhone &&
     orgContactEmail;
+
+  // Add error check at the top of your render
+  if (error === 'Unauthorized' || error === 'Forbidden') {
+    return <ErrorDisplay statusCode={403} />;
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-6">
