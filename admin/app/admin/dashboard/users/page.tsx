@@ -3,7 +3,9 @@
 import RoleAssignmentModal from '@/component/admin/users/RoleAssignmentModal';
 import { Role, User } from '@/component/admin/users/types';
 import UserTable from '@/component/admin/users/UserTable';
+import { handleAxiosError } from '@/lib/utils/handleAxiosError';
 import axios from 'axios';
+import { set } from 'date-fns';
 import { Users } from 'lucide-react'; // Add this import
 import { useEffect, useState } from 'react';
 
@@ -25,15 +27,9 @@ export default function UsersManagement() {
         setUsers(response.data.data);
         setError(null);
       } catch (err:unknown) {
-        console.error('Error fetching users:', err);
-        if (axios.isAxiosError(err)) {
-          setError(err.response?.data?.message || 'An error occurred while fetching users');
-        } else if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError('An unknown error occurred');
-        }
-        setError( 'An error occurred while fetching users');
+        const errorMessage = handleAxiosError(err, 'Error Fetch users');
+        setError(errorMessage);
+       
       } finally {
         setLoading(false);
       }
@@ -51,15 +47,9 @@ export default function UsersManagement() {
         );
         setGlobalRoles(response.data.data);
       } catch (err:unknown) {
-        if (axios.isAxiosError(err)) {
-          console.error('Error fetching global roles:', err.response?.data?.message);
-        }
-        else if (err instanceof Error) {
-          console.error('Error fetching global roles:', err.message);
-        } else {
-          console.error('Error fetching global roles:', 'An unknown error occurred');
-        }
-        console.error('Error fetching global roles:', err);
+        const errorMessage = handleAxiosError(err, 'Error Fetch role');
+        setError(errorMessage);
+        
       }
     };
 
@@ -80,18 +70,8 @@ export default function UsersManagement() {
       setSelectedUser(null);
       setSelectedRole('');
     } catch (err:unknown) {
-      if (axios.isAxiosError(err)) {
-        console.error('Error assigning role:', err.response?.data?.message);
-        alert(`Failed to assign role: ${err.response?.data?.message}`);
-      } else if (err instanceof Error) {
-        console.error('Error assigning role:', err.message);
-        alert(`Failed to assign role: ${err.message}`);
-      } else {
-        console.error('Error assigning role:', 'An unknown error occurred');
-        alert('Failed to assign role. Please try again.');
-      }
-      console.error('Error assigning role:', err);
-      alert('Failed to assign role. Please try again.');
+      const errorMessage = handleAxiosError(err, 'Error assigning role');
+     setError(errorMessage);
     }
   };
 

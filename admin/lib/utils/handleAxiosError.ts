@@ -1,14 +1,12 @@
-import axios from "axios";
+// utils/handleAxiosError.ts
+import axios from 'axios';
 
-export function handleAxiosError(error: unknown, customMessage = 'An error occurred') {
-    if (axios.isAxiosError(error)) {
-      console.error(customMessage, error.response?.data?.message);
-      return error.response?.data?.message || customMessage;
-    } else if (error instanceof Error) {
-      console.error(customMessage, error.message);
-      return error.message;
-    } else {
-      console.error(customMessage, 'Unknown error');
-      return customMessage;
-    }
+export function handleAxiosError(error: unknown, fallbackMessage = 'An error occurred'): string {
+  if (axios.isAxiosError(error)) {
+    return error.response?.data?.message || fallbackMessage;
+  } else if (error instanceof Error) {
+    return error.message;
+  } else {
+    return fallbackMessage;
   }
+}
