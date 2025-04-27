@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unescaped-entities */
 "use client";
 
 import { useState, useRef, useEffect, FormEvent } from "react";
@@ -374,7 +373,7 @@ const Navbar = () => {
                       </div>
                     ) : searchQuery.trim().length >= 2 ? (
                       <div className="p-4 text-center text-gray-500">
-                        No results found for "{searchQuery}"
+                        No results found for &quot;{searchQuery}&quot;
                       </div>
                     ) : null}
                   </div>
@@ -391,11 +390,9 @@ const Navbar = () => {
               <SheetContent side="right">
                 <SheetHeader>
                   <SheetTitle>Navigation</SheetTitle>
-                  <SheetDescription>
-                    Explore TurfMania's features and services
-                  </SheetDescription>
+                  <SheetDescription>Search for turfs and more</SheetDescription>
                 </SheetHeader>
-                {/* Mobile search - moved outside SheetDescription */}
+                Mobile search
                 <div className="mt-4 mb-6 px-4">
                   <form onSubmit={handleSearchSubmit}>
                     <div className="relative">
@@ -405,6 +402,9 @@ const Navbar = () => {
                         className="w-full pr-8 pl-10"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        onFocus={() =>
+                          setShowSuggestions(searchQuery.trim().length >= 2)
+                        }
                       />
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 transform text-gray-400" />
                       {searchQuery && (
@@ -414,10 +414,63 @@ const Navbar = () => {
                           onClick={handleSearchClear}
                         />
                       )}
+
+                      {/* Mobile search suggestions dropdown */}
+                      {showSuggestions && (
+                        <div className="absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg z-20">
+                          {isLoading_suggestions ? (
+                            <div className="p-4 text-center text-gray-500">
+                              Loading...
+                            </div>
+                          ) : suggestions.length > 0 ? (
+                            <div>
+                              {suggestions.map((suggestion) => (
+                                <div
+                                  key={`${suggestion.type}-${suggestion._id}`}
+                                  className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                  onClick={() =>
+                                    handleSuggestionClick(suggestion)
+                                  }
+                                >
+                                  <div className="font-medium">
+                                    {suggestion.name}
+                                  </div>
+                                  <div className="flex items-center text-xs text-gray-500">
+                                    <span className="mr-2 rounded bg-gray-100 px-1 py-0.5 text-gray-700">
+                                      {suggestion.type === "turf"
+                                        ? "Turf"
+                                        : "Organization"}
+                                    </span>
+                                    {suggestion.location && (
+                                      <span>{suggestion.location}</span>
+                                    )}
+                                    {suggestion.sport && (
+                                      <span className="ml-2 rounded bg-green-100 px-1 py-0.5 text-green-700">
+                                        {suggestion.sport}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                              <div className="border-t border-gray-100 p-2">
+                                <button
+                                  onClick={handleSearchSubmit}
+                                  className="text-sm text-green-600 hover:text-green-700 w-full text-center"
+                                >
+                                  See all results for &quot;{searchQuery}&quot;
+                                </button>
+                              </div>
+                            </div>
+                          ) : searchQuery.trim().length >= 2 ? (
+                            <div className="p-4 text-center text-gray-500">
+                              No results found for &quote;{searchQuery}&quote;
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   </form>
                 </div>
-
                 {/* Navigation links - moved outside SheetDescription */}
                 <div className="flex flex-col space-y-4 px-4">
                   {NAV_LINKS.map((link) => (
@@ -462,7 +515,8 @@ const Navbar = () => {
                 <div>
                   <h3 className="text-xl font-semibold">Search Results</h3>
                   <p className="text-sm text-gray-500">
-                    {searchPagination?.total || 0} results for "{searchQuery}"
+                    {searchPagination?.total || 0} results for &quote;
+                    {searchQuery}&quote;
                   </p>
                 </div>
                 <button
