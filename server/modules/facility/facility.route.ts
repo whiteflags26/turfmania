@@ -7,7 +7,7 @@ const router = Router();
 const facilityController = new FacilityController();
 
 router.post("/", checkPermission("manage_tags"), facilityController.createFacility);
-router.get("/", checkPermission("manage_tags"), facilityController.getAllFacilities);
+router.get("/", facilityController.getAllFacilities);
 router.get("/:id", facilityController.getFacilityById);
 router.put("/:id", checkPermission("manage_tags"), facilityController.updateFacility);
 router.delete("/:id", checkPermission("manage_tags"), facilityController.deleteFacility);
