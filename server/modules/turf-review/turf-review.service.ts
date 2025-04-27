@@ -4,6 +4,8 @@ import User from "../user/user.model";
 import mongoose from "mongoose";
 import { uploadImage, deleteImage } from "../../utils/cloudinary";
 import { extractPublicIdFromUrl } from "../../utils/extractUrl";
+import ErrorResponse from '../../utils/errorResponse';
+
 
 interface CreateReviewData {
   turfId: string;
@@ -37,17 +39,22 @@ export interface ReviewSummary {
   ratingDistribution: { [rating: number]: number };
 }
 
+
 export default class TurfReviewService {
   // Create a new review
   async createReview(data: CreateReviewData): Promise<ITurfReview> {
-    const userExists = await User.exists({ _id: data.userId });
-    if (!userExists) {
-      throw new Error("User not found");
+    // Check if user exists and is verified
+    const user = await User.findById(data.userId);
+    if (!user) {
+      throw new ErrorResponse("User not found", 404);
+    }
+    if (!user.isVerified) {
+      throw new ErrorResponse("User must be verified to create a review", 403);
     }
 
     const turfExists = await Turf.exists({ _id: data.turfId });
     if (!turfExists) {
-      throw new Error("Turf not found");
+      throw new ErrorResponse("Turf not found", 404);
     }
 
     const existingReview = await TurfReview.findOne({
@@ -56,38 +63,46 @@ export default class TurfReviewService {
     });
 
     if (existingReview) {
-      throw new Error("User has already reviewed this turf");
+      throw new ErrorResponse("User has already reviewed this turf", 400);
     }
 
     // Upload images if provided
     let imageUrls: string[] = [];
     if (data.images && data.images.length > 0) {
-      const uploadPromises = data.images.map((image) => uploadImage(image));
-      const uploadedImages = await Promise.all(uploadPromises);
-      imageUrls = uploadedImages.map((img) => img.url);
+      try {
+        const uploadPromises = data.images.map((image) => uploadImage(image));
+        const uploadedImages = await Promise.all(uploadPromises);
+        imageUrls = uploadedImages.map((img) => img.url);
+      } catch (error) {
+        throw new ErrorResponse("Failed to upload images", 500);
+      }
     }
 
-    const turfReview = new TurfReview({
-      turf: data.turfId,
-      user: data.userId,
-      rating: data.rating,
-      review: data.review,
-      images: imageUrls,
-    });
+    try {
+      const turfReview = new TurfReview({
+        turf: data.turfId,
+        user: data.userId,
+        rating: data.rating,
+        review: data.review,
+        images: imageUrls,
+      });
 
-    const newReview = await turfReview.save();
+      const newReview = await turfReview.save();
 
-    // Update the User document
-    await User.findByIdAndUpdate(data.userId, {
-      $push: { reviews: newReview._id },
-    });
+      // Update the User document
+      await User.findByIdAndUpdate(data.userId, {
+        $push: { reviews: newReview._id },
+      });
 
-    // Update the Turf document
-    await Turf.findByIdAndUpdate(data.turfId, {
-      $push: { reviews: newReview._id },
-    });
+      // Update the Turf document
+      await Turf.findByIdAndUpdate(data.turfId, {
+        $push: { reviews: newReview._id },
+      });
 
-    return newReview;
+      return newReview;
+    } catch (error) {
+      throw new ErrorResponse("Failed to create review", 500);
+    }
   }
 
   // Update an existing review
@@ -96,32 +111,45 @@ export default class TurfReviewService {
     userId: string,
     data: UpdateReviewData
   ): Promise<ITurfReview | null> {
+    // Check if user is verified
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new ErrorResponse("User not found", 404);
+    }
+    if (!user.isVerified) {
+      throw new ErrorResponse("User must be verified to update a review", 403);
+    }
+
     const review = await TurfReview.findOne({
       _id: reviewId,
       user: userId,
     });
 
     if (!review) {
-      throw new Error("Review not found or user not authorized");
+      throw new ErrorResponse("Review not found or user not authorized", 404);
     }
 
     let newImageUrls: string[] | undefined;
 
     // Handle image updates
     if (data.images && data.images.length > 0) {
-      // Upload new images
-      const uploadPromises = data.images.map((image) => uploadImage(image));
-      const uploadedImages = await Promise.all(uploadPromises);
-      newImageUrls = uploadedImages.map((img) => img.url);
+      try {
+        // Upload new images
+        const uploadPromises = data.images.map((image) => uploadImage(image));
+        const uploadedImages = await Promise.all(uploadPromises);
+        newImageUrls = uploadedImages.map((img) => img.url);
 
-      // Delete old images if they exist
-      if (review.images && review.images.length > 0) {
-        await Promise.all(
-          review.images.map((imgUrl) => {
-            const publicId = extractPublicIdFromUrl(imgUrl);
-            return publicId ? deleteImage(publicId) : Promise.resolve();
-          })
-        );
+        // Delete old images if they exist
+        if (review.images && review.images.length > 0) {
+          await Promise.all(
+            review.images.map((imgUrl) => {
+              const publicId = extractPublicIdFromUrl(imgUrl);
+              return publicId ? deleteImage(publicId) : Promise.resolve();
+            })
+          );
+        }
+      } catch (error) {
+        throw new ErrorResponse("Failed to update images", 500);
       }
     }
 
@@ -135,14 +163,22 @@ export default class TurfReviewService {
       updatePayload.images = newImageUrls;
     }
 
-    // Update the review
-    const updatedReview = await TurfReview.findByIdAndUpdate(
-      reviewId,
-      { $set: updatePayload },
-      { new: true, runValidators: true }
-    );
+    try {
+      // Update the review
+      const updatedReview = await TurfReview.findByIdAndUpdate(
+        reviewId,
+        { $set: updatePayload },
+        { new: true, runValidators: true }
+      );
 
-    return updatedReview;
+      if (!updatedReview) {
+        throw new ErrorResponse("Failed to update review", 500);
+      }
+
+      return updatedReview;
+    } catch (error) {
+      throw new ErrorResponse("Failed to update review", 500);
+    }
   }
 
   // Delete a review
