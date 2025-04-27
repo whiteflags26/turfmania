@@ -8,6 +8,7 @@ import {
 } from '@/services/organizationService';
 
 import { ActionButton } from '@/components/buttons/ActionButton';
+import { OrganizationRequest } from '@/types/organization';
 import { format } from 'date-fns';
 import {
   Activity,
@@ -27,13 +28,6 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { OrganizationRequest } from '@/types/organization';
-import { ApiResponse } from '@/types/api';
-
-
-
-
-
 
 interface User {
   _id: string;
@@ -41,11 +35,6 @@ interface User {
   last_name: string;
   email: string;
 }
-
-
-
-
-
 
 export default function OrganizationRequestDetailPage() {
   const router = useRouter();
@@ -65,9 +54,9 @@ export default function OrganizationRequestDetailPage() {
         setIsLoading(true);
         setError(null);
 
-        const response = (await getSingleOrganizationRequest(
+        const response = await getSingleOrganizationRequest(
           params.id as string,
-        )) 
+        );
 
         setRequest(response);
 
