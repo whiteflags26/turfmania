@@ -392,7 +392,7 @@ const Navbar = () => {
                   <SheetTitle>Navigation</SheetTitle>
                   <SheetDescription>Search for turfs and more</SheetDescription>
                 </SheetHeader>
-                Mobile search
+                {/* Mobile search */}
                 <div className="mt-4 mb-6 px-4">
                   <form onSubmit={handleSearchSubmit}>
                     <div className="relative">
