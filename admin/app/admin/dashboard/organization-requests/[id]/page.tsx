@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -29,22 +28,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { OrganizationRequest } from '@/types/organization';
+import { ApiResponse } from '@/types/api';
 
-// Types
-interface Coordinates {
-  type: string;
-  coordinates: number[];
-}
 
-interface Location {
-  coordinates: Coordinates;
-  place_id: string;
-  address: string;
-  city: string;
-  area?: string;
-  sub_area?: string;
-  post_code?: string;
-}
+
+
+
 
 interface User {
   _id: string;
@@ -53,23 +42,10 @@ interface User {
   email: string;
 }
 
-interface Organization {
-  location: Location;
-  _id: string;
-  name: string;
-  facilities: string[];
-  images: string[];
-  turfs: string[];
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
-}
 
 
-interface ApiResponse {
-  success: boolean;
-  data: OrganizationRequest;
-}
+
+
 
 export default function OrganizationRequestDetailPage() {
   const router = useRouter();
@@ -91,12 +67,12 @@ export default function OrganizationRequestDetailPage() {
 
         const response = (await getSingleOrganizationRequest(
           params.id as string,
-        )) as unknown as ApiResponse;
+        )) 
 
-        setRequest(response.data);
+        setRequest(response);
 
-        if (response.data.images && response.data.images.length > 0) {
-          setSelectedImage(response.data.images[0]);
+        if (response.images && response.images.length > 0) {
+          setSelectedImage(response.images[0]);
         }
       } catch (err) {
         setError('Failed to load organization request details');
