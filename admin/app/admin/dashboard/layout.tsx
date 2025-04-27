@@ -16,11 +16,7 @@ interface AdminLayoutProps {
 }
 
 // Dummy user data
-const dummyUser = {
-  name: 'John Doe',
-  email: 'john@example.com',
-  role: 'Admin',
-} as const;
+
 
 // Dummy permission checker
 const dummyCheckPermission = async (permission: string) => true;
@@ -93,7 +89,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <AdminSidebar
         navigation={navigation}
         logout={handleLogout}
-        user={dummyUser}
+        user={user}
       />
       <div className="lg:pl-64 flex flex-col flex-1">
         <main className="flex-1 pb-8">
