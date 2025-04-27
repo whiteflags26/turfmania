@@ -5,6 +5,8 @@ export interface ITurf {
   sports: string[];
   team_size: number;
   images: string[];
+  mainImage?: string;
+  size?: string;
   operatingHours: Array<{
     day: number;
     open: string;

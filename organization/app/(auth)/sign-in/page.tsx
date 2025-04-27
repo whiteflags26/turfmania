@@ -61,7 +61,7 @@ export default function SignInPage() {
     setTimeout(() => {
       setShowOrgModal(false);
       toast.success("Welcome back!");
-      router.push(`/dashboard/${orgId}`);
+      router.push(`/organization/${orgId}`);
     }, 500);
   };
 
