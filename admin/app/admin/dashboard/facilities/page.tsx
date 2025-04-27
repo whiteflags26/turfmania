@@ -1,5 +1,6 @@
 'use client';
 
+import ErrorDisplay from '@/component/errors/ErrorDisplay';
 import {
   createFacility,
   deleteFacility,
@@ -45,6 +46,9 @@ export default function FacilitiesPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<{ code?: number; message: string } | null>(
+    null,
+  );
 
   // Fetch facilities on mount
   useEffect(() => {
@@ -73,9 +77,13 @@ export default function FacilitiesPage() {
         setFacilities(response.data);
         setFilteredFacilities(response.data);
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message);
+    } catch (err: any) {
+      const statusCode = err.response?.status;
+      const errorMessage = err.response?.data?.message || err.message;
+
+      setError({ code: statusCode, message: errorMessage });
+      if (statusCode === 403) {
+        toast.error('You are not authorized to view facilities');
       } else {
         toast.error('Failed to fetch facilities');
       }
@@ -167,6 +175,10 @@ export default function FacilitiesPage() {
       setIsDeleting(false);
     }
   };
+
+  if (error?.code === 403) {
+    return <ErrorDisplay statusCode={403} />;
+  }
 
   if (loading) {
     return (

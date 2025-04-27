@@ -1,8 +1,9 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import mongoose from 'mongoose';
 import asyncHandler from '../../shared/middleware/async';
 import ErrorResponse from '../../utils/errorResponse';
 import TeamSizeService from './team_size.service';
+import { AuthenticatedRequest } from '../../types/request';
 
 export default class TeamSizeController {
   private readonly teamSizeService: TeamSizeService;
@@ -16,7 +17,7 @@ export default class TeamSizeController {
    * @access Private/Admin
    */
   createTeamSize = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { name } = req.body;
   
       if (name === undefined) {
@@ -44,7 +45,7 @@ export default class TeamSizeController {
    * @access Public
    */
   getAllTeamSizes = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const teamSizes = await this.teamSizeService.getAllTeamSizes();
 
       res.status(200).json({
@@ -61,7 +62,7 @@ export default class TeamSizeController {
    * @access Public
    */
   getTeamSizeById = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { id } = req.params;
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return next(new ErrorResponse('Invalid TeamSize ID format', 404));
@@ -85,7 +86,7 @@ export default class TeamSizeController {
    * @access Private/Admin
    */
   updateTeamSize = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { id } = req.params;
       const { name } = req.body;
   
@@ -122,7 +123,7 @@ export default class TeamSizeController {
    * @access Private/Admin
    */
   deleteTeamSize = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
