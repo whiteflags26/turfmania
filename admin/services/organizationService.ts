@@ -1,7 +1,7 @@
 import api from '@/lib/axios';
 import {
   OrganizationRequestsResponse,
-  SingleOrganizationResponse,
+  SingleOrganizationRequestResponse,
 } from '@/types/organization';
 
 export interface RequestFilters {
@@ -35,7 +35,7 @@ export async function getOrganizationRequests(
 
 export async function getSingleOrganizationRequest(
   requestId: string,
-): Promise<SingleOrganizationResponse> {
+): Promise<SingleOrganizationRequestResponse> {
   try {
     const { data } = await api.get(
       `/api/v1/organization-requests/admin/${requestId}`,
@@ -102,7 +102,7 @@ export async function rejectOrganizationRequest(
 
 export async function createOrganization(
   payload: any,
-): Promise<SingleOrganizationResponse> {
+): Promise<SingleOrganizationRequestResponse> {
   try {
     const response = await api.post('/api/v1/organizations', payload, {
       headers: {
@@ -310,7 +310,7 @@ export async function deleteSport(sportId: string): Promise<any> {
 // Add with other interfaces at the top
 export interface TeamSize {
   _id: string;
-  name: string;
+  name: number;
   // Add other team size properties if needed
 }
 

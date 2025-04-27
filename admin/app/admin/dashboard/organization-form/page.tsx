@@ -4,6 +4,10 @@ import {
   createOrganization,
   getAllFacilities,
 } from '@/services/organizationService'; // Import the backend service
+import {
+  prepareImagesForSubmission,
+  handleImageUpload as processImageUpload,
+} from '@/utils/image-upload';
 import { Building, Check, MapPin, Package, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -55,11 +59,22 @@ export default function OrganizationForm() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    const filesArray = Array.from(e.target.files);
-    const total = imageFiles.length + filesArray.length;
-    const allowedFiles =
-      total > 5 ? filesArray.slice(0, 5 - imageFiles.length) : filesArray;
-    setImageFiles(prev => [...prev, ...allowedFiles]);
+
+    const result = processImageUpload(
+      Array.from(e.target.files), // Convert FileList to array
+      [], // No existing images
+      {
+        maxImages: 5,
+        allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+      },
+    );
+
+    if (!result || !result.isValid) {
+      setError(result?.errorMessage || 'Image upload failed');
+      return;
+    }
+
+    setImageFiles(prev => [...prev, ...result.files]);
   };
 
   const removeImage = (index: number) => {
@@ -74,8 +89,7 @@ export default function OrganizationForm() {
     try {
       const formData = new FormData();
       formData.set('name', name);
-      // Update how facilities are sent
-      formData.set('facilities', JSON.stringify(facilities)); // Send facilities exactly as stored
+      formData.set('facilities', JSON.stringify(facilities));
       formData.set(
         'location',
         JSON.stringify({
@@ -96,13 +110,11 @@ export default function OrganizationForm() {
       formData.set('adminNotes', adminNotes);
       formData.set('wasEdited', 'False');
 
-      // Add images if any
-      imageFiles.forEach((file, index) => {
-        formData.append(`images`, file);
-      });
+      // Use the utility function to prepare images
+      const preparedFormData = prepareImagesForSubmission(formData, imageFiles);
 
       // Call the backend service
-      const response = await createOrganization(formData);
+      const response = await createOrganization(preparedFormData);
       console.log('Organization created:', response);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);

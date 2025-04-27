@@ -1,7 +1,11 @@
 "use client";
 
-import { useAuth } from "@/lib/contexts/authContext";
-import { createOrganizationRequest } from "@/lib/server-apis/organization-request/organizationRequestService";
+import { useAuth } from '@/lib/contexts/authContext';
+import {
+  createOrganizationRequest,
+  getFacilities,
+} from '@/lib/server-apis/organization-request/organizationRequestService';
+import { handleImageUpload as processImageUpload } from '@/lib/utils/image-upload';
 import {
   ArrowLeft,
   Building,
@@ -12,28 +16,10 @@ import {
   Phone,
   Upload,
   X,
-} from "lucide-react";
-import { ApiError } from "next/dist/server/api-utils";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
-
-// Mock facility options
-const FACILITY_OPTIONS = [
-  "football",
-  "cricket",
-  "basketball",
-  "tennis",
-  "badminton",
-  "volleyball",
-  "swimming_pool",
-  "gym",
-  "table_tennis",
-  "indoor_sports",
-];
-
-// Create a type for create organization request
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 
 export default function CreateOrganizationRequestForm() {
   const { user, isLoading: authLoading } = useAuth();
@@ -42,12 +28,13 @@ export default function CreateOrganizationRequestForm() {
   // Form state
   const [organizationName, setOrganizationName] = useState("");
   const [facilities, setFacilities] = useState<string[]>([]);
-  const [address, setAddress] = useState("");
-  const [placeId, setPlaceId] = useState("");
-  const [city, setCity] = useState("");
-  const [area, setArea] = useState("");
-  const [subArea, setSubArea] = useState("");
-  const [postCode, setPostCode] = useState("");
+  const [availableFacilities, setAvailableFacilities] = useState<string[]>([]); // Added state for fetched facilities
+  const [address, setAddress] = useState('');
+  const [placeId, setPlaceId] = useState('');
+  const [city, setCity] = useState('');
+  const [area, setArea] = useState('');
+  const [subArea, setSubArea] = useState('');
+  const [postCode, setPostCode] = useState('');
   const [longitude, setLongitude] = useState(0);
   const [latitude, setLatitude] = useState(0);
   const [contactPhone, setContactPhone] = useState("");
@@ -59,8 +46,33 @@ export default function CreateOrganizationRequestForm() {
 
   // Form submission state
   const [loading, setLoading] = useState(false);
+  const [facilitiesLoading, setFacilitiesLoading] = useState(true); // Added loading state for facilities
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch facilities on component mount
+  useEffect(() => {
+    async function loadFacilities() {
+      try {
+        setFacilitiesLoading(true);
+        const response = await getFacilities();
+
+        if (response.ok && Array.isArray(response.data)) {
+          setAvailableFacilities(response.data);
+        } else {
+          console.error('Failed to load facilities:', response.data);
+          toast.error('Failed to load facilities. Please refresh the page.');
+        }
+      } catch (error) {
+        console.error('Error loading facilities:', error);
+        toast.error('An error occurred while loading facilities.');
+      } finally {
+        setFacilitiesLoading(false);
+      }
+    }
+
+    loadFacilities();
+  }, []);
 
   // Populate email from user context if available
   useEffect(() => {
@@ -94,31 +106,58 @@ export default function CreateOrganizationRequestForm() {
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const remainingSlots = 5 - images.length;
-      if (remainingSlots <= 0) {
-        toast.error("Maximum 5 images allowed");
+    if (!e.target?.files?.length) return;
+
+    try {
+      const result = processImageUpload(
+        e.target.files,
+        [], // No existing images
+        {
+          maxImages: 5,
+          allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+        },
+      );
+
+      if (!result.isValid) {
+        toast.error(result.errorMessage || 'Invalid image upload');
         return;
       }
 
-      const files = Array.from(e.target.files).slice(0, remainingSlots);
-
-      // Validate each file
-      const validFiles = files.filter((file) => {
-        const isValidType = ["image/jpeg", "image/png", "image/webp"].includes(
-          file.type
-        );
+      // Validate file sizes
+      const validFiles = Array.from(e.target.files).filter(file => {
         const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
-        return isValidType && isValidSize;
+        if (!isValidSize) {
+          toast.error(`File ${file.name} exceeds 5MB limit`);
+        }
+        return isValidSize;
       });
 
-      if (validFiles.length !== files.length) {
-        toast.error(
-          "Some files were skipped. Please ensure all files are images under 5MB."
-        );
+      if (validFiles.length === 0) {
+        toast.error('No valid files to upload');
+        return;
       }
 
-      setImages((prev) => [...prev, ...validFiles]);
+      // Update images state
+      setImages(prev => {
+        const newImages = [...prev];
+        validFiles.forEach(file => {
+          if (newImages.length < 5) {
+            newImages.push(file);
+          }
+        });
+
+        if (newImages.length === 5) {
+          toast.warning('Maximum 5 images reached');
+        }
+
+        return newImages;
+      });
+
+      // Clear the input
+      e.target.value = '';
+    } catch (error) {
+      console.error('Error handling image upload:', error);
+      toast.error('Failed to process images');
     }
   };
 
@@ -132,6 +171,104 @@ export default function CreateOrganizationRequestForm() {
     setError(null);
 
     try {
+      // Validate required fields first
+      if (
+        !organizationName ||
+        !facilities.length ||
+        !address ||
+        !placeId ||
+        !city
+      ) {
+        toast.error('Please fill in all required organization details');
+        setLoading(false);
+        return;
+      }
+
+      // Validate contact information
+      if (
+        !contactPhone ||
+        !ownerEmail ||
+        !orgContactPhone ||
+        !orgContactEmail
+      ) {
+        toast.error('Please provide all contact information');
+        setLoading(false);
+        return;
+      }
+
+      // Create FormData instance
+      const formData = new FormData();
+
+      // Add ALL required fields
+      formData.append('organizationName', organizationName);
+      formData.append('facilities', JSON.stringify(facilities));
+      formData.append('contactPhone', contactPhone); // Add this
+      formData.append('ownerEmail', ownerEmail); // Add this
+
+      // Add location data
+      formData.append(
+        'location',
+        JSON.stringify({
+          place_id: placeId,
+          address,
+          coordinates: {
+            type: 'Point',
+            coordinates: [longitude, latitude],
+          },
+          area: area || undefined,
+          sub_area: subArea || undefined,
+          city,
+          post_code: postCode || undefined,
+        }),
+      );
+
+      // Add contact information
+      formData.append('orgContactPhone', orgContactPhone);
+      formData.append('orgContactEmail', orgContactEmail);
+
+      // Add optional fields
+      if (requestNotes) {
+        formData.append('requestNotes', requestNotes);
+      }
+
+      // Add image files if any
+      if (images.length > 0) {
+        // Validate image size and format before submission
+        const isValidImages = images.every(file => {
+          const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+          const isValidType = [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+          ].includes(file.type);
+
+          if (!isValidSize) {
+            toast.error(`Image ${file.name} exceeds 5MB size limit`);
+          }
+          if (!isValidType) {
+            toast.error(
+              `Image ${file.name} is not in a valid format (JPG, PNG, WebP)`,
+            );
+          }
+
+          return isValidSize && isValidType;
+        });
+
+        if (!isValidImages) {
+          setLoading(false);
+          return;
+        }
+
+        images.forEach(file => {
+          formData.append('images', file);
+        });
+      }
+
+      // Debug log
+      for (const [key, value] of formData.entries()) {
+        console.log(`FormData field - ${key}:`, value);
+      }
+
       const response = await createOrganizationRequest(
         {
           organizationName,
@@ -150,9 +287,9 @@ export default function CreateOrganizationRequestForm() {
           },
           contactPhone,
           ownerEmail,
+          orgContactPhone,
+          orgContactEmail,
           requestNotes: requestNotes || undefined,
-          orgContactPhone, // Add this
-          orgContactEmail, // Add this
         },
         images.length > 0 ? images : undefined
       );
@@ -163,21 +300,21 @@ export default function CreateOrganizationRequestForm() {
         );
       }
 
-      console.log("data received:", response.data);
       setSuccess(true);
       toast.success("Organization request submitted successfully!");
 
-      // Clear form after successful submission
+      // Reset form after successful submission
       setTimeout(() => {
-        // You might want to add form reset logic here
-        // or navigate to a different page
+        router.push('/organizations');
       }, 2000);
     } catch (error) {
       console.error("Error submitting organization request:", error);
       setError(
-        (error as ApiError).message ?? "Something went wrong. Please try again."
+        error instanceof Error ? error.message : 'Failed to submit request',
       );
-      toast.error((error as ApiError).message ?? "Failed to submit request");
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to submit request',
+      );
     } finally {
       setLoading(false);
     }
@@ -193,8 +330,8 @@ export default function CreateOrganizationRequestForm() {
     latitude !== 0 &&
     contactPhone &&
     ownerEmail &&
-    orgContactPhone && // Add this
-    orgContactEmail; // Add this
+    orgContactPhone &&
+    orgContactEmail;
 
   // Handle back navigation
   const goBack = () => {
@@ -557,27 +694,61 @@ export default function CreateOrganizationRequestForm() {
                 </h2>
               </div>
               <div className="p-6">
-                <div className="flex flex-wrap gap-2">
-                  {FACILITY_OPTIONS.map((facility) => (
-                    <button
-                      key={facility}
-                      type="button"
-                      onClick={() => handleFacilityToggle(facility)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        facilities.includes(facility)
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                      }`}
+                {facilitiesLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <svg
+                      className="animate-spin h-6 w-6 text-blue-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
                     >
-                      {formatFacilityName(facility)}
-                    </button>
-                  ))}
-                </div>
-                {facilities.length === 0 && (
-                  <p className="mt-2 text-sm text-gray-500">
-                    Please select at least one facility
-                  </p>
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span className="ml-2 text-gray-600">
+                      Loading facilities...
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {availableFacilities.length > 0 ? (
+                      availableFacilities.map(facility => (
+                        <button
+                          key={facility}
+                          type="button"
+                          onClick={() => handleFacilityToggle(facility)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                            facilities.includes(facility)
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                          }`}
+                        >
+                          {formatFacilityName(facility)}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">No facilities available</p>
+                    )}
+                  </div>
                 )}
+                {!facilitiesLoading &&
+                  facilities.length === 0 &&
+                  availableFacilities.length > 0 && (
+                    <p className="mt-2 text-sm text-gray-500">
+                      Please select at least one facility
+                    </p>
+                  )}
               </div>
             </div>
 
@@ -725,11 +896,11 @@ export default function CreateOrganizationRequestForm() {
           </button>
           <button
             type="submit"
-            disabled={loading || !isFormValid}
+            disabled={loading || !isFormValid || facilitiesLoading}
             className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-              loading || !isFormValid
-                ? "bg-blue-300 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
+              loading || !isFormValid || facilitiesLoading
+                ? 'bg-blue-300 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
             }`}
           >
             {loading ? (

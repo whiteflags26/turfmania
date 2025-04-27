@@ -28,8 +28,8 @@ export default class TurfService {
     // Validate sports exist
     await this.sportsService.validateSports(sports);
 
-    // Validate team size exists - convert number to string for validation
-    await this.teamSizeService.validateTeamSizes([teamSize.toString()]);
+    // Validate team size exists
+    await this.teamSizeService.validateTeamSizes([teamSize]);
   }
 
   /**@desc Create new turf with image upload and data validation**/

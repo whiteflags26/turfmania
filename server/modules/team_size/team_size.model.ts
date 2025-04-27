@@ -1,15 +1,15 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface ITeamSize extends Document {
-  name: string;
+  name: number; 
 }
 
 const TeamSizeSchema: Schema = new Schema(
   {
     name: {
-      type: String,
+      type: Number,
       required: true,
-      trim: true,
+      min: 1,
       unique: true,
     },
   },

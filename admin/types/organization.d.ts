@@ -1,3 +1,5 @@
+import { User } from "@/component/admin/users/types";
+
 export interface RequesterInfo {
   _id: string;
   email: string;
@@ -34,18 +36,19 @@ export interface Organization {
 export interface OrganizationRequest {
   _id: string;
   organizationName: string;
-  status:
-    | 'pending'
-    | 'approved'
-    | 'rejected'
-    | 'processing'
-    | 'approved_with_changes';
+  status: 'pending' | 'approved' | 'rejected' | 'processing' | 'approved_with_changes';
   location: Location;
-  requesterId: RequesterInfo;
+  requesterId: User;
   createdAt: string;
   updatedAt: string;
   images?: string[];
   ownerEmail: string;
+  contactPhone: string;
+  requestNotes?: string;
+  processingAdminId?: User;
+  processingStartedAt?: string;
+  organizationId?: Organization;
+  // Add any missing fields from your backend response here
 }
 
 export interface OrganizationRequestsResponse {
@@ -64,9 +67,10 @@ export interface OrganizationRequestsResponse {
   };
 }
 
-export interface SingleOrganizationResponse {
+export interface SingleOrganizationRequestResponse {
   success: boolean;
-  data: Organization;
+  data: OrganizationRequest;
+  message?: string;
 }
 
 export interface OrganizationResponse {

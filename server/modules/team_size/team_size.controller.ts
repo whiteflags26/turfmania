@@ -19,14 +19,17 @@ export default class TeamSizeController {
     async (req: Request, res: Response, next: NextFunction) => {
       const { name } = req.body;
   
-      if (!name) {
-        return next(new ErrorResponse("Name is required", 400));
+      if (name === undefined) {
+        return next(new ErrorResponse("Number is required", 400));
+      }
+      
+      // Validate that it's a positive number
+      const teamSizeNumber = Number(name);
+      if (isNaN(teamSizeNumber) || teamSizeNumber < 1) {
+        return next(new ErrorResponse("Team size number must be a positive number", 400));
       }
   
-      // Sanitize name: capitalize first letter, lowercase the rest
-      const sanitizedName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-  
-      const teamSize = await this.teamSizeService.createTeamSize({ name: sanitizedName });
+      const teamSize = await this.teamSizeService.createTeamSize({ name: teamSizeNumber });
   
       res.status(201).json({
         success: true,
@@ -90,14 +93,17 @@ export default class TeamSizeController {
         return next(new ErrorResponse('Invalid TeamSize ID format', 404));
       }
   
-      if (!name) {
-        return next(new ErrorResponse("Name is required", 400));
+      if (name === undefined) {
+        return next(new ErrorResponse("Number is required", 400));
+      }
+      
+      // Validate that it's a positive number
+      const teamSizeNumber = Number(name);
+      if (isNaN(teamSizeNumber) || teamSizeNumber < 1) {
+        return next(new ErrorResponse("Team size number must be a positive number", 400));
       }
   
-      // Sanitize name: capitalize first letter, lowercase the rest
-      const sanitizedName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-  
-      const teamSize = await this.teamSizeService.updateTeamSize(id, { name: sanitizedName });
+      const teamSize = await this.teamSizeService.updateTeamSize(id, { name: teamSizeNumber });
       if (!teamSize) {
         return next(new ErrorResponse('TeamSize not found', 404));
       }

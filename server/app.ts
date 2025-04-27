@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import connectDB from './config/db';
 import router from './routes/index';
 import errorHandler from './shared/middleware/error';
+import { setupHealthMonitoring } from './modules/health-metrics/index';
 
 connectDB();
 
@@ -31,6 +32,9 @@ app.use(helmet());
 
 // Add pre-flight handling for all routes
 app.options('*', cors(corsOptions));
+
+// Health monitoring middleware
+setupHealthMonitoring(app);
 
 app.use(router);
 app.use(errorHandler);
