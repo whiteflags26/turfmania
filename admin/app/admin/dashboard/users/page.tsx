@@ -3,7 +3,9 @@
 import RoleAssignmentModal from '@/component/admin/users/RoleAssignmentModal';
 import { Role, User } from '@/component/admin/users/types';
 import UserTable from '@/component/admin/users/UserTable';
+import { handleAxiosError } from '@/lib/utils/handleAxiosError';
 import axios from 'axios';
+import { set } from 'date-fns';
 import { Users } from 'lucide-react'; // Add this import
 import { useEffect, useState } from 'react';
 
@@ -19,14 +21,15 @@ export default function UsersManagement() {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/admin`, {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/without-global-roles`, {
           withCredentials: true,
         });
         setUsers(response.data.data);
         setError(null);
-      } catch (err) {
-        console.error('Error fetching users:', err);
-        setError('Failed to load users. Please try again later.');
+      } catch (err:unknown) {
+        const errorMessage = handleAxiosError(err, 'Error Fetch users');
+        setError(errorMessage);
+       
       } finally {
         setLoading(false);
       }
@@ -43,8 +46,13 @@ export default function UsersManagement() {
           { withCredentials: true },
         );
         setGlobalRoles(response.data.data);
-      } catch (err) {
-        console.error('Error fetching global roles:', err);
+       
+      } catch (err:unknown) {
+        const errorMessage = handleAxiosError(err, 'Error Fetch role');
+        setError(errorMessage);
+        setGlobalRoles([]);
+        
+        
       }
     };
 
@@ -64,9 +72,9 @@ export default function UsersManagement() {
       alert(`Role successfully assigned`);
       setSelectedUser(null);
       setSelectedRole('');
-    } catch (err) {
-      console.error('Error assigning role:', err);
-      alert('Failed to assign role. Please try again.');
+    } catch (err:unknown) {
+      const errorMessage = handleAxiosError(err, 'Error assigning role');
+     setError(errorMessage);
     }
   };
 
@@ -83,7 +91,7 @@ export default function UsersManagement() {
       <div className="max-w-7xl mx-auto p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <h2 className="text-xl font-semibold text-red-700 mb-2">
-            Error Loading Users
+            You are not authorized to view this page
           </h2>
           <p className="text-red-600 mb-4">{error}</p>
           <button

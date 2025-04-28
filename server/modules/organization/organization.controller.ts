@@ -75,6 +75,7 @@ export const createOrganization = asyncHandler(
       orgContactEmail,
       orgContactPhone,
     } = req.body;
+    console.log("body",req.body)
 
     // Validate user authentication first
     if (!req.user) {
@@ -212,6 +213,7 @@ export const createOrganization = asyncHandler(
       req.user.id,
       adminNotes ? adminNotes : undefined
     );
+    console.log("organization", organization);
 
     res.status(201).json({
       success: true,

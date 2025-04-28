@@ -1,6 +1,8 @@
 import { Router } from "express";
 import multer from "multer";
 import TurfController from "./turf.controller";
+import { protect } from "../auth/auth.middleware";
+import { standardApiLimiter } from "../../utils/rateLimiter";
 
 const router = Router();
 const turfController = new TurfController();
@@ -22,14 +24,14 @@ const upload = multer({
   },
 });
 
-router.post("/", upload.array("images", 5), turfController.createTurf);
-router.get("/", turfController.getTurfs);
-router.get("/:id", turfController.getTurfById);
-router.put("/:id", upload.array("images", 5), turfController.updateTurfById);
-router.delete("/:id", turfController.deleteTurfById);
-router.get("/filter/search", turfController.filterTurfs);
-router.get("/:id/status", turfController.getTurfStatus);
-router.get("/organization/:organizationId", turfController.getTurfsByOrganizationId);
+router.post("/",standardApiLimiter,protect,upload.array("images", 5), turfController.createTurf);
+router.get("/",standardApiLimiter,protect, turfController.getTurfs);
+router.get("/:id",standardApiLimiter,protect, turfController.getTurfById);
+router.put("/:id",standardApiLimiter,protect, upload.array("images", 5), turfController.updateTurfById);
+router.delete("/:id",standardApiLimiter,protect, turfController.deleteTurfById);
+router.get("/filter/search",standardApiLimiter,protect, turfController.filterTurfs);
+router.get("/:id/status",standardApiLimiter,protect, turfController.getTurfStatus);
+router.get("/organization/:organizationId",standardApiLimiter,protect, turfController.getTurfsByOrganizationId);
 
 
 

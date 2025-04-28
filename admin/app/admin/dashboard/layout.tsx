@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import AdminSidebar from '../AdminSideBar';
 import MobileMenu from '../MobileMenu';
+import { useAuth } from '@/lib/contexts/authContext';
 
 interface NavigationItem {
   readonly name: string;
@@ -15,11 +16,7 @@ interface AdminLayoutProps {
 }
 
 // Dummy user data
-const dummyUser = {
-  name: 'John Doe',
-  email: 'john@example.com',
-  role: 'Admin',
-} as const;
+
 
 // Dummy permission checker
 const dummyCheckPermission = async (permission: string) => true;
@@ -27,10 +24,15 @@ const dummyCheckPermission = async (permission: string) => true;
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [navigation, setNavigation] = useState<NavigationItem[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
-
+  const { logout, user } = useAuth();
   // Dummy logout function
-  const handleLogout = () => {
-    console.log('Logout clicked');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      console.log('Logged out successfully');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   useEffect(() => {
@@ -87,7 +89,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <AdminSidebar
         navigation={navigation}
         logout={handleLogout}
-        user={dummyUser}
+        user={user}
       />
       <div className="lg:pl-64 flex flex-col flex-1">
         <main className="flex-1 pb-8">

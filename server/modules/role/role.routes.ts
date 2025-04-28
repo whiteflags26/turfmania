@@ -9,6 +9,7 @@ import {
   getRoleById,
   getRolePermissions,
 } from './role.controller';
+import { standardApiLimiter } from '../../utils/rateLimiter';
 
 const router = express.Router({ mergeParams: true });
 
@@ -16,7 +17,9 @@ router.use(protect);
 
 // Get all roles for an organization
 router.get(
+  
   '/organizations/:organizationId/roles',
+  standardApiLimiter,
   checkPermission('view_roles'),
   getOrganizationRoles,
 );
@@ -24,6 +27,7 @@ router.get(
 // Create global role
 router.post(
   '/global',
+  standardApiLimiter,
   protect,
   checkPermission('manage_user_global_roles'),
   createGlobalRole,
@@ -32,6 +36,7 @@ router.post(
 // Create organization role
 router.post(
   '/organization',
+  standardApiLimiter,
   protect,
   checkPermission('manage_organization_roles'),
   createOrganizationRole,
@@ -39,6 +44,7 @@ router.post(
 // Get all global roles
 router.get(
   '/global',
+  standardApiLimiter,
   checkPermission('manage_user_global_roles'),
   getGlobalRoles,
 );
@@ -46,6 +52,7 @@ router.get(
 // Get role by ID
 router.get(
   '/:roleId',
+  standardApiLimiter,
   checkPermission('manage_user_global_roles'),
   getRoleById,
 );
@@ -53,6 +60,7 @@ router.get(
 // Get role permissions
 router.get(
   '/:roleId/permissions',
+  standardApiLimiter,
   protect,
   checkPermission('manage_user_global_roles'),
   getRolePermissions,
@@ -61,6 +69,7 @@ router.get(
 // Delete role
 router.delete(
   '/:roleId',
+  standardApiLimiter,
   checkPermission('manage_user_global_roles'),
   deleteRole,
 );

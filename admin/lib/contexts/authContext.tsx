@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       );
 
-      console.log('Auth check response:', response.data);
+      ;
 
       if (response.status === 200 && response.data?.data) {
         console.log('User authenticated:', response.data.data);
@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async (): Promise<void> => {
     try {
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/admin/logout`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`,
         {},
         {
           withCredentials: true,
@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       );
       setUser(null);
-      router.push('/admin/login');
+      router.push('/');
     } catch (error) {
       console.error('Logout failed:', error);
     }
