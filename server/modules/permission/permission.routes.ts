@@ -9,7 +9,7 @@ import { standardApiLimiter } from '../../utils/rateLimiter';
 
 const router = express.Router();
 
-router.use(protect);
+
 
 // Get all permissions
 router.get('/',standardApiLimiter,protect, getAllPermissions);

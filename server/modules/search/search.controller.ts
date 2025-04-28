@@ -1,15 +1,18 @@
-import { Request, Response } from "express";
-import { Turf } from "../turf/turf.model";
-import Organization from "../organization/organization.model";
+import { Request, Response } from 'express';
+import Organization from '../organization/organization.model';
+import { Turf } from '../turf/turf.model';
 
 /**
  * Search suggestions endpoint
  * Returns quick suggestions for the search bar
  */
-export const getSearchSuggestions = async (req: Request, res: Response): Promise<void> => {
+export const getSearchSuggestions = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const { query } = req.query;
-    if (!query || typeof query !== "string" || query.trim().length < 2) {
+    if (!query || typeof query !== 'string' || query.trim().length < 2) {
       res.status(200).json({
         success: true,
         data: [],
@@ -17,7 +20,7 @@ export const getSearchSuggestions = async (req: Request, res: Response): Promise
       return;
     }
 
-    const searchRegex = new RegExp(query.trim(), "i");
+    const searchRegex = new RegExp(query.trim(), 'i');
 
     // Limit results for quick suggestions
     const limit = 5;
@@ -26,10 +29,10 @@ export const getSearchSuggestions = async (req: Request, res: Response): Promise
     const turfs = await Turf.find({
       name: searchRegex,
     })
-      .select("_id name sports team_size organization")
+      .select('_id name sports team_size organization')
       .populate({
-        path: "organization",
-        select: "name location.city",
+        path: 'organization',
+        select: 'name location.city',
       })
       .limit(limit);
 
@@ -37,17 +40,17 @@ export const getSearchSuggestions = async (req: Request, res: Response): Promise
     const organizations = await Organization.find({
       $or: [
         { name: searchRegex },
-        { "location.address": searchRegex },
-        { "location.area": searchRegex },
-        { "location.city": searchRegex },
+        { 'location.address': searchRegex },
+        { 'location.area': searchRegex },
+        { 'location.city': searchRegex },
       ],
     })
-      .select("_id name location.city")
+      .select('_id name location.city')
       .limit(limit);
 
     // Format suggestions
     const suggestions = [
-      ...turfs.map((turf) => {
+      ...turfs.map(turf => {
         const orgData = turf.organization as unknown as {
           name: string;
           location: { city: string };
@@ -55,15 +58,15 @@ export const getSearchSuggestions = async (req: Request, res: Response): Promise
         return {
           _id: turf._id,
           name: turf.name,
-          type: "turf" as const,
+          type: 'turf' as const,
           location: orgData?.location?.city,
           sport: turf.sports?.[0],
         };
       }),
-      ...organizations.map((org) => ({
+      ...organizations.map(org => ({
         _id: org._id,
         name: org.name,
-        type: "organization" as const,
+        type: 'organization' as const,
         location: org.location?.city,
       })),
     ];
@@ -88,10 +91,10 @@ export const getSearchSuggestions = async (req: Request, res: Response): Promise
       data: sortedSuggestions.slice(0, limit),
     });
   } catch (error) {
-    console.error("Search suggestions error:", error);
+    console.error('Search suggestions error:', error);
     res.status(500).json({
       success: false,
-      message: "Error fetching search suggestions",
+      message: 'Error fetching search suggestions',
       error: (error as Error).message,
     });
   }
@@ -101,12 +104,23 @@ export const getSearchSuggestions = async (req: Request, res: Response): Promise
  * Main search endpoint
  * Handles comprehensive search with pagination
  */
+const sanitizeSearchString = (input: unknown): string => {
+  if (typeof input !== 'string') return '';
+  // Remove special regex characters and limit length
+  return input
+    .replace(/[.*+?^${}()|[\]\\]/g, '')
+    .slice(0, 100)
+    .trim();
+};
+
 export const search = async (req: Request, res: Response) => {
   try {
-    const { query, location, sport, page = "1", limit = "10" } = req.query;
-    const searchQuery = (query as string) || "";
-    const sportQuery = (sport as string) || "";
-    const locationQuery = (location as string) || "";
+    const { query, location, sport, page = '1', limit = '10' } = req.query;
+
+    // Sanitize all input parameters
+    const searchQuery = sanitizeSearchString(query);
+    const sportQuery = sanitizeSearchString(sport);
+    const locationQuery = sanitizeSearchString(location);
     const pageNum = parseInt(page as string) || 1;
     const limitNum = parseInt(limit as string) || 10;
     const skip = (pageNum - 1) * limitNum;
@@ -119,7 +133,7 @@ export const search = async (req: Request, res: Response) => {
 
     // Search by turf name
     if (searchQuery) {
-      const searchRegex = new RegExp(searchQuery, "i");
+      const searchRegex = new RegExp(searchQuery, 'i');
       matchConditions.push({ name: searchRegex });
     }
 
@@ -138,36 +152,59 @@ export const search = async (req: Request, res: Response) => {
     // Join with organization data
     pipeline.push({
       $lookup: {
-        from: "organizations",
-        localField: "organization",
-        foreignField: "_id",
-        as: "organizationData",
+        from: 'organizations',
+        localField: 'organization',
+        foreignField: '_id',
+        as: 'organizationData',
       },
     });
 
     // Unwind the organization array to get a single object
     pipeline.push({
-      $unwind: "$organizationData",
+      $unwind: '$organizationData',
     });
 
     // Add organization-based conditions
     const orgConditions: any[] = [];
 
     if (searchQuery) {
-      const searchRegex = new RegExp(searchQuery, "i");
-      orgConditions.push({ "organizationData.name": searchRegex });
+      const searchRegex = new RegExp(searchQuery, 'i');
+      orgConditions.push({ 'organizationData.name': searchRegex });
     }
 
     if (locationQuery) {
-      const locationRegex = new RegExp(locationQuery, "i");
-      orgConditions.push({
-        "organizationData.location.address": locationRegex,
-      });
-      orgConditions.push({ "organizationData.location.area": locationRegex });
-      orgConditions.push({
-        "organizationData.location.sub_area": locationRegex,
-      });
-      orgConditions.push({ "organizationData.location.city": locationRegex });
+      const escapedLocation = locationQuery.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        '\\$&',
+      );
+      const locationRegex = new RegExp(escapedLocation, 'i');
+
+      orgConditions.push(
+        {
+          'organizationData.location.address': {
+            $regex: escapedLocation,
+            $options: 'i',
+          },
+        },
+        {
+          'organizationData.location.area': {
+            $regex: escapedLocation,
+            $options: 'i',
+          },
+        },
+        {
+          'organizationData.location.sub_area': {
+            $regex: escapedLocation,
+            $options: 'i',
+          },
+        },
+        {
+          'organizationData.location.city': {
+            $regex: escapedLocation,
+            $options: 'i',
+          },
+        },
+      );
     }
 
     // Apply organization match if we have conditions
@@ -185,15 +222,15 @@ export const search = async (req: Request, res: Response) => {
 
       pipeline.push({
         $lookup: {
-          from: "organizations",
-          localField: "organization",
-          foreignField: "_id",
-          as: "organizationData",
+          from: 'organizations',
+          localField: 'organization',
+          foreignField: '_id',
+          as: 'organizationData',
         },
       });
 
       pipeline.push({
-        $unwind: "$organizationData",
+        $unwind: '$organizationData',
       });
 
       pipeline.push({
@@ -205,7 +242,7 @@ export const search = async (req: Request, res: Response) => {
 
     // Get total count for pagination
     const countPipeline = [...pipeline];
-    countPipeline.push({ $count: "total" });
+    countPipeline.push({ $count: 'total' });
     const countResult = await Turf.aggregate(countPipeline);
     const total = countResult.length > 0 ? countResult[0].total : 0;
 
@@ -221,13 +258,13 @@ export const search = async (req: Request, res: Response) => {
         basePrice: 1,
         sports: 1,
         team_size: 1,
-        images: { $slice: ["$images", 1] },
+        images: { $slice: ['$images', 1] },
         organization: {
-          _id: "$organizationData._id",
-          name: "$organizationData.name",
+          _id: '$organizationData._id',
+          name: '$organizationData.name',
           location: {
-            address: "$organizationData.location.address",
-            city: "$organizationData.location.city",
+            address: '$organizationData.location.address',
+            city: '$organizationData.location.city',
           },
         },
       },
@@ -249,10 +286,10 @@ export const search = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error("Search error:", error);
+    console.error('Search error:', error);
     res.status(500).json({
       success: false,
-      message: "An error occurred during search",
+      message: 'An error occurred during search',
       error: (error as Error).message,
     });
   }

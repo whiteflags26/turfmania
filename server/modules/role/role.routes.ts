@@ -13,7 +13,7 @@ import { standardApiLimiter } from '../../utils/rateLimiter';
 
 const router = express.Router({ mergeParams: true });
 
-router.use(protect);
+
 
 // Get all roles for an organization
 router.get(
