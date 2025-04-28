@@ -1,3 +1,5 @@
+// app/organization/[id]/page.tsx
+
 import React from 'react'
 
 const page = () => {

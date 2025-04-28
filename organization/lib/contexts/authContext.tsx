@@ -72,7 +72,6 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       }
 
       setUser(data.data.user);
-      // No automatic navigation here, will be handled after org selection
       router.refresh();
     } catch (err) {
       const error= err as ApiError;
@@ -102,7 +101,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const value = useMemo(
     () => ({ user, login, logout, isLoading }),
-    [user, isLoading] // `login` and `logout` are stable and do not need to be dependencies
+    [user, isLoading] 
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
