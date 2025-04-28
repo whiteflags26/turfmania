@@ -244,7 +244,7 @@ class UserService {
       // Remove duplicate organizations using a Map with string IDs as keys
       const uniqueOrganizationsMap = new Map();
       organizations.forEach(org => {
-        if (org && org._id) {
+        if (org?._id) {
           uniqueOrganizationsMap.set(org._id.toString(), org);
         }
       });
