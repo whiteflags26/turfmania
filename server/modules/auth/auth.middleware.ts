@@ -6,7 +6,7 @@ import { IPermission, PermissionScope } from "./../permission/permission.model";
 import mongoose, { Types } from "mongoose";
 import User from "../../modules/user/user.model";
 import ErrorResponse from "../../utils/errorResponse";
-import { adminLoggerService } from "../admin_actions/adminActions.service";
+
 import Permission from "../permission/permission.model";
 import { IRole } from "../role/role.model";
 
@@ -206,47 +206,6 @@ export const checkPermission = (requiredPermissionName: string) => {
   };
 };
 
-export const logAdminAction = (action: string, entityType: string) => {
-  return async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // Store original send method
-    const originalSend = res.send;
-
-    // Override send method to log successful actions
-    res.send = function (body): Response {
-      const originalStatus = res.statusCode;
-
-      // Only log successful actions (2xx status codes)
-      if (originalStatus >= 200 && originalStatus < 300 && req.user) {
-        // Extract entity ID from request params or body
-        const entityId = req.params.id;
-
-        // Log the action
-        adminLoggerService
-          .logAction(
-            req.user.id,
-            action,
-            entityType,
-            {
-              method: req.method,
-              path: req.path,
-              body: req.body,
-              params: req.params,
-              query: req.query,
-              result: typeof body === "string" ? JSON.parse(body) : body,
-            },
-            req,
-            entityId
-          )
-          .catch((err) => console.error("Error logging admin action:", err));
-      }
-
-      // Call the original send method
-      return originalSend.call(this, body);
-    };
-
-    next();
-  };
-};
 
 export const restrictToOrganizationMembers = async (
   req: AuthRequest,
