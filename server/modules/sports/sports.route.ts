@@ -7,9 +7,9 @@ import { standardApiLimiter } from "../../utils/rateLimiter";
 const router = Router();
 const sportsController = new SportsController();
 
-router.post("/",standardApiLimiter,protect, sportsController.createSports);
-router.get("/",standardApiLimiter,protect,sportsController.getAllSports);
-router.get("/:id",standardApiLimiter,protect, sportsController.getSportsById);
+router.post("/",standardApiLimiter, sportsController.createSports);
+router.get("/",standardApiLimiter,sportsController.getAllSports);
+router.get("/:id",standardApiLimiter, sportsController.getSportsById);
 router.put("/:id",standardApiLimiter,protect, checkPermission("manage_tags"), sportsController.updateSports);
 router.delete("/:id",standardApiLimiter,protect, checkPermission("manage_tags"), sportsController.deleteSports);
 
