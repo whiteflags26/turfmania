@@ -6,20 +6,14 @@ import {
   getSingleOrganizationRequest,
 } from '@/services/organizationService';
 import { OrganizationRequest, RequestStatus } from '@/types/organization';
-import {
-  ArrowLeft,
-  Building,
-  Check,
-  MapPin,
-  Package,
-  Upload,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, Building, Check, MapPin, Package, Upload, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
-// Mock facility options
+interface ImageFile extends File {
+  preview?: string;
+}
 
 export default function EditOrganizationForm() {
   const router = useRouter();
