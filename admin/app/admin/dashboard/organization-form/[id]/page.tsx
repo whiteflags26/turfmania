@@ -178,7 +178,7 @@ export default function EditOrganizationForm() {
 
     try {
       const payload: Partial<OrganizationRequest> = {
-        organizationName: name,
+        name: name,
         facilities,
         location: {
           place_id: placeId,
@@ -197,7 +197,9 @@ export default function EditOrganizationForm() {
         requestNotes,
         orgContactPhone: orgcontactPhone,
         orgContactEmail,
-
+        requestId: organizationId,
+      
+        
         status,
         processingStartedAt,
         images: [...existingImages],
@@ -357,7 +359,7 @@ export default function EditOrganizationForm() {
                         onChange={e => setContactPhone(e.target.value)}
                         className={`${inputClasses} placeholder-gray-500`}
                         placeholder="+01XXXXXXXXX"
-                        pattern="\0\d{10}"
+                        
                         required
                       />
                     </div>
@@ -395,7 +397,7 @@ export default function EditOrganizationForm() {
                         onChange={e => setOrgContactPhone(e.target.value)}
                         className={`${inputClasses} placeholder-gray-500`}
                         placeholder="01XXXXXXXXX"
-                        pattern="\0\d{10}"
+                        
                         required
                       />
                     </div>

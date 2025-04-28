@@ -96,10 +96,11 @@ export type RequestStatus = "pending" | "processing" | "approved" | "approved_wi
 
 export interface OrganizationRequest {
   _id: string;
+  requestId:string;
   requesterId: string;
   processingAdminId?: string;
   status: RequestStatus;
-  organizationName: string;
+  name: string;
   facilities: string[];
   contactPhone: string;
   ownerEmail: string;
