@@ -6,6 +6,7 @@ import {
   updateUserProfile,
   changePassword,
   getUserOrganizations,
+  checkOrganizationRole,
 } from "./user.controller";
 import { protect } from "../auth/auth.middleware";
 
@@ -17,7 +18,7 @@ const router = express.Router({ mergeParams: true });
 router.get(
   "/admin",
   protect,
-  //   checkPermission('view_users'),
+    // checkPermission('view_users'),
   getUsersAdmin
 );
 
@@ -41,5 +42,6 @@ router.put("/change-password", protect, changePassword);
 
 // Get user's organizations
 router.get("/organizations", protect, getUserOrganizations);
+router.get("/organizations/:organizationId/check-access",protect,checkOrganizationRole)
 
 export default router;

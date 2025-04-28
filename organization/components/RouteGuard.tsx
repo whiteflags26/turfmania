@@ -1,5 +1,3 @@
-// app/component/RouteGuard.tsx
-
 "use client";
 
 import { useEffect, useState, ReactNode } from "react";
@@ -26,25 +24,25 @@ export default function RouteGuard({ children }: RouteGuardProps) {
 
       // If not authenticated and not on auth pages, redirect to login
       if (!user && !isLoading) {
-        router.push("/sign-in");
+        router.push("/");
         return;
       }
       // If authenticated, check if route requires org access
-      if (user && pathname.startsWith("/dashboard/")) {
+      if (user && pathname.startsWith("/organization/")) {
         // Extract org ID from URL (/dashboard/{orgId}/...)
         const orgId = pathname.split("/")[2];
 
         if (orgId) {
           try {
-            const { hasAccess } = await hasOrgAccess(orgId);
+            const data= await hasOrgAccess(orgId);
 
-            if (!hasAccess) {
-              router.push("/unauthorized");
+            if (!data) {
+              router.push("/");
               return;
             }
           } catch (error) {
             console.error("Error checking organization access:", error);
-            router.push("/error");
+            // router.push("/error");
             return;
           }
         }

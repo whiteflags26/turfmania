@@ -116,7 +116,7 @@ export default function OrganizationRequestsSection() {
           You haven&#39;t submitted any organization requests yet.
         </p>
         <Link
-          href="/organizations/new"
+          href="/organization-request"
           className="inline-flex items-center gap-2 text-primary hover:text-primary/90"
         >
           Create an organization request

@@ -91,7 +91,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
       if (response.ok) {
         setUser(null);
-        router.push("/sign-in");
+        router.push("/");
         router.refresh();
       }
     } catch (error) {
@@ -114,3 +114,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+
