@@ -33,27 +33,50 @@ export default class OrganizationRequestController {
         location,
         contactPhone,
         ownerEmail,
+        orgContactPhone,
+        orgContactEmail,
         requestNotes,
       } = req.body;
+      console.log("Request body:", req.body);
+
+      console.log(organizationName)
+      console.log(facilities)
+      console.log(location)
+      console.log(contactPhone)
+      console.log(ownerEmail) 
+      console.log(orgContactPhone)
+      console.log(orgContactEmail)  
+        
       // Validate required fields
       if (
         !organizationName ||
         !facilities ||
         !location ||
         !contactPhone ||
-        !ownerEmail
+        !ownerEmail ||
+        !orgContactPhone ||
+        !orgContactEmail 
       ) {
         throw new ErrorResponse("Missing required fields", 400);
       }
 
       // Sanitize and validate email field
       const sanitizedOwnerEmail = validator
-        .trim(ownerEmail || "")
+        .trim(ownerEmail ?? "")
         .toLowerCase();
 
       // Validate email format
       if (!validator.isEmail(sanitizedOwnerEmail)) {
         throw new ErrorResponse("Invalid owner email format", 400);
+      }
+
+      // Validate organization contact email
+      const sanitizedOrgContactEmail = validator
+        .trim(orgContactEmail || "")
+        .toLowerCase();
+
+      if (!validator.isEmail(sanitizedOrgContactEmail)) {
+        throw new ErrorResponse("Invalid organization contact email format", 400);
       }
 
       // Process facilities if it's a string
@@ -99,6 +122,8 @@ export default class OrganizationRequestController {
           contactPhone: validator.trim(contactPhone),
           ownerEmail: sanitizedOwnerEmail,
           requestNotes: requestNotes ? validator.trim(requestNotes) : undefined,
+          orgContactPhone: validator.trim(orgContactPhone),
+          orgContactEmail: sanitizedOrgContactEmail,
         },
         images
       );

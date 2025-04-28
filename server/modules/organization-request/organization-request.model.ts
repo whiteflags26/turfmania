@@ -15,7 +15,7 @@ export interface IOrganizationRequest extends Document {
     address: string;
     coordinates: {
       type: "Point";
-      coordinates: [number, number]; // [longitude, latitude]
+      coordinates: [number, number];
     };
     area?: string;
     sub_area?: string;
@@ -34,6 +34,8 @@ export interface IOrganizationRequest extends Document {
   adminNotes?: string; // Admin's notes (especially for rejections)
   processingAdminId?: Types.ObjectId; // Which admin is processing this request
   processingStartedAt?: Date; // When processing began
+  orgContactPhone: string; // Mandatory organization contact phone
+  orgContactEmail: string; // Mandatory organization contact email
 
   // Images (Cloudinary URLs)
   images: string[];
@@ -143,6 +145,32 @@ const OrganizationRequestSchema: Schema = new Schema(
     },
     processingStartedAt: {
       type: Date,
+    },
+
+    orgContactPhone: {
+      type: String,
+      required: true,
+      trim: true,
+      validate: {
+        validator: function (value: string) {
+          // Bangladeshi phone number regex pattern
+          const bdPhoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
+          return bdPhoneRegex.test(value);
+        },
+        message: "Please provide a valid Bangladeshi phone number (e.g. 01712345678 or +8801712345678)",
+      },
+    },
+    orgContactEmail: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      validate: {
+        validator: function (value: string) {
+          return /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(value);
+        },
+        message: "Please provide a valid organization contact email address",
+      },
     },
 
     // Images (Cloudinary URLs)

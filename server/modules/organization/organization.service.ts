@@ -10,6 +10,8 @@ import User from "../user/user.model";
 import Organization, { IOrganization } from "./organization.model";
 import { Turf } from "../turf/turf.model";
 import OrganizationRequestService from "../organization-request/organization-request.service";
+import FaciltyService from "../facility/facility.service";
+import { TurfReview } from "../turf-review/turf-review.model";
 import mongoose from "mongoose";
 
 export interface IOrganizationRoleAssignment {
@@ -19,6 +21,7 @@ export interface IOrganizationRoleAssignment {
 
 class OrganizationService {
   organizationRequestService = new OrganizationRequestService();
+  facilityService = new FaciltyService();
 
   /**
    * Create a new organization (Admin only)
@@ -31,20 +34,24 @@ class OrganizationService {
    * @param location - Location object
    * @param requestId - Optional organization request ID
    * @param adminId - ID of admin creating the organization
-   * @param wasEdited - Whether request was edited during approval process
+   * @param adminNotes - Optional notes from admin
    * @returns Promise<IOrganization>
    */
   public async createOrganization(
     name: string,
     facilities: string[],
     location: IOrganization["location"],
+    orgContactPhone: string,
+    orgContactEmail: string,
     images?: Express.Multer.File[],
     requestId?: string,
     adminId?: string,
-    wasEdited: boolean = false,
     adminNotes?: string
   ): Promise<IOrganization | null> {
     try {
+      // Validate facilities
+      await this.facilityService.validateFacilities(facilities);
+
       let imageUrls: string[] = [];
 
       // Only process images if they exist
@@ -60,6 +67,7 @@ class OrganizationService {
 
         try {
           let organization = null;
+          let wasEdited = false;
 
           // Execute all operations within a transaction
 
@@ -68,6 +76,8 @@ class OrganizationService {
             organization = new Organization({
               name,
               facilities,
+              orgContactPhone,
+              orgContactEmail,
               images: imageUrls,
               location,
             });
@@ -103,6 +113,17 @@ class OrganizationService {
               session
             );
 
+            // Check if data was edited from the original request
+            wasEdited =
+              await this.organizationRequestService.wasRequestDataEdited(
+                requestId,
+                name,
+                facilities,
+                location,
+                orgContactPhone,
+                orgContactEmail
+              );
+
             // Approve the request with the newly created organization ID
             await this.organizationRequestService.approveRequestWithSession(
               requestId,
@@ -135,6 +156,8 @@ class OrganizationService {
           facilities,
           images: imageUrls,
           location,
+          orgContactPhone,
+          orgContactEmail,
         });
 
         await organization.save();
@@ -261,6 +284,28 @@ class OrganizationService {
   }
 
   /**
+   * Get organization details by ID
+   * @param id - Organization ID
+   * @returns Promise<IOrganization | null>
+   */
+  public async getOrganizationById(id: string): Promise<IOrganization | null> {
+    try {
+      const organization = await Organization.findById(id)
+        .populate("turfs")
+        .lean();
+
+      if (!organization) {
+        throw new ErrorResponse("Organization not found", 404);
+      }
+
+      return organization;
+    } catch (error) {
+      console.error("Error fetching organization:", error);
+      throw new ErrorResponse("Failed to fetch organization", 500);
+    }
+  }
+
+  /**
    * Update an organization
    * @param id - Organization ID
    * @param updateData - Partial organization data
@@ -275,6 +320,11 @@ class OrganizationService {
     try {
       const organization = await Organization.findById(id);
       if (!organization) throw new ErrorResponse("Organization not found", 404);
+
+      // Validate facilities if they're being updated
+      if (updateData.facilities && updateData.facilities.length > 0) {
+        await this.facilityService.validateFacilities(updateData.facilities);
+      }
 
       // Handle image updates
       if (newImages && newImages.length > 0) {
@@ -311,11 +361,14 @@ class OrganizationService {
   }
 
   /**
-   * Delete an organization
-   * @param id - Organization ID
-   * @returns Promise<DeleteResult>
-   */
+ * Delete an organization and all associated resources
+ * @param id - Organization ID
+ * @returns Promise<DeleteResult>
+ */
   public async deleteOrganization(id: string): Promise<DeleteResult> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
       const organization = await Organization.findById(id);
       if (!organization) throw new ErrorResponse("Organization not found", 404);
@@ -330,11 +383,74 @@ class OrganizationService {
         );
       }
 
-      // Delete from database
-      return await Organization.deleteOne({ _id: id });
+      // Find all turfs associated with this organization
+      const turfs = await Turf.find({ organization: id }).session(session);
+
+      // Process each turf and its associated reviews
+      for (const turf of turfs) {
+        // Find all reviews for this turf
+        const turfReviews = await TurfReview.find({ turf: turf._id }).session(session);
+
+        // Process each review - delete its images and remove references from user models
+        for (const review of turfReviews) {
+          // Delete review images from Cloudinary if they exist
+          if (review.images && review.images.length > 0) {
+            await Promise.all(
+              review.images.map((imgUrl) => {
+                const publicId = extractPublicIdFromUrl(imgUrl);
+                return publicId ? deleteImage(publicId) : Promise.resolve();
+              })
+            );
+          }
+
+          // Remove review reference from user's document
+          await User.findByIdAndUpdate(
+            review.user,
+            { $pull: { reviews: review._id } },
+            { session }
+          );
+        }
+
+        // Delete all reviews for this turf
+        await TurfReview.deleteMany({ turf: turf._id }).session(session);
+
+        // Delete turf images from Cloudinary
+        if (turf.images && turf.images.length > 0) {
+          await Promise.all(
+            turf.images.map((imgUrl) => {
+              const publicId = extractPublicIdFromUrl(imgUrl);
+              return publicId ? deleteImage(publicId) : Promise.resolve();
+            })
+          );
+        }
+      }
+
+      // Delete all turfs for this organization
+      await Turf.deleteMany({ organization: id }).session(session);
+
+      // Delete role assignments for this organization
+      await UserRoleAssignment.deleteMany({
+        scope: PermissionScope.ORGANIZATION,
+        scopeId: id
+      }).session(session);
+
+      // Delete custom roles for this organization
+      await Role.deleteMany({
+        scope: PermissionScope.ORGANIZATION,
+        scopeId: id
+      }).session(session);
+
+      // Delete the organization itself
+      const deleteResult = await Organization.deleteOne({ _id: id }).session(session);
+
+      await session.commitTransaction();
+      return deleteResult;
     } catch (error) {
-      console.error(error);
+      await session.abortTransaction();
+      console.error("Error deleting organization:", error);
       throw new ErrorResponse("Failed to delete organization", 500);
+    } finally {
+      session.endSession();
     }
   }
 
@@ -432,5 +548,4 @@ class OrganizationService {
       .populate("organization");
   };
 }
-
 export const organizationService = new OrganizationService();

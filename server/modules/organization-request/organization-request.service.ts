@@ -10,6 +10,8 @@ import OrganizationRequest, {
 import { uploadImage } from "../../utils/cloudinary";
 import ErrorResponse from "../../utils/errorResponse";
 import { sendEmail } from "../../utils/email";
+import FaciltyService from "../facility/facility.service";
+
 
 interface CreateRequestDto {
   organizationName: string;
@@ -29,6 +31,8 @@ interface CreateRequestDto {
   contactPhone: string;
   ownerEmail: string;
   requestNotes?: string;
+  orgContactPhone: string;
+  orgContactEmail: string; 
 }
 
 interface ProcessingResult {
@@ -60,6 +64,8 @@ export interface RequestsResult {
 }
 
 export default class OrganizationRequestService {
+  facilityService = new FaciltyService();
+
   // Validates the owner email by checking if it exists in the user database
   public async validateOwnerEmail(email: string): Promise<boolean> {
     if (!email || !validator.isEmail(email)) {
@@ -88,6 +94,9 @@ export default class OrganizationRequestService {
           400
         );
       }
+
+      // Validate facilities
+      await this.facilityService.validateFacilities(requestData.facilities);
 
       // Upload images directly to Cloudinary
       const imageUrls: string[] = [];
@@ -211,6 +220,55 @@ export default class OrganizationRequestService {
     }
   }
 
+  /**
+ * Determines if organization data differs from the original request
+ * @param requestId - ID of the organization request
+ * @param orgName - Name of the organization to create
+ * @param facilities - Facilities of the organization
+ * @param location - Location object of the organization
+ * @returns Promise<boolean> - True if data was edited from original request
+ */
+  public async wasRequestDataEdited(
+    requestId: string,
+    orgName: string,
+    facilities: string[],
+    location: any,
+    orgContactPhone: string,
+    orgContactEmail: string
+  ): Promise<boolean> {
+    try {
+      // Get the original request
+      const request = await this.getRequestById(requestId);
+      if (!request) {
+        throw new ErrorResponse('Organization request not found', 404);
+      }
+
+      // Check for differences between request and new organization data
+      const nameChanged = request.organizationName !== orgName;
+
+      // Compare facilities (order might be different so we need to sort)
+      const facilitiesChanged =
+        facilities.length !== request.facilities.length ||
+        !facilities.every(f => request.facilities.includes(f));
+
+      // Compare location (check essential fields)
+      const locationChanged =
+        request.location.place_id !== location.place_id ||
+        request.location.address !== location.address ||
+        request.location.city !== location.city ||
+        request.location.coordinates.coordinates[0] !== location.coordinates.coordinates[0] ||
+        request.location.coordinates.coordinates[1] !== location.coordinates.coordinates[1];
+
+      const phoneChanged = request.orgContactPhone !== orgContactPhone;
+      const emailChanged = request.orgContactEmail !== orgContactEmail;
+
+      return nameChanged || facilitiesChanged || locationChanged || phoneChanged || emailChanged;
+    } catch (error) {
+      console.error('Error checking if request was edited:', error);
+      throw new ErrorResponse('Failed to compare request data', 500);
+    }
+  }
+
   // Notify the requester about the request status
   private async notifyRequestProcessed(
     request: IOrganizationRequest,
@@ -289,8 +347,7 @@ export default class OrganizationRequestService {
     isOwner: boolean
   ): string {
     let message =
-      `We are pleased to inform you that your request to create organization "${
-        request.organizationName
+      `We are pleased to inform you that your request to create organization "${request.organizationName
       }" has been approved${wasEdited ? " with some changes" : ""}.\n\n` +
       `The organization has been successfully created in our system and is now active.\n` +
       (request.organizationId
@@ -365,14 +422,12 @@ export default class OrganizationRequestService {
   ): string {
     return (
       `Dear ${request.ownerEmail.split("@")[0]},\n\n` +
-      `You had been designated as the owner of organization "${
-        request.organizationName
-      }" which was just ${
-        approved
-          ? wasEdited
-            ? "approved with some modifications"
-            : "approved"
-          : "rejected"
+      `You had been designated as the owner of organization "${request.organizationName
+      }" which was just ${approved
+        ? wasEdited
+          ? "approved with some modifications"
+          : "approved"
+        : "rejected"
       } on TurfMania.\n\n` +
       (approved
         ? `As the owner, you have full administrative access to manage the organization.\n\n`
@@ -432,7 +487,7 @@ export default class OrganizationRequestService {
   ): Promise<IOrganizationRequest[]> {
     return OrganizationRequest.find({ requesterId: userId })
       .sort({ createdAt: -1 })
-      .select("-adminNotes -processingAdminId -processingStartedAt -__v")
+      .select("-processingAdminId -__v")
       .lean();
   }
 
