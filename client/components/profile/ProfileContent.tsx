@@ -1,34 +1,65 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Tab } from "@headlessui/react";
-import { IUser } from "@/types/user";
-import { getCurrentUserProfile } from "@/lib/server-apis/profile/getCurrentUserProfile-api";
-import { toast } from "react-hot-toast";
+import { useState, useEffect, JSX } from 'react';
+import {
+  Tab,
+  TabGroup,
+  TabList,
+  TabPanels,
+  TabPanel,
+} from '@headlessui/react';
+import { IUser } from '@/types/user';
+import { getCurrentUserProfile } from '@/lib/server-apis/profile/getCurrentUserProfile-api';
+import { toast } from 'react-hot-toast';
+
+import ProfileHeader from '@/components/profile/ProfileHeader';
+import UpdateProfileForm from '@/components/profile/UpdateProfileForm';
+import ChangePasswordForm from '@/components/profile/ChangePasswordForm';
+import ReviewsSection from '@/components/profile/ReviewsSection';
+import OrganizationRequestsSection from '@/components/profile/OrganizationRequestsSection';
+
 import {
   UserIcon,
-  PencilSquareIcon,
   LockClosedIcon,
   StarIcon,
   BuildingOfficeIcon,
-} from "@heroicons/react/24/outline";
-
-import ProfileHeader from "@/components/profile/ProfileHeader";
-import UpdateProfileForm from "@/components/profile/UpdateProfileForm";
-import ChangePasswordForm from "@/components/profile/ChangePasswordForm";
-import ReviewsSection from "@/components/profile/ReviewsSection";
-import OrganizationRequestsSection from "@/components/profile/OrganizationRequestsSection";
+  PencilSquareIcon,
+} from '@heroicons/react/24/outline';
 
 function classNames(...classes: string[]) {
-  return classes.filter(Boolean).join(" ");
+  return classes.filter(Boolean).join(' ');
 }
 
 interface ProfileContentProps {
-  initialUser: IUser;
+  readonly initialUser: IUser;
 }
 
-export default function ProfileContent({ initialUser }: ProfileContentProps) {
-  const [user, setUser] = useState<IUser | null>(initialUser);
+function ProfileTab({
+  user,
+  setUser,
+}: {
+  readonly user: IUser;
+  readonly setUser: (user: IUser) => void;
+}): JSX.Element {
+  return <UpdateProfileForm user={user} setUser={setUser} />;
+}
+
+function PasswordTab(): JSX.Element {
+  return <ChangePasswordForm />;
+}
+
+function ReviewsTab(): JSX.Element {
+  return <ReviewsSection />;
+}
+
+function OrganizationsTab(): JSX.Element {
+  return <OrganizationRequestsSection />;
+}
+
+export default function ProfileContent({
+  initialUser,
+}: ProfileContentProps) {
+  const [user, setUser] = useState<IUser>(initialUser);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,38 +70,38 @@ export default function ProfileContent({ initialUser }: ProfileContentProps) {
         const userData = await getCurrentUserProfile();
         setUser(userData);
       } catch (err) {
-        const error = err as Error;
-        setError(error.message);
-        toast.error("Failed to load complete profile data");
+        const e = err as Error;
+        setError(e.message);
+        toast.error('Failed to load complete profile data');
       } finally {
         setLoading(false);
       }
     }
     fetchUserProfile();
-    // Only fetch if we need additional user data
-    // if (initialUser && !initialUser.phone_number) {
-    //   fetchUserProfile();
-    // }
   }, [initialUser]);
 
   const tabs = [
     {
-      name: "Profile",
+      name: 'Profile',
       icon: UserIcon,
-      component: () => <UpdateProfileForm user={user} setUser={setUser} />,
+      component: <ProfileTab user={user} setUser={setUser} />,
     },
     {
-      name: "Password",
+      name: 'Password',
       icon: LockClosedIcon,
-      component: () => <ChangePasswordForm />,
+      component: <PasswordTab />,
     },
-    { name: "Reviews", icon: StarIcon, component: () => <ReviewsSection /> },
     {
-      name: "Organizations",
-      icon: BuildingOfficeIcon,
-      component: () => <OrganizationRequestsSection />,
+      name: 'Reviews',
+      icon: StarIcon,
+      component: <ReviewsTab />,
     },
-  ];
+    {
+      name: 'Organizations',
+      icon: BuildingOfficeIcon,
+      component: <OrganizationsTab />,
+    },
+  ] as const;
 
   if (error) {
     return (
@@ -83,6 +114,7 @@ export default function ProfileContent({ initialUser }: ProfileContentProps) {
         <button
           onClick={() => window.location.reload()}
           className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+          type="button"
         >
           Try Again
         </button>
@@ -92,48 +124,48 @@ export default function ProfileContent({ initialUser }: ProfileContentProps) {
 
   return (
     <>
-      {/* Profile Header */}
       <ProfileHeader user={user} />
 
-      {/* Tabs Section */}
       <div className="bg-white rounded-xl shadow-lg p-1 sm:p-2">
-        <Tab.Group>
-          <Tab.List className="flex space-x-1 rounded-xl bg-gray-100 p-1">
+        <TabGroup>
+          <TabList className="flex space-x-1 rounded-xl bg-gray-100 p-1">
             {tabs.map((tab) => (
               <Tab
                 key={tab.name}
                 className={({ selected }) =>
                   classNames(
-                    "flex items-center gap-2 w-full rounded-lg py-2.5 text-sm font-medium leading-5",
-                    "ring-white ring-opacity-60 ring-offset-2 ring-offset-primary focus:outline-none focus:ring-2",
+                    'flex items-center gap-2 w-full rounded-lg py-2.5 text-sm font-medium leading-5',
+                    'ring-white ring-opacity-60 ring-offset-2 ring-offset-primary focus:outline-none focus:ring-2',
                     selected
-                      ? "bg-white text-primary shadow"
-                      : "text-gray-600 hover:bg-white/[0.12] hover:text-primary"
+                      ? 'bg-white text-primary shadow'
+                      : 'text-gray-600 hover:bg-white/[0.12] hover:text-primary'
                   )
                 }
+                type="button"
               >
                 <tab.icon className="h-5 w-5 mx-auto sm:mx-0" />
                 <span className="hidden sm:inline">{tab.name}</span>
               </Tab>
             ))}
-          </Tab.List>
-          <Tab.Panels className="mt-2 p-4">
-            {tabs.map((tab, idx) => (
-              <Tab.Panel
-                key={idx}
-                className={classNames("rounded-xl focus:outline-none")}
+          </TabList>
+
+          <TabPanels className="mt-2 p-4">
+            {tabs.map((tab) => (
+              <TabPanel
+                key={tab.name}
+                className={classNames('rounded-xl focus:outline-none')}
               >
                 {loading ? (
                   <div className="animate-pulse">
                     <div className="h-64 bg-gray-100 rounded-xl"></div>
                   </div>
                 ) : (
-                  tab.component()
+                  tab.component
                 )}
-              </Tab.Panel>
+              </TabPanel>
             ))}
-          </Tab.Panels>
-        </Tab.Group>
+          </TabPanels>
+        </TabGroup>
       </div>
     </>
   );
