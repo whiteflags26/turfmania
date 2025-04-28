@@ -20,8 +20,7 @@ import {
   updateOrganization,
 } from "@/lib/server-apis/organization-details";
 import { generateBariKoiMapLink } from "@/lib/server-apis/BariKoi/generateBariKoiMapLink-api";
-import { useAuth } from "@/lib/contexts/authContext";
-
+import { motion } from "framer-motion";
 
 export default function ViewOrganizationPage() {
   const { id } = useParams();
@@ -29,7 +28,7 @@ export default function ViewOrganizationPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState<Partial<IOrganization>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [availableFacilities, setAvailableFacilities] = useState<IFacility[]>(
     []
@@ -55,11 +54,9 @@ export default function ViewOrganizationPage() {
         setIsLoading(false);
       }
     };
-
     loadOrganization();
   }, [id]);
 
-  // Load facilities when entering edit mode
   useEffect(() => {
     if (isEditing) {
       const loadFacilities = async () => {
@@ -71,7 +68,6 @@ export default function ViewOrganizationPage() {
           toast.error("Failed to load facilities");
         }
       };
-
       loadFacilities();
     }
   }, [isEditing]);
@@ -80,26 +76,20 @@ export default function ViewOrganizationPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setEditedData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setEditedData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFacilityChange = (facilityName: string, isChecked: boolean) => {
+  const handleFacilityToggle = (facilityName: string) => {
     const currentFacilities = [...(editedData.facilities || [])];
-
-    if (isChecked && !currentFacilities.includes(facilityName)) {
-      // Add the facility
-      setEditedData((prev) => ({
-        ...prev,
-        facilities: [...(prev.facilities || []), facilityName],
-      }));
-    } else if (!isChecked && currentFacilities.includes(facilityName)) {
-      // Remove the facility
+    if (currentFacilities.includes(facilityName)) {
       setEditedData((prev) => ({
         ...prev,
         facilities: (prev.facilities || []).filter((f) => f !== facilityName),
+      }));
+    } else {
+      setEditedData((prev) => ({
+        ...prev,
+        facilities: [...(prev.facilities || []), facilityName],
       }));
     }
   };
@@ -115,21 +105,28 @@ export default function ViewOrganizationPage() {
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setNewImages([file]);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArray = Array.from(e.target.files);
+      setNewImages(filesArray);
+
+      // Generate previews for all selected files
+      const previews: string[] = [];
+      filesArray.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (reader.result) {
+            previews.push(reader.result as string);
+            setImagePreview([...previews]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     }
   };
 
   const handleSubmit = async () => {
     try {
       setIsLoading(true);
-
       const formData = new FormData();
       formData.append("name", editedData.name || "");
       formData.append("orgContactPhone", editedData.orgContactPhone || "");
@@ -140,8 +137,11 @@ export default function ViewOrganizationPage() {
       );
       formData.append("location", JSON.stringify(editedData.location || {}));
 
+      // Append all images to formData
       if (newImages.length > 0) {
-        formData.append("images", newImages[0]);
+        newImages.forEach((image, index) => {
+          formData.append("images", image);
+        });
       }
 
       const updatedOrganization = await updateOrganization(
@@ -150,7 +150,10 @@ export default function ViewOrganizationPage() {
       );
       setOrganization(updatedOrganization);
       setIsEditing(false);
-      toast.success("Organization updated successfully");
+      // Clear the previews and new images after successful update
+      setImagePreview([]);
+      setNewImages([]);
+      toast.success("Organization updated successfully!");
     } catch (error) {
       console.error(error);
       toast.error("Failed to update organization");
@@ -161,369 +164,311 @@ export default function ViewOrganizationPage() {
 
   if (isLoading && !organization) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center h-[70vh]">
+        <div className="animate-spin rounded-full h-14 w-14 border-4 border-blue-500 border-t-transparent"></div>
       </div>
     );
   }
 
   if (!organization) {
     return (
-      <div className="text-center py-10">
-        <p className="text-gray-600">Organization not found</p>
+      <div className="flex flex-col items-center justify-center h-[70vh] text-gray-600">
+        <p className="text-lg">Organization Not Found</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-7xl mx-auto px-6 py-10"
+    >
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-10 space-y-4 md:space-y-0">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
           {isEditing ? (
             <input
               type="text"
               name="name"
               value={editedData.name || ""}
               onChange={handleInputChange}
-              className="border-b-2 border-blue-500 focus:outline-none bg-transparent"
+              className="text-3xl font-bold tracking-tight border-b-2 border-blue-400 bg-transparent focus:outline-none w-full"
             />
           ) : (
             organization.name
           )}
         </h1>
-        {isEditing ? (
-          <div className="flex space-x-2">
+        <div className="flex gap-3">
+          {isEditing ? (
+            <>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="flex items-center gap-2 px-5 py-2 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 transition disabled:opacity-50"
+              >
+                <FiX /> Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-50"
+              >
+                <FiSave /> {isLoading ? "Saving..." : "Save"}
+              </button>
+            </>
+          ) : (
             <button
-              onClick={() => setIsEditing(false)}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors flex items-center"
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2 px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition"
             >
-              <FiX className="mr-2" /> Cancel
+              <FiEdit2 /> Edit
             </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50"
-            >
-              <FiSave className="mr-2" />{" "}
-              {isLoading ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center"
-          >
-            <FiEdit2 className="mr-2" /> Edit Organization
-          </button>
-        )}
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Images and Basic Info */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Images */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-800">Images</h2>
-            </div>
-            <div className="p-4">
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {(imagePreview || organization.images[0]) && (
-                      <div className="relative h-64 rounded-lg overflow-hidden">
-                        <Image
-                          src={imagePreview || organization.images[0]}
-                          alt={organization.name}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          priority
-                          className="object-cover"
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Upload New Image
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="block w-full text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-md file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100"
-                    />
-                  </div>
-                </div>
-              ) : (
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* Left Content */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Images Section */}
+          <SectionCard title="Organization Images">
+            {isEditing ? (
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {organization.images.map((image, index) => (
-                    <div
-                      key={index}
-                      className="relative h-64 rounded-lg overflow-hidden"
-                    >
-                      <Image
-                        src={image}
-                        alt={`${organization.name} ${index + 1}`}
-                        fill
-                        priority
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        className="object-cover"
+                  {/* Show image previews for newly selected files */}
+                  {imagePreview.length > 0 &&
+                    imagePreview.map((preview, idx) => (
+                      <ImageContainer
+                        key={`preview-${idx}`}
+                        src={preview}
+                        alt={`New Preview ${idx + 1}`}
                       />
-                    </div>
-                  ))}
+                    ))}
+
+                  {/* Show existing images if no new previews available */}
+                  {imagePreview.length === 0 &&
+                    organization.images.map((img, idx) => (
+                      <ImageContainer
+                        key={`existing-${idx}`}
+                        src={img}
+                        alt={`Existing Image ${idx + 1}`}
+                      />
+                    ))}
                 </div>
-              )}
-            </div>
-          </div>
-          {/* Facilities */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-800">
-                Facilities
-              </h2>
-            </div>
-            <div className="p-4">
-              {isEditing ? (
-                <div className="space-y-3">
-                  {availableFacilities.map((facility) => (
-                    <div
+                <UploadInput onChange={handleImageUpload} multiple={true} />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {organization.images.map((img, idx) => (
+                  <ImageContainer
+                    key={idx}
+                    src={img}
+                    alt={`Image ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </SectionCard>
+
+          {/* Facilities Section */}
+          <SectionCard title="Facilities">
+            <div className="flex flex-wrap gap-3">
+              {isEditing
+                ? availableFacilities.map((facility) => (
+                    <FacilityButton
                       key={facility._id}
-                      className="flex items-center space-x-2"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={(editedData.facilities || []).includes(
-                          facility.name
-                        )}
-                        onChange={(e) =>
-                          handleFacilityChange(facility.name, e.target.checked)
-                        }
-                        className="form-checkbox h-5 w-5 text-blue-600"
-                      />
-                      <label className="text-gray-800">{facility.name}</label>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {organization.facilities.map((facility) => (
+                      name={facility.name}
+                      selected={(editedData.facilities || []).includes(
+                        facility.name
+                      )}
+                      onClick={() => handleFacilityToggle(facility.name)}
+                    />
+                  ))
+                : organization.facilities.map((facility, idx) => (
                     <div
-                      key={facility}
-                      className="px-4 py-2 bg-gray-50 text-gray-700 rounded-full text-sm font-medium border border-gray-200"
+                      key={idx}
+                      className="px-4 py-2 rounded-full bg-gray-100 text-gray-800 text-sm"
                     >
                       {facility}
                     </div>
                   ))}
-                </div>
-              )}
             </div>
-          </div>
+          </SectionCard>
         </div>
 
-        {/* Right Column - Contact and Location */}
-        <div className="space-y-6">
-          {/* Contact Information */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-800">
-                Contact Information
-              </h2>
-            </div>
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Email
-                </label>
-                {isEditing ? (
-                  <input
-                    type="email"
-                    name="orgContactEmail"
-                    value={editedData.orgContactEmail || ""}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <FiMail className="text-gray-400" />
-                    <span className="text-gray-800">
-                      {organization.orgContactEmail}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Phone
-                </label>
-                {isEditing ? (
-                  <input
-                    type="tel"
-                    name="orgContactPhone"
-                    value={editedData.orgContactPhone || ""}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <FiPhone className="text-gray-400" />
-                    <span className="text-gray-800">
-                      {organization.orgContactPhone}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+        {/* Right Sidebar */}
+        <div className="space-y-8">
+          {/* Contact Info */}
+          <SectionCard title="Contact Info">
+            <ContactInfo
+              isEditing={isEditing}
+              editedData={editedData}
+              organization={organization}
+              handleInputChange={handleInputChange}
+            />
+          </SectionCard>
 
-          {/* Location */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-800">Location</h2>
-            </div>
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Address
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editedData.location?.address || ""}
-                    onChange={(e) =>
-                      handleLocationChange("address", e.target.value)
-                    }
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                ) : (
-                  <div className="flex items-start space-x-2">
-                    <FiMapPin className="text-gray-400 mt-0.5" />
-                    <span className="text-gray-800">
-                      {organization.location.address}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Area
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedData.location?.area || ""}
-                      onChange={(e) =>
-                        handleLocationChange("area", e.target.value)
-                      }
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  ) : (
-                    <span className="text-gray-800">
-                      {organization.location.area || "Not specified"}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Sub Area
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedData.location?.sub_area || ""}
-                      onChange={(e) =>
-                        handleLocationChange("sub_area", e.target.value)
-                      }
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  ) : (
-                    <span className="text-gray-800">
-                      {organization.location.sub_area || "Not specified"}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  City
-                </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editedData.location?.city || ""}
-                    onChange={(e) =>
-                      handleLocationChange("city", e.target.value)
-                    }
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                ) : (
-                  <span className="text-gray-800">
-                    {organization.location.city}
-                  </span>
-                )}
-              </div>
-              <div className="h-64 bg-gray-100 rounded-lg overflow-hidden">
-                {organization.location.coordinates?.coordinates ? (
-                  <a
-                    href={generateBariKoiMapLink(
-                      organization.location.coordinates.coordinates[1],
-                      organization.location.coordinates.coordinates[0]
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center h-full text-gray-700 hover:text-blue-600 transition-colors"
-                  >
-                    <FiMapPin className="text-3xl mr-2" />
-                    <span>View on Barikoi Maps</span>
-                  </a>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    <FiMapPin className="text-4xl" />
-                    <span className="ml-2">
-                      No location coordinates available
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* Location Info */}
+          <SectionCard title="Location">
+            <LocationInfo
+              isEditing={isEditing}
+              editedData={editedData}
+              organization={organization}
+              handleLocationChange={handleLocationChange}
+            />
+          </SectionCard>
 
           {/* Metadata */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-800">
-                Organization Details
-              </h2>
+          <SectionCard title="Metadata">
+            <div className="text-sm text-gray-700 space-y-2">
+              <p>
+                <strong>Created:</strong>{" "}
+                {new Date(organization.createdAt).toLocaleDateString()}
+              </p>
+              <p>
+                <strong>Last Updated:</strong>{" "}
+                {new Date(organization.updatedAt).toLocaleDateString()}
+              </p>
             </div>
-            <div className="p-4 space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Created At</span>
-                <span className="text-sm text-gray-800">
-                  {new Date(organization.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Last Updated</span>
-                <span className="text-sm text-gray-800">
-                  {new Date(organization.updatedAt).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Organization ID</span>
-                <span className="text-sm text-gray-800 font-mono">
-                  {organization._id}
-                </span>
-              </div>
-            </div>
-          </div>
+          </SectionCard>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
+
+// Components
+
+const SectionCard = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <motion.div
+    whileHover={{ scale: 1.02 }}
+    className="bg-white rounded-xl shadow hover:shadow-lg transition p-6 space-y-4"
+  >
+    <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+    {children}
+  </motion.div>
+);
+
+const ImageContainer = ({ src, alt }: { src: string; alt: string }) => (
+  <div className="relative w-full h-64 rounded-md overflow-hidden">
+    <Image src={src} alt={alt} fill className="object-cover" />
+  </div>
+);
+
+const UploadInput = ({
+  onChange,
+  multiple = false,
+}: {
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  multiple?: boolean;
+}) => (
+  <input
+    type="file"
+    accept="image/*"
+    onChange={onChange}
+    multiple={multiple}
+    className="w-full block text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+  />
+);
+
+const FacilityButton = ({
+  name,
+  selected,
+  onClick,
+}: {
+  name: string;
+  selected: boolean;
+  onClick: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+      selected
+        ? "bg-blue-500 text-white"
+        : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+    }`}
+  >
+    {name}
+  </button>
+);
+
+const ContactInfo = ({
+  isEditing,
+  editedData,
+  organization,
+  handleInputChange,
+}: any) => (
+  <>
+    {["orgContactEmail", "orgContactPhone"].map((field) => (
+      <div key={field} className="space-y-1">
+        <label className="text-sm text-gray-500">
+          {field.includes("Email") ? "Email" : "Phone"}
+        </label>
+        {isEditing ? (
+          <input
+            type={field.includes("Email") ? "email" : "tel"}
+            name={field}
+            value={editedData[field] || ""}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 rounded-md border focus:ring-2 focus:ring-blue-400 focus:outline-none"
+          />
+        ) : (
+          <div className="flex items-center gap-2 text-gray-800">
+            {field.includes("Email") ? <FiMail /> : <FiPhone />}
+            <span>{organization[field]}</span>
+          </div>
+        )}
+      </div>
+    ))}
+  </>
+);
+
+const LocationInfo = ({
+  isEditing,
+  editedData,
+  organization,
+  handleLocationChange,
+}: any) => (
+  <>
+    {["address", "area", "sub_area", "city"].map((field) => (
+      <div key={field} className="space-y-1">
+        <label className="text-sm text-gray-500 capitalize">
+          {field.replace("_", " ")}
+        </label>
+        {isEditing ? (
+          <input
+            type="text"
+            value={editedData.location?.[field] || ""}
+            onChange={(e) => handleLocationChange(field, e.target.value)}
+            className="w-full px-3 py-2 rounded-md border focus:ring-2 focus:ring-blue-400 focus:outline-none"
+          />
+        ) : (
+          <p className="text-gray-800">
+            {organization.location?.[field] || "Not specified"}
+          </p>
+        )}
+      </div>
+    ))}
+    {organization.location.coordinates?.coordinates && (
+      <a
+        href={generateBariKoiMapLink(
+          organization.location.coordinates.coordinates[1],
+          organization.location.coordinates.coordinates[0]
+        )}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 inline-flex items-center gap-1 text-blue-600 hover:underline text-sm"
+      >
+        <FiMapPin /> View on Barikoi Maps
+      </a>
+    )}
+  </>
+);
