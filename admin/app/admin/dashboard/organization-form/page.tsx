@@ -33,6 +33,10 @@ export default function OrganizationForm() {
   const [adminNotes, setAdminNotes] = useState('');
   const [facilityOptions, setFacilityOptions] = useState<string[]>([]);
 
+  // Add these new state declarations at the top
+  const [contactPhone, setContactPhone] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
+
   useEffect(() => {
     const fetchFacilities = async () => {
       try {
@@ -187,6 +191,7 @@ export default function OrganizationForm() {
                 </h2>
               </div>
               <div className="p-6 space-y-4">
+                {/* Organization Name field */}
                 <div>
                   <label
                     htmlFor="name"
@@ -200,23 +205,66 @@ export default function OrganizationForm() {
                     onChange={e => setName(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter organization name"
+                    required
                   />
                 </div>
 
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Owner Contact Information */}
+                  <div>
+                    <label
+                      htmlFor="contactPhone"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Owner Contact Phone*
+                    </label>
+                    <input
+                      id="contactPhone"
+                      type="tel"
+                      value={contactPhone}
+                      onChange={e => setContactPhone(e.target.value)}
+                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="01XXXXXXXXX"
+                      pattern="\0\d{10}"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="ownerEmail"
+                      className="block text-sm font-medium text-gray-900"
+                    >
+                      Owner Email*
+                    </label>
+                    <input
+                      id="ownerEmail"
+                      type="email"
+                      value={ownerEmail}
+                      onChange={e => setOwnerEmail(e.target.value)}
+                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="owner@example.com"
+                      required
+                    />
+                  </div>
+
+                  {/* Organization Contact Information */}
                   <div>
                     <label
                       htmlFor="orgContactPhone"
                       className="block text-sm font-medium text-gray-900"
                     >
-                      Contact Phone*
+                      Organization Contact Phone*
                     </label>
                     <input
                       id="orgContactPhone"
+                      type="tel"
                       value={orgContactPhone}
                       onChange={e => setOrgContactPhone(e.target.value)}
                       className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="+8801XXXXXXXXX"
+                      pattern="\0\d{10}"
+                      required
                     />
                   </div>
 
@@ -225,7 +273,7 @@ export default function OrganizationForm() {
                       htmlFor="orgContactEmail"
                       className="block text-sm font-medium text-gray-900"
                     >
-                      Contact Email*
+                      Organization Email*
                     </label>
                     <input
                       id="orgContactEmail"
@@ -233,26 +281,28 @@ export default function OrganizationForm() {
                       value={orgContactEmail}
                       onChange={e => setOrgContactEmail(e.target.value)}
                       className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="organization@example.com"
+                      placeholder="contact@organization.com"
+                      required
                     />
                   </div>
+                </div>
 
-                  <div>
-                    <label
-                      htmlFor="adminNotes"
-                      className="block text-sm font-medium text-gray-900"
-                    >
-                      Admin Notes
-                    </label>
-                    <textarea
-                      id="adminNotes"
-                      value={adminNotes}
-                      onChange={e => setAdminNotes(e.target.value)}
-                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
-                      rows={3}
-                      placeholder="Add any administrative notes here..."
-                    />
-                  </div>
+                {/* Admin Notes */}
+                <div>
+                  <label
+                    htmlFor="adminNotes"
+                    className="block text-sm font-medium text-gray-900"
+                  >
+                    Admin Notes
+                  </label>
+                  <textarea
+                    id="adminNotes"
+                    value={adminNotes}
+                    onChange={e => setAdminNotes(e.target.value)}
+                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                    placeholder="Add any administrative notes here..."
+                  />
                 </div>
               </div>
             </div>

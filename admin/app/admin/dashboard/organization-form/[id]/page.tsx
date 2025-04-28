@@ -356,8 +356,8 @@ export default function EditOrganizationForm() {
                         value={contactPhone}
                         onChange={e => setContactPhone(e.target.value)}
                         className={`${inputClasses} placeholder-gray-500`}
-                        placeholder="+8801XXXXXXXXX"
-                        pattern="\+880\d{10}"
+                        placeholder="+01XXXXXXXXX"
+                        pattern="\0\d{10}"
                         required
                       />
                     </div>
@@ -394,8 +394,8 @@ export default function EditOrganizationForm() {
                         value={orgcontactPhone}
                         onChange={e => setOrgContactPhone(e.target.value)}
                         className={`${inputClasses} placeholder-gray-500`}
-                        placeholder="+8801XXXXXXXXX"
-                        pattern="\+880\d{10}"
+                        placeholder="01XXXXXXXXX"
+                        pattern="\0\d{10}"
                         required
                       />
                     </div>
