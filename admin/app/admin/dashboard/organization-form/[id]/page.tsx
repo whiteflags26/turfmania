@@ -6,7 +6,15 @@ import {
   getSingleOrganizationRequest,
 } from '@/services/organizationService';
 import { OrganizationRequest, RequestStatus } from '@/types/organization';
-import { ArrowLeft, Building, Check, MapPin, Package, Upload, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Building,
+  Check,
+  MapPin,
+  Package,
+  Upload,
+  X,
+} from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -29,7 +37,7 @@ export default function EditOrganizationForm() {
   const [facilities, setFacilities] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);  // Store URLs for preview
+  const [imageUrls, setImageUrls] = useState<string[]>([]); // Store URLs for preview
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [success, setSuccess] = useState(false);
@@ -53,7 +61,7 @@ export default function EditOrganizationForm() {
   useEffect(() => {
     const urls = newImageFiles.map(file => URL.createObjectURL(file));
     setImageUrls(urls);
-    
+
     // Clean up function to revoke Object URLs when component unmounts
     // or when newImageFiles changes
     return () => {
@@ -84,12 +92,12 @@ export default function EditOrganizationForm() {
 
           // Add these new setters
           setFacilities(orgData.facilities);
-          setExistingImages(orgData.images || []);
+          setExistingImages(orgData.images ?? []);
           setOrgContactPhone(orgData.orgContactPhone);
           setOrgContactEmail(orgData.orgContactEmail);
           setContactPhone(orgData.contactPhone);
           setOwnerEmail(orgData.ownerEmail);
-          setRequestNotes(orgData.requestNotes || '');
+          setRequestNotes(orgData.requestNotes ?? '');
           setStatus(orgData.status);
           setProcessingStartedAt(orgData.processingStartedAt);
           setRequesterId(orgData.requesterId.first_name);
@@ -170,7 +178,7 @@ export default function EditOrganizationForm() {
     }
 
     setNewImageFiles(prev => [...prev, ...validFiles]);
-    
+
     // Reset input value to allow selecting the same file again if needed
     e.target.value = '';
   };
@@ -209,8 +217,7 @@ export default function EditOrganizationForm() {
         orgContactPhone: orgcontactPhone,
         orgContactEmail,
         requestId: organizationId,
-      
-        
+
         status,
         processingStartedAt,
         images: [...existingImages],
@@ -370,7 +377,6 @@ export default function EditOrganizationForm() {
                         onChange={e => setContactPhone(e.target.value)}
                         className={`${inputClasses} placeholder-gray-500`}
                         placeholder="+01XXXXXXXXX"
-                        
                         required
                       />
                     </div>
@@ -408,7 +414,6 @@ export default function EditOrganizationForm() {
                         onChange={e => setOrgContactPhone(e.target.value)}
                         className={`${inputClasses} placeholder-gray-500`}
                         placeholder="01XXXXXXXXX"
-                        
                         required
                       />
                     </div>
@@ -672,19 +677,19 @@ export default function EditOrganizationForm() {
                       <div className="grid grid-cols-2 gap-2">
                         {existingImages.map((imageUrl, idx) => (
                           <div
-                            key={`existing-${idx}`}
+                            key={`${imageUrl}`}
                             className="relative group"
                           >
                             <div className="aspect-square w-full overflow-hidden rounded-md">
                               {/* Add error handling for image loading */}
                               <img
                                 src={imageUrl}
-                                alt={`Existing image ${idx + 1}`}
+                                alt={`Item ${idx + 1}`} // remove the word "image"
                                 className="object-cover w-full h-full"
-                                onError={(e) => {
+                                onError={e => {
                                   const target = e.target as HTMLImageElement;
-                                  target.src = '/placeholder-image.jpg'; // Replace with your placeholder image
-                                  target.alt = 'Image not available';
+                                  target.src = '/placeholder-image.jpg';
+                                  target.alt = 'Not available'; // short and clean fallback alt
                                 }}
                               />
                               <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -753,9 +758,9 @@ export default function EditOrganizationForm() {
                                 src={imageUrls[idx] || '/placeholder-image.jpg'}
                                 alt={`New image ${idx + 1}`}
                                 className="object-cover w-full h-full"
-                                onError={(e) => {
+                                onError={e => {
                                   const target = e.target as HTMLImageElement;
-                                  target.src = '/placeholder-image.jpg'; 
+                                  target.src = '/placeholder-image.jpg';
                                   target.alt = 'Image preview not available';
                                 }}
                               />
@@ -798,7 +803,7 @@ export default function EditOrganizationForm() {
                 : 'bg-blue-600 hover:bg-blue-700'
             }`}
           >
-             {loading ? (
+            {loading ? (
               <div className="flex items-center">
                 <svg
                   className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
