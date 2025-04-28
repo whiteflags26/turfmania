@@ -39,7 +39,7 @@ export default class TurfService {
   ): Promise<ITurf> {
     const session = await mongoose.startSession();
     session.startTransaction();
-
+  
     try {
       // Validate sports and team size before creating turf
       if (turfData.sports && turfData.team_size) {
@@ -47,17 +47,30 @@ export default class TurfService {
       } else {
         throw new ErrorResponse("Sports and team size are required", 400);
       }
-
+  
+      // Validate name - ensure it's a string and sanitize it
+      if (!turfData.name || typeof turfData.name !== 'string') {
+        throw new ErrorResponse("Valid turf name is required", 400);
+      }
+      
+      // Validate organization ID
+      if (!turfData.organization || !mongoose.Types.ObjectId.isValid(turfData.organization.toString())) {
+        throw new ErrorResponse("Valid organization ID is required", 400);
+      }
+  
+      // Create a sanitized query using validated values
+      const query = {
+        name: turfData.name.trim(),
+        organization: new mongoose.Types.ObjectId(turfData.organization.toString())
+      };
+  
       // Check if a turf with the same name already exists in this organization
-      const existingTurf = await Turf.findOne({
-        name: turfData.name,
-        organization: turfData.organization
-      });
-
+      const existingTurf = await Turf.findOne(query);
+  
       if (existingTurf) {
         throw new ErrorResponse("A turf with this name already exists in the organization", 400);
       }
-
+  
       // Upload images if provided
       let imageUrls: string[] = [];
       if (images && images.length > 0) {
@@ -65,30 +78,38 @@ export default class TurfService {
         const uploadedImages = await Promise.all(uploadPromises);
         imageUrls = uploadedImages.map((img) => img.url);
       }
-
-      // Create turf with or without images
-      const turf = new Turf({
-        ...turfData,
-        images: imageUrls,
-      });
-
+  
+      // Create a sanitized version of turfData for DB insertion
+      const sanitizedTurfData = {
+        name: turfData.name.trim(),
+        organization: new mongoose.Types.ObjectId(turfData.organization.toString()),
+        sports: Array.isArray(turfData.sports) ? turfData.sports : [],
+        team_size: typeof turfData.team_size === 'number' ? turfData.team_size : 0,
+        basePrice: typeof turfData.basePrice === 'number' ? turfData.basePrice : 0,
+        operatingHours: Array.isArray(turfData.operatingHours) ? turfData.operatingHours : [],
+        images: imageUrls
+      };
+  
+      // Create turf with sanitized data
+      const turf = new Turf(sanitizedTurfData);
+  
       const savedTurf = await turf.save({ session });
-
+  
       // Update organization by pushing turf ID
       await Organization.findByIdAndUpdate(
-        turfData.organization,
+        sanitizedTurfData.organization,
         { $push: { turfs: savedTurf._id } },
         { session }
       );
-
+  
       await session.commitTransaction();
       session.endSession();
-
+  
       return savedTurf;
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
-
+  
       console.error(error);
       throw new ErrorResponse(
         error instanceof ErrorResponse ? error.message : "Failed to create turf",

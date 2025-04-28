@@ -111,8 +111,18 @@ class UserService {
         throw new ErrorResponse('Invalid User ID', 400);
       }
 
-      // Explicitly check allowed fields
+      // Explicitly check allowed fields and create a sanitized update object
       const allowedFields = ['first_name', 'last_name', 'phone_number'];
+      const sanitizedUpdateData: Record<string, any> = {};
+      
+      // Only add allowed fields to the sanitized update data
+      for (const field of allowedFields) {
+        if (field in updateData) {
+          sanitizedUpdateData[field] = updateData[field as keyof typeof updateData];
+        }
+      }
+      
+      // Check for invalid fields
       const invalidFields = Object.keys(updateData).filter(
         field => !allowedFields.includes(field),
       );
@@ -126,12 +136,13 @@ class UserService {
         );
       }
 
-      // Handle empty phone number by removing it
+      // Create a safe update query using explicit field assignment instead of spreading
       const updateQuery: mongoose.UpdateQuery<UserDocument> = {
-        $set: { ...updateData },
+        $set: sanitizedUpdateData,
       };
 
-      if (updateData.phone_number === '') {
+      // Handle empty phone number by removing it
+      if ('phone_number' in updateData && updateData.phone_number === '') {
         delete updateQuery.$set.phone_number;
         updateQuery.$unset = { phone_number: 1 };
       }
