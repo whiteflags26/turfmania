@@ -11,38 +11,28 @@ import {
   resendVerificationEmail
 } from './auth.controller';
 import { protect } from './auth.middleware';
-import rateLimit from 'express-rate-limit';
-const createRateLimiter = (windowMinutes:number, maxRequests:number) => {
-  return rateLimit({
-    windowMs: windowMinutes * 60 * 1000, // convert minutes to milliseconds
-    max: maxRequests, // limit each IP to maxRequests per windowMs
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    message: 'Too many requests, please try again later.',
-  });
-};
+import { authLimiter,standardApiLimiter } from '../../utils/rateLimiter';
 
-// Create different limiters for different routes
-const authLimiter = createRateLimiter(15, 5); // 5 requests per 15 minutes
-const apiLimiter = createRateLimiter(15, 100);
+
+
 
 const router = express.Router();
 
-router.post('/register', register);
+router.post('/register',authLimiter, register);
 
-router.post('/login', login);
+router.post('/login',authLimiter, login);
 
 router.post('/logout', logout);
 
 router.get('/me', protect, getMe);
 
-router.post('/forgot-password', forgotPassword);
+router.post('/forgot-password',authLimiter, forgotPassword);
 
-router.post('/reset-password', resetPassword);
+router.post('/reset-password',authLimiter, resetPassword);
 
-router.get('/verify-email', verifyEmail);
+router.get('/verify-email',authLimiter, verifyEmail);
 
-router.post('/admin/login',adminLogin)
+router.post('/admin/login',authLimiter,adminLogin)
 
-router.post('/resend-verification', resendVerificationEmail);
+router.post('/resend-verification',authLimiter, resendVerificationEmail);
 export default router;

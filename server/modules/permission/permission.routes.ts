@@ -5,18 +5,19 @@ import {
   getGlobalPermissions,
   getLocalPermissions,
 } from './permission.controller';
+import { standardApiLimiter } from '../../utils/rateLimiter';
 
 const router = express.Router();
 
 router.use(protect);
 
 // Get all permissions
-router.get('/', getAllPermissions);
+router.get('/',standardApiLimiter,protect, getAllPermissions);
 
 // Get global permissions
-router.get('/global', getGlobalPermissions);
+router.get('/global',standardApiLimiter,protect, getGlobalPermissions);
 
 // Get local (organization) permissions
-router.get('/local', getLocalPermissions);
+router.get('/local',standardApiLimiter,protect, getLocalPermissions);
 
 export default router;
