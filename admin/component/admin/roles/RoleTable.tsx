@@ -23,8 +23,8 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
   };
 
   const filteredRoles = roles.filter(role => 
-    role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    role.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    role.name.toLowerCase().includes(searchQuery.toLowerCase()) 
+    
   );
 
   if (roles.length === 0) {
@@ -122,9 +122,7 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
                               className={`ml-1 h-4 w-4 transition-transform ${expandedRow === role._id ? 'rotate-180' : ''}`}
                             />
                           </div>
-                          {role.description && (
-                            <div className="text-gray-500 text-xs truncate max-w-xs">{role.description}</div>
-                          )}
+                      
                         </div>
                       </div>
                     </td>
@@ -209,7 +207,7 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
                         <div className="mb-3">
                           <h4 className="text-sm font-medium text-gray-900 mb-2">Full Role Details</h4>
                           <div className="text-sm text-gray-600 mb-2">
-                            <span className="font-medium">Description:</span> {role.description || 'No description provided'}
+                        
                           </div>
                           <div className="text-sm text-gray-600">
                             <span className="font-medium">ID:</span> {role._id}

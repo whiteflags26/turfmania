@@ -43,6 +43,7 @@ export default function OrganizationRequestsPage() {
       setData(response);
     } catch (err: any) {
       const statusCode = err.response?.status;
+      
       const errorMessage = err.response?.data?.message || err.message;
 
       if (statusCode === 403) {
