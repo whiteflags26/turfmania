@@ -279,6 +279,41 @@ class UserService {
       );
     }
   }
+
+  /**
+   * Check if user has any role in a specific organization
+   * @param userId - The ID of the user
+   * @param organizationId - The ID of the organization
+   * @returns Promise<boolean> - True if user has any role in the organization
+   */
+  public async hasOrganizationRole(
+    userId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw new ErrorResponse('Invalid User ID', 400);
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(organizationId)) {
+        throw new ErrorResponse('Invalid Organization ID', 400);
+      }
+
+      const roleAssignment = await UserRoleAssignment.findOne({
+        userId,
+        scopeId: organizationId,
+        scope: PermissionScope.ORGANIZATION,
+      });
+
+      return roleAssignment !== null;
+    } catch (error: any) {
+      console.error('Error checking organization role:', error);
+      throw new ErrorResponse(
+        error.message ?? 'Failed to check organization role',
+        error.statusCode ?? 500,
+      );
+    }
+  }
 }
 
 export const userService = new UserService();

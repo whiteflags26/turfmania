@@ -7,6 +7,7 @@ import {
   changePassword,
   getUserOrganizations,
   getUsersWithoutGlobalRoles,
+  checkOrganizationRole,
 } from "./user.controller";
 import { protect } from "../auth/auth.middleware";
 import { standardApiLimiter } from "../../utils/rateLimiter";
@@ -47,5 +48,6 @@ router.put("/change-password",standardApiLimiter, protect, changePassword);
 router.get("/organizations",standardApiLimiter, protect, getUserOrganizations);
 
 router.get('/without-global-roles',standardApiLimiter, protect,getUsersWithoutGlobalRoles)
+router.get('/organizations/:organizationId/check-access',standardApiLimiter, protect,checkOrganizationRole)
 
 export default router;

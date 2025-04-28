@@ -62,7 +62,7 @@ export const getCurrentUserProfile = asyncHandler(
   },
 );
 
-/**
+/**c
  * @desc    Update current user profile
  * @route   PUT /api/v1/users/me
  * @access  Private
@@ -149,6 +149,33 @@ export const getUsersWithoutGlobalRoles = asyncHandler(
       success: true,
       count: users.length,
       data: users,
+    });
+  },
+);
+
+/**
+ * @desc    Check if user has role in organization
+ * @route   GET /api/v1/users/check-organization-role/:organizationId
+ * @access  Private
+ */
+export const checkOrganizationRole = asyncHandler(
+  async (
+    req: AuthRequest & { params: { organizationId: string } },
+    res: Response,
+    next: NextFunction,
+  ) => {
+    if (!req.user?.id) {
+      throw new ErrorResponse('Not authorized to access this route', 401);
+    }
+
+    const hasRole = await userService.hasOrganizationRole(
+      req.user.id,
+      req.params.organizationId,
+    );
+
+    res.status(200).json({
+      success: true,
+      data: { hasRole },
     });
   },
 );
