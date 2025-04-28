@@ -5,6 +5,7 @@ import {
   getAllFacilities,
   getSingleOrganizationRequest,
 } from '@/services/organizationService';
+import { OrganizationRequest, RequestStatus } from '@/types/organization';
 import {
   ArrowLeft,
   Building,
@@ -42,9 +43,19 @@ export default function EditOrganizationForm() {
   const [fetchLoading, setFetchLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [orgContactPhone, setOrgContactPhone] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [orgcontactPhone, setOrgContactPhone] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
   const [orgContactEmail, setOrgContactEmail] = useState('');
-  const [adminNotes, setAdminNotes] = useState('');
+  const [requestNotes, setRequestNotes] = useState('');
+  const [status, setStatus] = useState<RequestStatus>('pending');
+  const [processingStartedAt, setProcessingStartedAt] = useState<
+    string | undefined
+  >();
+  const [requesterId, setRequesterId] = useState('');
+  const [processingAdminId, setProcessingAdminId] = useState<
+    string | undefined
+  >();
   const [facilityOptions, setFacilityOptions] = useState<string[]>([]);
 
   // Fetch organization data
@@ -57,7 +68,7 @@ export default function EditOrganizationForm() {
         if (response) {
           const orgData = response;
 
-          // Populate form fields
+          // Update all form fields
           setName(orgData.organizationName);
           setAddress(orgData.location.address);
           setPlaceId(orgData.location.place_id);
@@ -68,10 +79,18 @@ export default function EditOrganizationForm() {
           setLongitude(orgData.location.coordinates.coordinates[0]);
           setLatitude(orgData.location.coordinates.coordinates[1]);
 
+          // Add these new setters
           setFacilities(orgData.facilities);
           setExistingImages(orgData.images || []);
-          setOrgContactPhone(orgData.orgContactPhone ?? '');
-          setOrgContactEmail(orgData.orgContactEmail ?? '');
+          setOrgContactPhone(orgData.orgContactPhone);
+          setOrgContactEmail(orgData.orgContactEmail);
+          setContactPhone(orgData.contactPhone);
+          setOwnerEmail(orgData.ownerEmail);
+          setRequestNotes(orgData.requestNotes || '');
+          setStatus(orgData.status);
+          setProcessingStartedAt(orgData.processingStartedAt);
+          setRequesterId(orgData.requesterId.first_name);
+          setProcessingAdminId(orgData.processingAdminId?.first_name);
         }
       } catch (err: any) {
         console.error('Error fetching organization data:', err);
@@ -113,8 +132,6 @@ export default function EditOrganizationForm() {
         : [...prev, facility],
     );
   };
-
-
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -160,9 +177,8 @@ export default function EditOrganizationForm() {
     setLoading(true);
 
     try {
-      // Create the payload object
-      const payload = {
-        name,
+      const payload: Partial<OrganizationRequest> = {
+        organizationName: name,
         facilities,
         location: {
           place_id: placeId,
@@ -176,11 +192,16 @@ export default function EditOrganizationForm() {
           city,
           post_code: postCode || undefined,
         },
-        orgContactPhone,
+        contactPhone,
+        ownerEmail,
+        requestNotes,
+        orgContactPhone: orgcontactPhone,
         orgContactEmail,
-        requestId: params.id || null,
-        adminNotes,
-        wasEdited: 'True',
+
+        status,
+        processingStartedAt,
+        images: [...existingImages],
+        // Add any other fields required by your API
       };
 
       const response = await createOrganization(payload);
@@ -205,8 +226,8 @@ export default function EditOrganizationForm() {
     placeId &&
     city &&
     facilities.length > 0 &&
-    orgContactPhone &&
-    orgContactEmail;
+    contactPhone &&
+    ownerEmail;
 
   const goBack = () => {
     router.back();
@@ -300,6 +321,7 @@ export default function EditOrganizationForm() {
               </div>
               <div className="p-6">
                 <div className="space-y-4">
+                  {/* Organization Name field */}
                   <div>
                     <label
                       htmlFor="name"
@@ -314,60 +336,108 @@ export default function EditOrganizationForm() {
                       onChange={e => setName(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter organization name"
+                      required
                     />
                   </div>
 
-                  <div>
-                    <label
-                      htmlFor="orgContactPhone"
-                      className="block text-sm font-medium text-gray-900"
-                    >
-                      Contact Phone*
-                    </label>
-                    <input
-                      type="tel"
-                      id="orgContactPhone"
-                      value={orgContactPhone}
-                      onChange={e => setOrgContactPhone(e.target.value)}
-                      className={`${inputClasses} placeholder-gray-500`}
-                      placeholder="+8801XXXXXXXXX"
-                      pattern="\+880\d{10}"
-                    />
+                  {/* Contact Information Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Owner Contact Information */}
+                    <div>
+                      <label
+                        htmlFor="contactPhone"
+                        className="block text-sm font-medium text-gray-900"
+                      >
+                        Owner Contact Phone*
+                      </label>
+                      <input
+                        type="tel"
+                        id="contactPhone"
+                        value={contactPhone}
+                        onChange={e => setContactPhone(e.target.value)}
+                        className={`${inputClasses} placeholder-gray-500`}
+                        placeholder="+8801XXXXXXXXX"
+                        pattern="\+880\d{10}"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="ownerEmail"
+                        className="block text-sm font-medium text-gray-900"
+                      >
+                        Owner Email*
+                      </label>
+                      <input
+                        type="email"
+                        id="ownerEmail"
+                        value={ownerEmail}
+                        onChange={e => setOwnerEmail(e.target.value)}
+                        className={`${inputClasses} placeholder-gray-500`}
+                        placeholder="owner@example.com"
+                        required
+                      />
+                    </div>
+
+                    {/* Organization Contact Information */}
+                    <div>
+                      <label
+                        htmlFor="orgContactPhone"
+                        className="block text-sm font-medium text-gray-900"
+                      >
+                        Organization Contact Phone*
+                      </label>
+                      <input
+                        type="tel"
+                        id="orgContactPhone"
+                        value={orgcontactPhone}
+                        onChange={e => setOrgContactPhone(e.target.value)}
+                        className={`${inputClasses} placeholder-gray-500`}
+                        placeholder="+8801XXXXXXXXX"
+                        pattern="\+880\d{10}"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="orgContactEmail"
+                        className="block text-sm font-medium text-gray-900"
+                      >
+                        Organization Email*
+                      </label>
+                      <input
+                        type="email"
+                        id="orgContactEmail"
+                        value={orgContactEmail}
+                        onChange={e => setOrgContactEmail(e.target.value)}
+                        className={`${inputClasses} placeholder-gray-500`}
+                        placeholder="contact@organization.com"
+                        required
+                      />
+                    </div>
                   </div>
 
+                  {/* Request Notes */}
                   <div>
                     <label
-                      htmlFor="orgContactEmail"
+                      htmlFor="requestNotes"
                       className="block text-sm font-medium text-gray-900"
                     >
-                      Contact Email*
-                    </label>
-                    <input
-                      type="email"
-                      id="orgContactEmail"
-                      value={orgContactEmail}
-                      onChange={e => setOrgContactEmail(e.target.value)}
-                      className={`${inputClasses} placeholder-gray-500`}
-                      placeholder="organization@example.com"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="adminNotes"
-                      className="block text-sm font-medium text-gray-900"
-                    >
-                      Admin Notes
+                      Request Notes
                     </label>
                     <textarea
-                      id="adminNotes"
-                      value={adminNotes}
-                      onChange={e => setAdminNotes(e.target.value)}
+                      id="requestNotes"
+                      value={requestNotes}
+                      onChange={e => setRequestNotes(e.target.value)}
                       className={`${inputClasses} placeholder-gray-500`}
-                      placeholder="Add any administrative notes here..."
+                      placeholder="Add any notes about this request..."
                       rows={3}
                     />
                   </div>
+
+                  {/* Add Status field if needed */}
                 </div>
               </div>
             </div>
