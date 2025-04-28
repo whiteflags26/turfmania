@@ -11,6 +11,20 @@ import {
   resendVerificationEmail
 } from './auth.controller';
 import { protect } from './auth.middleware';
+import rateLimit from 'express-rate-limit';
+const createRateLimiter = (windowMinutes:number, maxRequests:number) => {
+  return rateLimit({
+    windowMs: windowMinutes * 60 * 1000, // convert minutes to milliseconds
+    max: maxRequests, // limit each IP to maxRequests per windowMs
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: 'Too many requests, please try again later.',
+  });
+};
+
+// Create different limiters for different routes
+const authLimiter = createRateLimiter(15, 5); // 5 requests per 15 minutes
+const apiLimiter = createRateLimiter(15, 100);
 
 const router = express.Router();
 
