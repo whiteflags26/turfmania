@@ -1,17 +1,17 @@
-// organization-request.service.ts (Updated)
-import mongoose, { Types } from "mongoose";
-import validator from "validator";
+import mongoose from 'mongoose';
+import validator from 'validator';
 
-import User from "../user/user.model";
+import { uploadImage } from '../../utils/cloudinary';
+import { sendEmail } from '../../utils/email';
+import ErrorResponse from '../../utils/errorResponse';
+import { validateId } from '../../utils/validation';
+import FaciltyService from '../facility/facility.service';
+import User from '../user/user.model';
 import OrganizationRequest, {
-  RequestStatus,
   IOrganizationRequest,
-} from "./organization-request.model";
-import { uploadImage } from "../../utils/cloudinary";
-import ErrorResponse from "../../utils/errorResponse";
-import { sendEmail } from "../../utils/email";
-import FaciltyService from "../facility/facility.service";
-
+  RequestStatus,
+} from './organization-request.model';
+import { z } from 'zod';
 
 interface CreateRequestDto {
   organizationName: string;
@@ -20,7 +20,7 @@ interface CreateRequestDto {
     place_id: string;
     address: string;
     coordinates: {
-      type: "Point";
+      type: 'Point';
       coordinates: [number, number];
     };
     area?: string;
@@ -32,7 +32,7 @@ interface CreateRequestDto {
   ownerEmail: string;
   requestNotes?: string;
   orgContactPhone: string;
-  orgContactEmail: string; 
+  orgContactEmail: string;
 }
 
 interface ProcessingResult {
@@ -47,8 +47,8 @@ export interface RequestFilters {
   toDate?: Date;
   requesterEmail?: string;
   ownerEmail?: string;
-  sortBy?: "createdAt" | "updatedAt" | "organizationName";
-  sortOrder?: "asc" | "desc";
+  sortBy?: 'createdAt' | 'updatedAt' | 'organizationName';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface PaginationOptions {
@@ -74,7 +74,7 @@ export default class OrganizationRequestService {
 
     const user = await User.findOne({
       email: email.toLowerCase().trim(),
-    }).collation({ locale: "en", strength: 2 });
+    }).collation({ locale: 'en', strength: 2 });
 
     return !!user;
   }
@@ -83,15 +83,27 @@ export default class OrganizationRequestService {
   public async createRequest(
     requesterId: string,
     requestData: CreateRequestDto,
-    images?: Express.Multer.File[]
+    images?: Express.Multer.File[],
   ): Promise<IOrganizationRequest> {
     try {
       // Validate owner email exists in database
+      const existingRequest = await OrganizationRequest.findOne({
+        organizationName: {
+          $regex: new RegExp(`^${requestData.organizationName}$`, 'i')
+        }
+      });
+
+      if (existingRequest) {
+        throw new ErrorResponse(
+          'An organization request with this name already exists',
+          400
+        );
+      }
       const ownerExists = await this.validateOwnerEmail(requestData.ownerEmail);
       if (!ownerExists) {
         throw new ErrorResponse(
-          "Owner email does not exist in the user database",
-          400
+          'Owner email does not exist in the user database',
+          400,
         );
       }
 
@@ -101,15 +113,15 @@ export default class OrganizationRequestService {
       // Upload images directly to Cloudinary
       const imageUrls: string[] = [];
       if (images && images.length > 0) {
-        const uploadPromises = images.map((image) => uploadImage(image));
+        const uploadPromises = images.map(image => uploadImage(image));
         const uploadResults = await Promise.all(uploadPromises);
-        imageUrls.push(...uploadResults.map((result) => result.url));
+        imageUrls.push(...uploadResults.map(result => result.url));
       }
 
       // Create request
       const request = await OrganizationRequest.create({
         requesterId,
-        status: "pending",
+        status: 'pending',
         ...requestData,
         images: imageUrls, // Store Cloudinary URLs directly
       });
@@ -120,46 +132,81 @@ export default class OrganizationRequestService {
     }
   }
 
-  // Process an organization request
+  public async getRequestById(
+    requestId: string,
+  ): Promise<IOrganizationRequest> {
+    try {
+      // Validate ID format
+      const validatedId = validateId(requestId);
+
+      const request = await OrganizationRequest.findById(validatedId)
+        .populate('requesterId', 'first_name last_name email')
+        .populate('processingAdminId', 'first_name last_name email')
+        .populate('organizationId');
+
+      if (!request) {
+        throw new ErrorResponse('Organization request not found', 404);
+      }
+
+      return request;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ErrorResponse('Invalid request ID format', 400);
+      }
+      throw error;
+    }
+  }
+
   public async startProcessing(
     requestId: string,
-    adminId: string
+    adminId: string,
   ): Promise<IOrganizationRequest> {
-    const request = await OrganizationRequest.findById(requestId);
-    if (!request) {
-      throw new ErrorResponse("Request not found", 404);
+    try {
+      // Validate both IDs
+      const validatedRequestId = validateId(requestId);
+      const validatedAdminId = validateId(adminId);
+
+      const request = await OrganizationRequest.findById(validatedRequestId);
+      if (!request) {
+        throw new ErrorResponse('Request not found', 404);
+      }
+
+      if (request.status !== 'pending') {
+        throw new ErrorResponse(
+          `Request cannot be processed. Current status: ${request.status}`,
+          400,
+        );
+      }
+
+      request.status = 'processing';
+      request.processingAdminId = new mongoose.Types.ObjectId(validatedAdminId);
+      request.processingStartedAt = new Date();
+      await request.save();
+
+      return request;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ErrorResponse('Invalid ID format', 400);
+      }
+      throw error;
     }
-
-    if (request.status !== "pending") {
-      throw new ErrorResponse(
-        `Request cannot be processed. Current status: ${request.status}`,
-        400
-      );
-    }
-
-    request.status = "processing";
-    request.processingAdminId = new Types.ObjectId(adminId);
-    request.processingStartedAt = new Date();
-    await request.save();
-
-    return request;
   }
 
   // Cancel processing of a request
   public async cancelProcessing(
     requestId: string,
-    adminId: string
+    adminId: string,
   ): Promise<IOrganizationRequest> {
     const request = await OrganizationRequest.findById(requestId);
     if (!request) {
-      throw new ErrorResponse("Request not found", 404);
+      throw new ErrorResponse('Request not found', 404);
     }
 
-    if (request.status !== "processing") {
-      throw new ErrorResponse("Request is not currently being processed", 400);
+    if (request.status !== 'processing') {
+      throw new ErrorResponse('Request is not currently being processed', 400);
     }
 
-    request.status = "pending";
+    request.status = 'pending';
     request.processingAdminId = undefined;
     request.processingStartedAt = undefined;
     await request.save();
@@ -167,34 +214,38 @@ export default class OrganizationRequestService {
     return request;
   }
 
-  // Approve request and link to an existing organization with session support for transactions
   public async approveRequestWithSession(
     requestId: string,
     adminId: string,
     organizationId: string,
     wasEdited: boolean = false,
     adminNotes?: string,
-    session?: mongoose.ClientSession
+    session?: mongoose.ClientSession,
   ): Promise<ProcessingResult> {
-    const options = session ? { session } : {};
-
-    const request = await OrganizationRequest.findById(requestId).session(
-      session || null
-    );
-    if (!request) {
-      throw new ErrorResponse("Request not found", 404);
-    }
-
-    if (request.status !== "processing") {
-      throw new ErrorResponse("Request is not in processing state", 400);
-    }
-
     try {
+      // Validate all IDs
+      const validatedRequestId = validateId(requestId);
+      const validatedAdminId = validateId(adminId);
+      const validatedOrgId = validateId(organizationId);
+
+      const options = session ? { session } : {};
+
+      const request = await OrganizationRequest.findById(
+        validatedRequestId,
+      ).session(session || null);
+      if (!request) {
+        throw new ErrorResponse('Request not found', 404);
+      }
+
+      if (request.status !== 'processing') {
+        throw new ErrorResponse('Request is not in processing state', 400);
+      }
+
       // Set the status based on whether the data was edited
-      request.status = wasEdited ? "approved_with_changes" : "approved";
+      request.status = wasEdited ? 'approved_with_changes' : 'approved';
 
       // Set the organizationId reference
-      request.organizationId = new mongoose.Types.ObjectId(organizationId);
+      request.organizationId = new mongoose.Types.ObjectId(validatedOrgId);
       if (adminNotes) request.adminNotes = adminNotes;
       await request.save(options);
 
@@ -207,34 +258,37 @@ export default class OrganizationRequestService {
       return {
         success: true,
         message: wasEdited
-          ? "Organization request approved with changes"
-          : "Organization request approved successfully",
+          ? 'Organization request approved with changes'
+          : 'Organization request approved successfully',
         data: { request },
       };
-    } catch (error: any) {
-      console.error("Error approving request:", error);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ErrorResponse('Invalid ID format', 400);
+      }
+      console.error('Error approving request:', error);
       throw new ErrorResponse(
-        error.message || "Failed to approve organization request",
-        error.statusCode || 500
+        'Failed to approve organization request',
+         500,
       );
     }
   }
 
   /**
- * Determines if organization data differs from the original request
- * @param requestId - ID of the organization request
- * @param orgName - Name of the organization to create
- * @param facilities - Facilities of the organization
- * @param location - Location object of the organization
- * @returns Promise<boolean> - True if data was edited from original request
- */
+   * Determines if organization data differs from the original request
+   * @param requestId - ID of the organization request
+   * @param orgName - Name of the organization to create
+   * @param facilities - Facilities of the organization
+   * @param location - Location object of the organization
+   * @returns Promise<boolean> - True if data was edited from original request
+   */
   public async wasRequestDataEdited(
     requestId: string,
     orgName: string,
     facilities: string[],
     location: any,
     orgContactPhone: string,
-    orgContactEmail: string
+    orgContactEmail: string,
   ): Promise<boolean> {
     try {
       // Get the original request
@@ -256,13 +310,21 @@ export default class OrganizationRequestService {
         request.location.place_id !== location.place_id ||
         request.location.address !== location.address ||
         request.location.city !== location.city ||
-        request.location.coordinates.coordinates[0] !== location.coordinates.coordinates[0] ||
-        request.location.coordinates.coordinates[1] !== location.coordinates.coordinates[1];
+        request.location.coordinates.coordinates[0] !==
+          location.coordinates.coordinates[0] ||
+        request.location.coordinates.coordinates[1] !==
+          location.coordinates.coordinates[1];
 
       const phoneChanged = request.orgContactPhone !== orgContactPhone;
       const emailChanged = request.orgContactEmail !== orgContactEmail;
 
-      return nameChanged || facilitiesChanged || locationChanged || phoneChanged || emailChanged;
+      return (
+        nameChanged ||
+        facilitiesChanged ||
+        locationChanged ||
+        phoneChanged ||
+        emailChanged
+      );
     } catch (error) {
       console.error('Error checking if request was edited:', error);
       throw new ErrorResponse('Failed to compare request data', 500);
@@ -273,7 +335,7 @@ export default class OrganizationRequestService {
   private async notifyRequestProcessed(
     request: IOrganizationRequest,
     approved: boolean,
-    wasEdited: boolean = false
+    wasEdited: boolean = false,
   ): Promise<void> {
     try {
       const user = await User.findById(request.requesterId);
@@ -292,7 +354,7 @@ export default class OrganizationRequestService {
         request,
         approved,
         wasEdited,
-        isOwner
+        isOwner,
       );
 
       // Handle owner notifications
@@ -303,10 +365,10 @@ export default class OrganizationRequestService {
         message,
         approved,
         wasEdited,
-        isOwner
+        isOwner,
       );
     } catch (error) {
-      console.error("Failed to send notification email:", error);
+      console.error('Failed to send notification email:', error);
     }
   }
 
@@ -314,12 +376,12 @@ export default class OrganizationRequestService {
 
   private getEmailSubject(approved: boolean): string {
     return approved
-      ? "Organization Request Approved - TurfMania"
-      : "Organization Request Rejected - TurfMania";
+      ? 'Organization Request Approved - TurfMania'
+      : 'Organization Request Rejected - TurfMania';
   }
 
   private getRecipientName(user: any, isOwner: boolean): string {
-    return user.name || (isOwner ? "Owner" : "Valued Customer");
+    return user.name || (isOwner ? 'Owner' : 'Valued Customer');
   }
 
   private buildMainMessage(
@@ -327,7 +389,7 @@ export default class OrganizationRequestService {
     request: IOrganizationRequest,
     approved: boolean,
     wasEdited: boolean,
-    isOwner: boolean
+    isOwner: boolean,
   ): string {
     let message = `Dear ${recipientName},\n\n`;
 
@@ -344,15 +406,16 @@ export default class OrganizationRequestService {
   private buildApprovalMessage(
     request: IOrganizationRequest,
     wasEdited: boolean,
-    isOwner: boolean
+    isOwner: boolean,
   ): string {
     let message =
-      `We are pleased to inform you that your request to create organization "${request.organizationName
-      }" has been approved${wasEdited ? " with some changes" : ""}.\n\n` +
+      `We are pleased to inform you that your request to create organization "${
+        request.organizationName
+      }" has been approved${wasEdited ? ' with some changes' : ''}.\n\n` +
       `The organization has been successfully created in our system and is now active.\n` +
       (request.organizationId
         ? `Organization ID: ${request.organizationId}\n\n`
-        : "\n");
+        : '\n');
 
     if (wasEdited) {
       message += `Please note that some details of your request were modified during the approval process. You can view the final organization details in your dashboard.\n\n`;
@@ -394,7 +457,7 @@ export default class OrganizationRequestService {
     message: string,
     approved: boolean,
     wasEdited: boolean,
-    isOwner: boolean
+    isOwner: boolean,
   ): Promise<void> {
     if (isOwner) {
       // Send owner-specific message
@@ -408,7 +471,7 @@ export default class OrganizationRequestService {
         request,
         message,
         approved,
-        wasEdited
+        wasEdited,
       );
       await sendEmail(request.ownerEmail, subject, ownerMessage);
     }
@@ -418,22 +481,24 @@ export default class OrganizationRequestService {
     request: IOrganizationRequest,
     baseMessage: string,
     approved: boolean,
-    wasEdited: boolean
+    wasEdited: boolean,
   ): string {
     return (
-      `Dear ${request.ownerEmail.split("@")[0]},\n\n` +
-      `You had been designated as the owner of organization "${request.organizationName
-      }" which was just ${approved
-        ? wasEdited
-          ? "approved with some modifications"
-          : "approved"
-        : "rejected"
+      `Dear ${request.ownerEmail.split('@')[0]},\n\n` +
+      `You had been designated as the owner of organization "${
+        request.organizationName
+      }" which was just ${
+        approved
+          ? wasEdited
+            ? 'approved with some modifications'
+            : 'approved'
+          : 'rejected'
       } on TurfMania.\n\n` +
       (approved
         ? `As the owner, you have full administrative access to manage the organization.\n\n`
-        : "") +
+        : '') +
       baseMessage.substring(
-        baseMessage.indexOf("\n\nIf you have any questions")
+        baseMessage.indexOf('\n\nIf you have any questions'),
       )
     );
   }
@@ -442,21 +507,21 @@ export default class OrganizationRequestService {
   public async rejectRequest(
     requestId: string,
     adminId: string,
-    rejectionNotes: string
+    rejectionNotes: string,
   ): Promise<IOrganizationRequest> {
     const request = await OrganizationRequest.findById(requestId);
     if (!request) {
-      throw new ErrorResponse("Request not found", 404);
+      throw new ErrorResponse('Request not found', 404);
     }
 
-    if (request.status !== "processing" && request.status !== "pending") {
+    if (request.status !== 'processing' && request.status !== 'pending') {
       throw new ErrorResponse(
-        "Request cannot be rejected in its current state",
-        400
+        'Request cannot be rejected in its current state',
+        400,
       );
     }
 
-    request.status = "rejected";
+    request.status = 'rejected';
     request.adminNotes = rejectionNotes;
     await request.save();
 
@@ -466,34 +531,27 @@ export default class OrganizationRequestService {
     return request;
   }
 
-  public async getRequestById(
-    requestId: string
-  ): Promise<IOrganizationRequest> {
-    const request = await OrganizationRequest.findById(requestId)
-      .populate("requesterId", "first_name last_name email")
-      .populate("processingAdminId", "first_name last_name email")
-      .populate("organizationId");
-
-    if (!request) {
-      throw new ErrorResponse("Organization request not found", 404);
-    }
-
-    return request;
-  }
-
-  // Get all requests by a specific user for that user
   public async getUserOrganizationRequests(
-    userId: string
+    userId: string,
   ): Promise<IOrganizationRequest[]> {
-    return OrganizationRequest.find({ requesterId: userId })
-      .sort({ createdAt: -1 })
-      .select("-processingAdminId -__v")
-      .lean();
+    try {
+      const validatedUserId = validateId(userId);
+
+      return OrganizationRequest.find({ requesterId: validatedUserId })
+        .sort({ createdAt: -1 })
+        .select('-processingAdminId -__v')
+        .lean();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ErrorResponse('Invalid user ID format', 400);
+      }
+      throw error;
+    }
   }
 
   public async getRequests(
     filters: RequestFilters = {},
-    pagination: PaginationOptions = { page: 1, limit: 10 }
+    pagination: PaginationOptions = { page: 1, limit: 10 },
   ): Promise<RequestsResult> {
     const {
       status,
@@ -501,8 +559,8 @@ export default class OrganizationRequestService {
       toDate,
       requesterEmail,
       ownerEmail,
-      sortBy = "createdAt",
-      sortOrder = "desc",
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
     } = filters;
     const { page, limit } = pagination;
     const query: any = {};
@@ -523,11 +581,11 @@ export default class OrganizationRequestService {
     if (requesterEmail) {
       // Find the user IDs for the specified requester email
       const requesters = await User.find({
-        email: { $regex: new RegExp(requesterEmail, "i") },
-      }).select("_id");
+        email: { $regex: new RegExp(requesterEmail, 'i') },
+      }).select('_id');
 
       if (requesters.length > 0) {
-        const requesterIds = requesters.map((requester) => requester._id);
+        const requesterIds = requesters.map(requester => requester._id);
         query.requesterId = { $in: requesterIds };
       } else {
         // If no match, return empty result
@@ -542,7 +600,7 @@ export default class OrganizationRequestService {
 
     // Apply owner email filter if specified
     if (ownerEmail) {
-      query.ownerEmail = { $regex: new RegExp(ownerEmail, "i") };
+      query.ownerEmail = { $regex: new RegExp(ownerEmail, 'i') };
     }
 
     // Count total before applying pagination
@@ -552,15 +610,15 @@ export default class OrganizationRequestService {
 
     // Build sort object
     const sortOptions: any = {};
-    sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
+    sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
     // Fetch paginated results with sorting
     const requests = await OrganizationRequest.find(query)
       .sort(sortOptions)
       .skip(skip)
       .limit(limit)
-      .populate("requesterId", "first_name last_name email")
-      .populate("processingAdminId", "first_name last_name email");
+      .populate('requesterId', 'first_name last_name email')
+      .populate('processingAdminId', 'first_name last_name email');
 
     return {
       total,
@@ -571,20 +629,20 @@ export default class OrganizationRequestService {
   }
 
   public async resetStuckProcessingRequests(
-    timeoutHours: number = 2
+    timeoutHours: number = 2,
   ): Promise<number> {
     const cutoffTime = new Date();
     cutoffTime.setHours(cutoffTime.getHours() - timeoutHours);
 
     const result = await OrganizationRequest.updateMany(
       {
-        status: "processing",
+        status: 'processing',
         processingStartedAt: { $lt: cutoffTime },
       },
       {
-        $set: { status: "pending" },
-        $unset: { processingAdminId: "", processingStartedAt: "" },
-      }
+        $set: { status: 'pending' },
+        $unset: { processingAdminId: '', processingStartedAt: '' },
+      },
     );
 
     return result.modifiedCount;

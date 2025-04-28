@@ -11,10 +11,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
-interface ImageFile extends File {
-  preview?: string;
-}
-
 export default function EditOrganizationForm() {
   const router = useRouter();
   const params = useParams();
@@ -33,6 +29,7 @@ export default function EditOrganizationForm() {
   const [facilities, setFacilities] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);  // Store URLs for preview
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [success, setSuccess] = useState(false);
@@ -51,6 +48,18 @@ export default function EditOrganizationForm() {
     string | undefined
   >();
   const [facilityOptions, setFacilityOptions] = useState<string[]>([]);
+
+  // Create object URLs for new images
+  useEffect(() => {
+    const urls = newImageFiles.map(file => URL.createObjectURL(file));
+    setImageUrls(urls);
+    
+    // Clean up function to revoke Object URLs when component unmounts
+    // or when newImageFiles changes
+    return () => {
+      urls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [newImageFiles]);
 
   // Fetch organization data
   useEffect(() => {
@@ -128,34 +137,42 @@ export default function EditOrganizationForm() {
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const totalImagesCount = existingImages.length + newImageFiles.length;
-      const remainingSlots = 5 - totalImagesCount;
-
-      if (remainingSlots <= 0) {
-        toast.error('Maximum 5 images allowed');
-        return;
-      }
-
-      const files = Array.from(e.target.files).slice(0, remainingSlots);
-
-      // Validate each file
-      const validFiles = files.filter(file => {
-        const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(
-          file.type,
-        );
-        const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
-        return isValidType && isValidSize;
-      });
-
-      if (validFiles.length !== files.length) {
-        toast.error(
-          'Some files were skipped. Please ensure all files are images under 5MB.',
-        );
-      }
-
-      setNewImageFiles(prev => [...prev, ...validFiles]);
+    // Check if the target exists and has files
+    if (!e.target || !e.target.files || e.target.files.length === 0) {
+      return;
     }
+
+    const totalImagesCount = existingImages.length + newImageFiles.length;
+    const remainingSlots = 5 - totalImagesCount;
+
+    if (remainingSlots <= 0) {
+      toast.error('Maximum 5 images allowed');
+      return;
+    }
+
+    // Safely convert FileList to array and limit to remaining slots
+    const fileList = e.target.files;
+    const filesArray = Array.from(fileList).slice(0, remainingSlots);
+
+    // Validate each file
+    const validFiles = filesArray.filter(file => {
+      const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(
+        file.type,
+      );
+      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
+      return isValidType && isValidSize;
+    });
+
+    if (validFiles.length !== filesArray.length) {
+      toast.error(
+        'Some files were skipped. Please ensure all files are images under 5MB.',
+      );
+    }
+
+    setNewImageFiles(prev => [...prev, ...validFiles]);
+    
+    // Reset input value to allow selecting the same file again if needed
+    e.target.value = '';
   };
 
   const removeExistingImage = (index: number) => {
@@ -659,10 +676,16 @@ export default function EditOrganizationForm() {
                             className="relative group"
                           >
                             <div className="aspect-square w-full overflow-hidden rounded-md">
+                              {/* Add error handling for image loading */}
                               <img
                                 src={imageUrl}
                                 alt={`Existing image ${idx + 1}`}
                                 className="object-cover w-full h-full"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = '/placeholder-image.jpg'; // Replace with your placeholder image
+                                  target.alt = 'Image not available';
+                                }}
                               />
                               <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <button
@@ -706,7 +729,7 @@ export default function EditOrganizationForm() {
                       <input
                         id="imageUpload"
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         multiple
                         className="hidden"
                         onChange={handleImageUpload}
@@ -725,10 +748,16 @@ export default function EditOrganizationForm() {
                         {newImageFiles.map((file, idx) => (
                           <div key={`new-${idx}`} className="relative group">
                             <div className="aspect-square w-full overflow-hidden rounded-md">
+                              {/* Use imageUrls array that's managed with URL.createObjectURL */}
                               <img
-                                src={URL.createObjectURL(file)}
+                                src={imageUrls[idx] || '/placeholder-image.jpg'}
                                 alt={`New image ${idx + 1}`}
                                 className="object-cover w-full h-full"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = '/placeholder-image.jpg'; 
+                                  target.alt = 'Image preview not available';
+                                }}
                               />
                               <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <button
@@ -769,7 +798,7 @@ export default function EditOrganizationForm() {
                 : 'bg-blue-600 hover:bg-blue-700'
             }`}
           >
-            {loading ? (
+             {loading ? (
               <div className="flex items-center">
                 <svg
                   className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
