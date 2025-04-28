@@ -13,6 +13,10 @@ import { Building, Check, MapPin, Package, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
+interface ImageFile extends File {
+  preview?: string;
+}
+
 export default function OrganizationForm() {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -24,7 +28,7 @@ export default function OrganizationForm() {
   const [longitude, setLongitude] = useState(0);
   const [latitude, setLatitude] = useState(0);
   const [facilities, setFacilities] = useState<string[]>([]);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imageFiles, setImageFiles] = useState<ImageFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,20 +71,27 @@ export default function OrganizationForm() {
     if (!e.target.files) return;
 
     const result = processImageUpload(
-      Array.from(e.target.files), // Convert FileList to array
-      [], // No existing images
+      Array.from(e.target.files),
+      [], // No existing images initially
       {
         maxImages: 5,
         allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
       },
     );
 
-    if (!result || !result.isValid) {
-      setError(result?.errorMessage || 'Image upload failed');
+    if (!result.isValid) {
+      toast.error(result.errorMessage || 'Image upload failed');
       return;
     }
 
-    setImageFiles(prev => [...prev, ...result.files]);
+    // Create ImageFile objects with previews
+    const newFiles: ImageFile[] = result.files.map(file => {
+      const imageFile = file as ImageFile;
+      imageFile.preview = URL.createObjectURL(file);
+      return imageFile;
+    });
+
+    setImageFiles(prev => [...prev, ...newFiles]);
   };
 
   const removeImage = (index: number) => {
@@ -114,16 +125,28 @@ export default function OrganizationForm() {
       formData.set('orgContactPhone', orgContactPhone);
       formData.set('orgContactEmail', orgContactEmail);
       formData.set('adminNotes', adminNotes);
+      formData.set('contactPhone', contactPhone);
+      formData.set('ownerEmail', ownerEmail);
       formData.set('wasEdited', 'False');
 
       // Use the utility function to prepare images
-      const preparedFormData = prepareImagesForSubmission(formData, imageFiles);
+      const preparedFormData = prepareImagesForSubmission(
+        formData,
+        imageFiles,
+        [], // No existing images for new organization
+      );
 
       // Call the backend service
       const response = await createOrganization(preparedFormData);
+
       toast.success('Organization created successfully!');
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+
+      // Reset form or redirect
+      setTimeout(() => {
+        setSuccess(false);
+        // Optional: Reset form or redirect
+      }, 3000);
     } catch (err: any) {
       const statusCode = err.response?.status;
       const errorMessage = err.response?.data?.message || err.message;
@@ -225,7 +248,6 @@ export default function OrganizationForm() {
                       onChange={e => setContactPhone(e.target.value)}
                       className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="01XXXXXXXXX"
-                      
                       required
                     />
                   </div>
@@ -263,7 +285,6 @@ export default function OrganizationForm() {
                       onChange={e => setOrgContactPhone(e.target.value)}
                       className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="+8801XXXXXXXXX"
-                      
                       required
                     />
                   </div>
@@ -477,9 +498,15 @@ export default function OrganizationForm() {
                     {imageFiles.map((file, index) => (
                       <div key={index} className="relative group">
                         <img
-                          src={URL.createObjectURL(file)}
+                          src={file.preview || URL.createObjectURL(file)}
                           alt={`Preview ${index + 1}`}
                           className="object-cover w-full h-32 rounded-md"
+                          onLoad={() => {
+                            // If we created a new preview, revoke it after loading
+                            if (!file.preview) {
+                              URL.revokeObjectURL(URL.createObjectURL(file));
+                            }
+                          }}
                         />
                         <button
                           type="button"
@@ -513,4 +540,17 @@ export default function OrganizationForm() {
       </form>
     </div>
   );
+  useEffect(() => {
+    // Cleanup function to revoke object URLs
+    return () => {
+      imageFiles.forEach(file => {
+        if (file.preview) {
+          URL.revokeObjectURL(file.preview);
+        }
+      });
+    };
+  }, [imageFiles]);
 }
+
+// Add this useEffect near your other hooks
+

@@ -109,7 +109,7 @@ export async function createOrganization(
   try {
     const response = await api.post('/api/v1/organizations', payload, {
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'multipart/form-data',
       },
       withCredentials: true,
     });

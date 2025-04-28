@@ -7,7 +7,6 @@ import connectDB from './config/db';
 import router from './routes/index';
 import errorHandler from './shared/middleware/error';
 import { setupHealthMonitoring } from './modules/health-metrics/index';
-import { csrf } from 'lusca';
 
 connectDB();
 
@@ -23,7 +22,7 @@ const corsOptions = {
 };
 
 app.use(express.json());
-app.use(csrf());
+
 // Use the same corsOptions configuration consistently
 app.use(cors(corsOptions));
 
