@@ -1,4 +1,3 @@
-// app/organization/[id]/view-turfs/[turfId]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,6 +9,10 @@ import {
   FiMapPin,
   FiPhone,
   FiMail,
+  FiPlus,
+  FiImage,
+  FiClock,
+  FiCalendar,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
@@ -21,7 +24,7 @@ import {
   updateOrganization,
 } from "@/lib/server-apis/organization-details";
 import { generateBariKoiMapLink } from "@/lib/server-apis/BariKoi/generateBariKoiMapLink-api";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ViewOrganizationPage() {
   const { id } = useParams();
@@ -31,9 +34,7 @@ export default function ViewOrganizationPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [imagePreview, setImagePreview] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
-  const [availableFacilities, setAvailableFacilities] = useState<IFacility[]>(
-    []
-  );
+  const [availableFacilities, setAvailableFacilities] = useState<IFacility[]>([]);
 
   useEffect(() => {
     const loadOrganization = async () => {
@@ -110,7 +111,6 @@ export default function ViewOrganizationPage() {
       const filesArray = Array.from(e.target.files);
       setNewImages(filesArray);
 
-      // Generate previews for all selected files
       const previews: string[] = [];
       filesArray.forEach((file) => {
         const reader = new FileReader();
@@ -138,9 +138,8 @@ export default function ViewOrganizationPage() {
       );
       formData.append("location", JSON.stringify(editedData.location || {}));
 
-      // Append all images to formData
       if (newImages.length > 0) {
-        newImages.forEach((image, index) => {
+        newImages.forEach((image) => {
           formData.append("images", image);
         });
       }
@@ -151,7 +150,6 @@ export default function ViewOrganizationPage() {
       );
       setOrganization(updatedOrganization);
       setIsEditing(false);
-      // Clear the previews and new images after successful update
       setImagePreview([]);
       setNewImages([]);
       toast.success("Organization updated successfully!");
@@ -183,90 +181,114 @@ export default function ViewOrganizationPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-7xl mx-auto px-6 py-10"
+      className="max-w-7xl mx-auto px-4 sm:px-6 py-8"
     >
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-10 space-y-4 md:space-y-0">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+        <div className="flex-1 min-w-0">
           {isEditing ? (
             <input
               type="text"
               name="name"
               value={editedData.name || ""}
               onChange={handleInputChange}
-              className="text-3xl font-bold tracking-tight border-b-2 border-blue-400 bg-transparent focus:outline-none w-full"
+              className="text-3xl font-bold text-gray-900 border-b-2 border-blue-500 bg-transparent focus:outline-none w-full py-1"
+              placeholder="Organization Name"
             />
           ) : (
-            organization.name
+            <h1 className="text-3xl font-bold text-gray-900 truncate">
+              {organization.name}
+            </h1>
           )}
-        </h1>
-        <div className="flex gap-3">
+        </div>
+
+        <div className="flex gap-3 w-full md:w-auto">
           {isEditing ? (
             <>
               <button
                 onClick={() => setIsEditing(false)}
-                className="flex items-center gap-2 px-5 py-2 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 transition disabled:opacity-50"
+                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 transition disabled:opacity-50"
               >
-                <FiX /> Cancel
+                <FiX />
+                <span>Cancel</span>
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isLoading}
-                className="flex items-center gap-2 px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-50"
+                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-50 shadow-md hover:shadow-lg"
               >
-                <FiSave /> {isLoading ? "Saving..." : "Save"}
+                <FiSave />
+                <span>{isLoading ? "Saving..." : "Save Changes"}</span>
               </button>
             </>
           ) : (
             <button
               onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2 px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition"
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition shadow-md hover:shadow-lg"
             >
-              <FiEdit2 /> Edit
+              <FiEdit2 />
+              <span>Edit Organization</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Content */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-6">
           {/* Images Section */}
           <SectionCard title="Organization Images">
             {isEditing ? (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Show image previews for newly selected files */}
-                  {imagePreview.length > 0 &&
+                  {imagePreview.length > 0 ? (
                     imagePreview.map((preview, idx) => (
                       <ImageContainer
                         key={`preview-${idx}`}
                         src={preview}
                         alt={`New Preview ${idx + 1}`}
                       />
-                    ))}
-
-                  {/* Show existing images if no new previews available */}
-                  {imagePreview.length === 0 &&
+                    ))
+                  ) : (
                     organization.images.map((img, idx) => (
                       <ImageContainer
                         key={`existing-${idx}`}
                         src={img}
                         alt={`Existing Image ${idx + 1}`}
                       />
-                    ))}
+                    ))
+                  )}
                 </div>
-                <UploadInput onChange={handleImageUpload} multiple={true} />
+                <label className="block w-full">
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-blue-500 transition-colors cursor-pointer">
+                    <FiImage className="text-gray-400 text-2xl mb-2" />
+                    <span className="text-sm text-gray-500">
+                      Click to upload images
+                    </span>
+                    <span className="text-xs text-gray-400 mt-1">
+                      PNG, JPG, JPEG (max. 5MB each)
+                    </span>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    multiple
+                    className="hidden"
+                  />
+                </label>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {organization.images.map((img, idx) => (
-                  <ImageContainer
+                  <motion.div
                     key={idx}
-                    src={img}
-                    alt={`Image ${idx + 1}`}
-                  />
+                    whileHover={{ scale: 1.03 }}
+                    className="rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <ImageContainer src={img} alt={`Image ${idx + 1}`} />
+                  </motion.div>
                 ))}
               </div>
             )}
@@ -274,9 +296,13 @@ export default function ViewOrganizationPage() {
 
           {/* Facilities Section */}
           <SectionCard title="Facilities">
-            <div className="flex flex-wrap gap-3">
-              {isEditing
-                ? availableFacilities.map((facility) => (
+            {isEditing ? (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-500">
+                  Select available facilities:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {availableFacilities.map((facility) => (
                     <FacilityButton
                       key={facility._id}
                       name={facility.name}
@@ -285,52 +311,104 @@ export default function ViewOrganizationPage() {
                       )}
                       onClick={() => handleFacilityToggle(facility.name)}
                     />
-                  ))
-                : organization.facilities.map((facility, idx) => (
-                    <div
-                      key={idx}
-                      className="px-4 py-2 rounded-full bg-gray-100 text-gray-800 text-sm"
-                    >
-                      {facility}
-                    </div>
                   ))}
-            </div>
+                </div>
+              </div>
+            ) : organization.facilities.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {organization.facilities.map((facility, idx) => (
+                  <span
+                    key={idx}
+                    className="px-3 py-1.5 bg-blue-50 text-blue-800 rounded-lg text-sm font-medium"
+                  >
+                    {facility}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No facilities added yet</p>
+            )}
           </SectionCard>
         </div>
 
         {/* Right Sidebar */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Contact Info */}
-          <SectionCard title="Contact Info">
-            <ContactInfo
-              isEditing={isEditing}
-              editedData={editedData}
-              organization={organization}
-              handleInputChange={handleInputChange}
-            />
+          <SectionCard title="Contact Information">
+            <div className="space-y-4">
+              <ContactInfoItem
+                icon={<FiPhone className="text-blue-600" />}
+                label="Phone"
+                isEditing={isEditing}
+                value={editedData.orgContactPhone || organization.orgContactPhone}
+                name="orgContactPhone"
+                onChange={handleInputChange}
+                type="tel"
+              />
+              <ContactInfoItem
+                icon={<FiMail className="text-blue-600" />}
+                label="Email"
+                isEditing={isEditing}
+                value={editedData.orgContactEmail || organization.orgContactEmail}
+                name="orgContactEmail"
+                onChange={handleInputChange}
+                type="email"
+              />
+            </div>
           </SectionCard>
 
           {/* Location Info */}
-          <SectionCard title="Location">
-            <LocationInfo
-              isEditing={isEditing}
-              editedData={editedData}
-              organization={organization}
-              handleLocationChange={handleLocationChange}
-            />
+          <SectionCard title="Location Details">
+            <div className="space-y-4">
+              {/* Only include string fields in the map operation */}
+              {["address", "area", "sub_area", "city", "post_code"].map(
+                (field) => (
+                  <LocationInfoItem
+                    key={field}
+                    field={field}
+                    isEditing={isEditing}
+                    value={
+                      // Add a type assertion to ensure we're only passing string values
+                      (editedData.location?.[field as keyof ILocation] as string) ||
+                      (organization.location?.[field as keyof ILocation] as string) ||
+                      ""
+                    }
+                    onChange={(value: string) =>
+                      handleLocationChange(field as keyof ILocation, value)
+                    }
+                  />
+                )
+              )}
+              {organization.location?.coordinates?.coordinates && (
+                <a
+                  href={generateBariKoiMapLink(
+                    organization.location.coordinates.coordinates[1],
+                    organization.location.coordinates.coordinates[0]
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors text-sm"
+                >
+                  <FiMapPin />
+                  View on Barikoi Maps
+                </a>
+              )}
+            </div>
           </SectionCard>
 
           {/* Metadata */}
-          <SectionCard title="Metadata">
-            <div className="text-sm text-gray-700 space-y-2">
-              <p>
-                <strong>Created:</strong>{" "}
-                {new Date(organization.createdAt).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>Last Updated:</strong>{" "}
-                {new Date(organization.updatedAt).toLocaleDateString()}
-              </p>
+          <SectionCard title="Organization Metadata">
+            <div className="space-y-3">
+              <MetadataItem
+                icon={<FiCalendar />}
+                label="Created"
+                value={new Date(organization.createdAt).toLocaleDateString()}
+              />
+              <MetadataItem
+                icon={<FiClock />}
+                label="Last Updated"
+                value={new Date(organization.updatedAt).toLocaleDateString()}
+              />
             </div>
           </SectionCard>
         </div>
@@ -340,7 +418,6 @@ export default function ViewOrganizationPage() {
 }
 
 // Components
-
 const SectionCard = ({
   title,
   children,
@@ -349,34 +426,27 @@ const SectionCard = ({
   children: React.ReactNode;
 }) => (
   <motion.div
-    whileHover={{ scale: 1.02 }}
-    className="bg-white rounded-xl shadow hover:shadow-lg transition p-6 space-y-4"
+    initial={{ y: 10, opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6 space-y-4 border border-gray-100"
   >
-    <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+    <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
+      {title}
+    </h2>
     {children}
   </motion.div>
 );
 
 const ImageContainer = ({ src, alt }: { src: string; alt: string }) => (
-  <div className="relative w-full h-64 rounded-md overflow-hidden">
-    <Image src={src} alt={alt} fill className="object-cover" />
+  <div className="relative w-full aspect-square rounded-lg overflow-hidden">
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      className="object-cover"
+      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+    />
   </div>
-);
-
-const UploadInput = ({
-  onChange,
-  multiple = false,
-}: {
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  multiple?: boolean;
-}) => (
-  <input
-    type="file"
-    accept="image/*"
-    onChange={onChange}
-    multiple={multiple}
-    className="w-full block text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-  />
 );
 
 const FacilityButton = ({
@@ -391,85 +461,99 @@ const FacilityButton = ({
   <button
     type="button"
     onClick={onClick}
-    className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
       selected
-        ? "bg-blue-500 text-white"
-        : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+        ? "bg-blue-600 text-white shadow-md"
+        : "bg-gray-100 hover:bg-gray-200 text-gray-800"
     }`}
   >
     {name}
   </button>
 );
 
-const ContactInfo = ({
+const ContactInfoItem = ({
+  icon,
+  label,
+  value,
+  name,
   isEditing,
-  editedData,
-  organization,
-  handleInputChange,
-}: any) => (
-  <>
-    {["orgContactEmail", "orgContactPhone"].map((field) => (
-      <div key={field} className="space-y-1">
-        <label className="text-sm text-gray-500">
-          {field.includes("Email") ? "Email" : "Phone"}
-        </label>
-        {isEditing ? (
-          <input
-            type={field.includes("Email") ? "email" : "tel"}
-            name={field}
-            value={editedData[field] || ""}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 rounded-md border focus:ring-2 focus:ring-blue-400 focus:outline-none"
-          />
-        ) : (
-          <div className="flex items-center gap-2 text-gray-800">
-            {field.includes("Email") ? <FiMail /> : <FiPhone />}
-            <span>{organization[field]}</span>
-          </div>
-        )}
+  onChange,
+  type = "text",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  name: string;
+  isEditing: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  type?: string;
+}) => (
+  <div>
+    <label className="text-sm text-gray-500 font-medium">{label}</label>
+    {isEditing ? (
+      <div className="relative mt-1">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+          {icon}
+        </div>
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+        />
       </div>
-    ))}
-  </>
+    ) : (
+      <div className="flex items-center gap-2 mt-1 text-gray-800">
+        <span className="text-blue-600">{icon}</span>
+        <span>{value || "Not specified"}</span>
+      </div>
+    )}
+  </div>
 );
 
-const LocationInfo = ({
+const LocationInfoItem = ({
+  field,
+  value,
   isEditing,
-  editedData,
-  organization,
-  handleLocationChange,
-}: any) => (
-  <>
-    {["address", "area", "sub_area", "city"].map((field) => (
-      <div key={field} className="space-y-1">
-        <label className="text-sm text-gray-500 capitalize">
-          {field.replace("_", " ")}
-        </label>
-        {isEditing ? (
-          <input
-            type="text"
-            value={editedData.location?.[field] || ""}
-            onChange={(e) => handleLocationChange(field, e.target.value)}
-            className="w-full px-3 py-2 rounded-md border focus:ring-2 focus:ring-blue-400 focus:outline-none"
-          />
-        ) : (
-          <p className="text-gray-800">
-            {organization.location?.[field] || "Not specified"}
-          </p>
-        )}
-      </div>
-    ))}
-    {organization.location.coordinates?.coordinates && (
-      <a
-        href={generateBariKoiMapLink(
-          organization.location.coordinates.coordinates[1],
-          organization.location.coordinates.coordinates[0]
-        )}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-3 inline-flex items-center gap-1 text-blue-600 hover:underline text-sm"
-      >
-        <FiMapPin /> View on Barikoi Maps
-      </a>
+  onChange,
+}: {
+  field: string;
+  value: string;
+  isEditing: boolean;
+  onChange: (value: string) => void;
+}) => (
+  <div>
+    <label className="text-sm text-gray-500 font-medium capitalize">
+      {field.replace("_", " ")}
+    </label>
+    {isEditing ? (
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full mt-1 px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+      />
+    ) : (
+      <p className="mt-1 text-gray-800">{value || "Not specified"}</p>
     )}
-  </>
+  </div>
+);
+
+const MetadataItem = ({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) => (
+  <div className="flex items-center gap-3">
+    <div className="p-2 bg-gray-100 rounded-full text-gray-600">{icon}</div>
+    <div>
+      <p className="text-sm text-gray-500 font-medium">{label}</p>
+      <p className="text-gray-800">{value}</p>
+    </div>
+  </div>
 );
