@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
-import validator from 'validator';
+import validator from "validator";
 
 interface ILocation {
   place_id: string; // Unique identifier from Barikoi
@@ -33,7 +33,6 @@ const OrganizationSchema: Schema = new Schema(
     images: { type: [String], default: [] },
     turfs: [{ type: Schema.Types.ObjectId, ref: "Turf" }],
 
-  
     location: {
       place_id: { type: String, required: true },
       address: { type: String, required: true },
@@ -88,6 +87,26 @@ const OrganizationSchema: Schema = new Schema(
 );
 
 OrganizationSchema.index({ "location.coordinates": "2dsphere" });
+
+OrganizationSchema.index(
+  {
+    name: "text",
+    "location.address": "text",
+    "location.area": "text",
+    "location.sub_area": "text",
+    "location.city": "text",
+  },
+  {
+    weights: {
+      name: 10,
+      "location.city": 5,
+      "location.area": 3,
+      "location.sub_area": 2,
+      "location.address": 1,
+    },
+    name: "org_text_search",
+  }
+);
 
 const Organization = mongoose.model<IOrganization>(
   "Organization",

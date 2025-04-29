@@ -82,9 +82,20 @@ const TurfSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+TurfSchema.index({ name: 1, organization: 1 }, { unique: true });
+
 TurfSchema.index(
-  { name: 1, organization: 1 }, 
-  { unique: true }
+  {
+    name: "text",
+    sports: "text",
+  },
+  {
+    weights: {
+      name: 10,
+      sports: 5,
+    },
+    name: "turf_text_search",
+  }
 );
 
 export const Turf = mongoose.model<ITurf>("Turf", TurfSchema);
