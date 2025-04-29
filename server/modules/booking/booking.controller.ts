@@ -264,7 +264,7 @@ export default class BookingController {
   /**
    * @route   GET /api/v1/bookings/turf/:turfId
    * @desc    Get bookings for a specific turf with filtering, sorting and pagination
-   * @access  Private (Admin/Turf Manager)
+   * @access  Private (Organization Manage)
    */
   public getTurfBookings = asyncHandler(
     async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -302,7 +302,7 @@ export default class BookingController {
   /**
    * @route   GET /api/v1/bookings/turf/:turfId/monthly-earnings
    * @desc    Get monthly earnings for a turf for the current year
-   * @access  Private (Admin/Turf Manager)
+   * @access  Private (Organization Manage)
    */
   public getTurfMonthlyEarnings = asyncHandler(
     async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -327,7 +327,7 @@ export default class BookingController {
   /**
    * @route   GET /api/v1/bookings/turf/:turfId/current-month-earnings
    * @desc    Get current month's earnings for a turf
-   * @access  Private (Admin/Turf Manager)
+   * @access  Private (Organization Manage)
    */
   public getTurfCurrentMonthEarnings = asyncHandler(
     async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -352,7 +352,7 @@ export default class BookingController {
   /**
    * @route   GET /api/v1/bookings/organization/:organizationId/current-month-earnings
    * @desc    Get current month's earnings for an organization (all turfs combined)
-   * @access  Private (Admin/Organization Manager)
+   * @access  Private (Organization Manager)
    */
   public getOrganizationCurrentMonthEarnings = asyncHandler(
     async (req: AuthRequest, res: Response, next: NextFunction) => {
