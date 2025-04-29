@@ -164,18 +164,13 @@ export function FilterPanel({
             </div>
           </div>
 
-          <label
-            htmlFor="status-filter-group"
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
-            Status
-          </label>
-          <div
+          <fieldset
             id="status-filter-group"
-            className="flex flex-wrap gap-2"
-            role="group"
-            aria-label="Status"
+            className="flex flex-wrap gap-2 border-0 p-0 m-0"
           >
+            <legend className="block text-sm font-medium text-gray-700 mb-2">
+              Status
+            </legend>
             {statusOptions.map(option => (
               <button
                 key={option.value}
@@ -193,7 +188,7 @@ export function FilterPanel({
                 {option.label}
               </button>
             ))}
-          </div>
+          </fieldset>
         </div>
       )}
     </div>

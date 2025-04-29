@@ -14,9 +14,9 @@ import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface BookingModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  turfId: string;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly turfId: string;
 }
 
 export default function BookingModal({
