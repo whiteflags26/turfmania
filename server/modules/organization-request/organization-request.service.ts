@@ -225,7 +225,7 @@ export default class OrganizationRequestService {
     try {
       // Validate all IDs
       const validatedRequestId = validateId(requestId);
-      const validatedAdminId = validateId(adminId);
+      // const validatedAdminId = validateId(adminId);
       const validatedOrgId = validateId(organizationId);
 
       const options = session ? { session } : {};
@@ -381,7 +381,7 @@ export default class OrganizationRequestService {
   }
 
   private getRecipientName(user: any, isOwner: boolean): string {
-    return user.name || (isOwner ? 'Owner' : 'Valued Customer');
+    return user.name ?? (isOwner ? 'Owner' : 'Valued Customer');
   }
 
   private buildMainMessage(

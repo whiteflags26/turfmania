@@ -1,42 +1,41 @@
-"use client";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/Button";
-import { Card, CardContent } from "@/components/ui/card";
+'use client';
+import { Button } from '@/components/Button';
+import ReviewActionsDropdown from '@/components/single-turf/ReviewActionsDropdown';
+import ReviewForm from '@/components/single-turf/ReviewForm';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
-  DialogTrigger,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { useRouter } from "next/navigation";
-import { ITurfReview } from "@/types/turf-review";
-import { IUser } from "@/types/user";
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { DualRangeSlider } from '@/components/ui/dual-range-slider';
+import { Label } from '@/components/ui/label';
+import { deleteTurfReview } from '@/lib/server-apis/single-turf/deleteTurfReview-api';
+import { fetchReviewsByTurf } from '@/lib/server-apis/single-turf/fetchReviewsByTurf-api';
+import { fetchReviewsByTurfPublic } from '@/lib/server-apis/single-turf/fetchReviewsByTurfPublic-api';
+import { hasUserReviewedTurf } from '@/lib/server-apis/single-turf/hasUserReviewedTurf-api';
+import { updateTurfReview } from '@/lib/server-apis/single-turf/updateTurfReview-api';
+import { ITurfReview, UpdateReviewData } from '@/types/turf-review';
+import { IUser } from '@/types/user';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Star } from 'lucide-react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import {
-  BarChart,
   Bar,
+  BarChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { fetchReviewsByTurfPublic } from "@/lib/server-apis/single-turf/fetchReviewsByTurfPublic-api";
-import { fetchReviewsByTurf } from "@/lib/server-apis/single-turf/fetchReviewsByTurf-api";
-import ReviewForm from "@/components/single-turf/ReviewForm";
-import { motion, AnimatePresence } from "framer-motion";
-import { Star } from "lucide-react";
-import Image from "next/image";
-import ReviewActionsDropdown from "@/components/single-turf/ReviewActionsDropdown";
-import { updateTurfReview } from "@/lib/server-apis/single-turf/updateTurfReview-api";
-import { deleteTurfReview } from "@/lib/server-apis/single-turf/deleteTurfReview-api";
-import { UpdateReviewData } from "@/types/turf-review";
-import { hasUserReviewedTurf } from "@/lib/server-apis/single-turf/hasUserReviewedTurf-api";
-import { toast } from "react-hot-toast";
-import { DualRangeSlider } from "@/components/ui/dual-range-slider";
+} from 'recharts';
 
 interface ReviewSectionProps {
-  turfId: string;
-  currentUser: IUser | null;
+  readonly turfId: string;
+  readonly currentUser: IUser | null;
 }
 
 interface ReviewData {
@@ -93,7 +92,7 @@ export default function ReviewSection({
       limit: 10,
     },
   });
-  const [sortBy, setSortBy] = useState("latest");
+  const [sortBy, setSortBy] = useState('latest');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [ratingRange, setRatingRange] = useState([1, 5]);
@@ -110,21 +109,26 @@ export default function ReviewSection({
 
   const loadReviews = async () => {
     try {
+      let sortField: 'createdAt' | 'rating';
+      let sortOrder: 'asc' | 'desc';
+
+      if (sortBy === 'latest' || sortBy === 'oldest') {
+        sortField = 'createdAt';
+      } else {
+        sortField = 'rating';
+      }
+
+      if (sortBy === 'oldest' || sortBy === 'lowest') {
+        sortOrder = 'asc';
+      } else {
+        sortOrder = 'desc';
+      }
+
       const options = {
         page: reviewData.pagination.currentPage,
         limit: 10,
-        sortBy:
-          sortBy === "latest"
-            ? "createdAt"
-            : sortBy === "oldest"
-            ? "createdAt"
-            : "rating",
-        sortOrder:
-          sortBy === "oldest"
-            ? ("asc" as const)
-            : sortBy === "lowest"
-            ? ("asc" as const)
-            : ("desc" as const),
+        sortBy: sortField,
+        sortOrder,
         minRating: ratingRange[0],
         maxRating: ratingRange[1],
       };
@@ -141,14 +145,14 @@ export default function ReviewSection({
         setHasReviewed(reviewed);
       }
     } catch (error) {
-      console.error("Error fetching reviews:", error);
+      console.error('Error fetching reviews:', error);
     }
   };
 
   useEffect(() => {
     loadReviews();
     setIsFiltered(
-      sortBy !== "latest" || ratingRange[0] !== 1 || ratingRange[1] !== 5
+      sortBy !== 'latest' || ratingRange[0] !== 1 || ratingRange[1] !== 5,
     );
   }, [turfId, sortBy, ratingRange, reviewData.pagination.currentPage]);
 
@@ -164,7 +168,7 @@ export default function ReviewSection({
   }, [currentUser, turfId]);
 
   const handlePageChange = (newPage: number) => {
-    setReviewData((prev) => ({
+    setReviewData(prev => ({
       ...prev,
       pagination: { ...prev.pagination, currentPage: newPage },
     }));
@@ -173,14 +177,13 @@ export default function ReviewSection({
   const handleReviewClick = () => {
     if (hasReviewed) {
       toast.error(
-        "You have already reviewed this turf. You can edit or delete your existing review to submit a new one."
+        'You have already reviewed this turf. You can edit or delete your existing review to submit a new one.',
       );
-      return;
     }
   };
 
   const clearFilters = () => {
-    setSortBy("latest");
+    setSortBy('latest');
     setRatingRange([1, 5]);
     setIsFiltered(false);
   };
@@ -205,7 +208,7 @@ export default function ReviewSection({
                 onClick={handleReviewClick}
                 disabled={hasReviewed}
               >
-                {hasReviewed ? "Already Reviewed" : "Add Your Review"}
+                {hasReviewed ? 'Already Reviewed' : 'Add Your Review'}
               </Button>
             </DialogTrigger>
             {!hasReviewed && (
@@ -215,7 +218,7 @@ export default function ReviewSection({
             )}
           </Dialog>
         ) : (
-          <Button onClick={() => router.push("/sign-in")}>
+          <Button onClick={() => router.push('/sign-in')}>
             Sign in to Review
           </Button>
         )}
@@ -235,8 +238,8 @@ export default function ReviewSection({
                     key={i}
                     className={`w-4 h-4 ${
                       i < Math.round(reviewData.averageRating)
-                        ? "text-yellow-400 fill-yellow-400"
-                        : "text-slate-200"
+                        ? 'text-yellow-400 fill-yellow-400'
+                        : 'text-slate-200'
                     }`}
                   />
                 ))}
@@ -260,24 +263,24 @@ export default function ReviewSection({
                 </defs>
                 <XAxis
                   dataKey="star"
-                  tick={{ fontSize: 14, fill: "#64748b" }}
+                  tick={{ fontSize: 14, fill: '#64748b' }}
                   tickLine={false}
-                  axisLine={{ stroke: "#e2e8f0" }}
+                  axisLine={{ stroke: '#e2e8f0' }}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 14, fill: "#64748b" }}
+                  tick={{ fontSize: 14, fill: '#64748b' }}
                   tickLine={false}
-                  axisLine={{ stroke: "#e2e8f0" }}
+                  axisLine={{ stroke: '#e2e8f0' }}
                 />
                 <Tooltip
-                  cursor={{ fill: "rgba(0, 0, 0, 0.04)" }}
+                  cursor={{ fill: 'rgba(0, 0, 0, 0.04)' }}
                   contentStyle={{
-                    background: "white",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                    padding: "8px 12px",
+                    background: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    padding: '8px 12px',
                   }}
                   content={({ payload, label }) => (
                     <div className="text-sm">
@@ -299,19 +302,19 @@ export default function ReviewSection({
                   animationBegin={200}
                   onMouseEnter={(data, index) => {
                     const chart = document.querySelector(
-                      `#bar-${index}`
+                      `#bar-${index}`,
                     ) as HTMLElement;
                     if (chart) {
-                      chart.style.filter = "brightness(1.1)";
-                      chart.style.cursor = "pointer";
+                      chart.style.filter = 'brightness(1.1)';
+                      chart.style.cursor = 'pointer';
                     }
                   }}
                   onMouseLeave={(data, index) => {
                     const chart = document.querySelector(
-                      `#bar-${index}`
+                      `#bar-${index}`,
                     ) as HTMLElement;
                     if (chart) {
-                      chart.style.filter = "none";
+                      chart.style.filter = 'none';
                     }
                   }}
                 />
@@ -364,7 +367,7 @@ export default function ReviewSection({
                   <select
                     className="px-3 py-1.5 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
+                    onChange={e => setSortBy(e.target.value)}
                   >
                     <option value="latest">Latest Reviews</option>
                     <option value="oldest">Oldest Reviews</option>
@@ -415,7 +418,7 @@ export default function ReviewSection({
               </CardContent>
             </Card>
           ) : (
-            reviewData.reviews.map((review) => (
+            reviewData.reviews.map(review => (
               <motion.div
                 key={review._id}
                 initial={{ opacity: 0, y: 10 }}
@@ -432,12 +435,12 @@ export default function ReviewSection({
                         </p>
                         <p className="text-xs text-slate-500">
                           {new Date(review.createdAt).toLocaleDateString(
-                            "en-US",
+                            'en-US',
                             {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            }
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            },
                           )}
                         </p>
                       </div>
@@ -448,8 +451,8 @@ export default function ReviewSection({
                               key={i}
                               className={`w-4 h-4 ${
                                 i < review.rating
-                                  ? "text-yellow-400 fill-yellow-400"
-                                  : "text-slate-200"
+                                  ? 'text-yellow-400 fill-yellow-400'
+                                  : 'text-slate-200'
                               }`}
                             />
                           ))}
@@ -477,10 +480,18 @@ export default function ReviewSection({
                     {review.images && review.images.length > 0 && (
                       <div className="flex flex-wrap gap-2 max-w-[400px]">
                         {review.images.map((img, i) => (
-                          <div
-                            key={i}
-                            className="relative w-[80px] h-[80px] cursor-pointer rounded-md overflow-hidden group"
+                          <button
+                            key={img}
+                            type="button"
                             onClick={() => setSelectedImage(img)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setSelectedImage(img);
+                              }
+                            }}
+                            className="relative w-[80px] h-[80px] cursor-pointer rounded-md overflow-hidden group focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-label={`View review image ${i + 1}`}
                           >
                             <Image
                               src={img}
@@ -490,7 +501,7 @@ export default function ReviewSection({
                               className="object-cover transition-transform duration-300 group-hover:scale-110"
                             />
                             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                          </div>
+                          </button>
                         ))}
                       </div>
                     )}
@@ -520,13 +531,13 @@ export default function ReviewSection({
               key={i}
               variant={
                 reviewData.pagination.currentPage === i + 1
-                  ? "default"
-                  : "outline"
+                  ? 'default'
+                  : 'outline'
               }
               className={
                 reviewData.pagination.currentPage === i + 1
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "hover:border-green-600 hover:text-green-600"
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : 'hover:border-green-600 hover:text-green-600'
               }
               onClick={() => handlePageChange(i + 1)}
             >
