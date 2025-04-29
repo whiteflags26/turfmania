@@ -19,6 +19,7 @@ import timeslotRoutes from '../modules/timeslot/timeslot.route';
 import turfReviewRoutes from '../modules/turf-review/turf-review.route';
 import turfRoutes from '../modules/turf/turf.route';
 import userRouter from '../modules/user/user.routes';
+import bookingRouter from '../modules/booking/booking.route';
 
 const router = Router();
 
@@ -41,6 +42,7 @@ router.use('/api/v1/team-sizes', teamSizeRouter);
 router.use('/api/v1/sports', sportsRouter);
 router.use('/api/v1/facilities', facilityRouter);
 router.use('/api/v1/search', searchRouter);
+router.use('/api/v1/bookings', bookingRouter);
 
 // Health and metrics routes (add these lines)
 router.use('/health', healthRouter);
