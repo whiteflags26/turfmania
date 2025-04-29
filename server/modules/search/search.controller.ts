@@ -4,6 +4,11 @@ import { Request, Response } from 'express';
 import Organization from '../organization/organization.model';
 import { Turf } from '../turf/turf.model';
 
+// Utility: Escape regex special characters
+function escapeRegExp(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Search suggestions endpoint
  * Returns quick suggestions for the search bar
@@ -22,15 +27,12 @@ export const getSearchSuggestions = async (
       return;
     }
 
-    const searchRegex = new RegExp(query.trim(), 'i');
+    const sanitizedQuery = escapeRegExp(query.trim());
+    const searchRegex = new RegExp(sanitizedQuery, 'i');
 
-    // Limit results for quick suggestions
     const limit = 5;
 
-    // Find matching turfs
-    const turfs = await Turf.find({
-      name: searchRegex,
-    })
+    const turfs = await Turf.find({ name: searchRegex })
       .select('_id name sports team_size organization')
       .populate({
         path: 'organization',
@@ -38,7 +40,6 @@ export const getSearchSuggestions = async (
       })
       .limit(limit);
 
-    // Find matching organizations
     const organizations = await Organization.find({
       $or: [
         { name: searchRegex },
@@ -50,7 +51,6 @@ export const getSearchSuggestions = async (
       .select('_id name location.city')
       .limit(limit);
 
-    // Format suggestions
     const suggestions = [
       ...turfs.map(turf => {
         const orgData = turf.organization as unknown as {
@@ -73,14 +73,9 @@ export const getSearchSuggestions = async (
       })),
     ];
 
-    // Sort by relevance (exact matches first)
     const sortedSuggestions = [...suggestions].sort((a, b) => {
-      const aStarts = a.name.toLowerCase().startsWith(query.toLowerCase())
-        ? -1
-        : 0;
-      const bStarts = b.name.toLowerCase().startsWith(query.toLowerCase())
-        ? -1
-        : 0;
+      const aStarts = a.name.toLowerCase().startsWith(query.toLowerCase()) ? -1 : 0;
+      const bStarts = b.name.toLowerCase().startsWith(query.toLowerCase()) ? -1 : 0;
       return aStarts - bStarts;
     });
 
@@ -104,18 +99,13 @@ export const getSearchSuggestions = async (
  */
 const sanitizeSearchString = (input: unknown): string => {
   if (typeof input !== 'string') return '';
-  // Remove special regex characters and limit length
-  return input
-    .replace(/[.*+?^${}()|[\]\\]/g, '')
-    .slice(0, 100)
-    .trim();
+  return escapeRegExp(input.slice(0, 100).trim());
 };
 
 export const search = async (req: Request, res: Response) => {
   try {
     const { query, location, sport, page = '1', limit = '10' } = req.query;
 
-    // Sanitize all input parameters
     const searchQuery = sanitizeSearchString(query);
     const sportQuery = sanitizeSearchString(sport);
     const locationQuery = sanitizeSearchString(location);
@@ -123,31 +113,25 @@ export const search = async (req: Request, res: Response) => {
     const limitNum = parseInt(limit as string) || 10;
     const skip = (pageNum - 1) * limitNum;
 
-    // Base pipeline for aggregation
     const pipeline: any[] = [];
 
-    // Match stage for initial filtering
     const matchConditions: any[] = [];
 
-    // Search by turf name
     if (searchQuery) {
       const searchRegex = new RegExp(searchQuery, 'i');
       matchConditions.push({ name: searchRegex });
     }
 
-    // Filter by sport
     if (sportQuery) {
       matchConditions.push({ sports: sportQuery });
     }
 
-    // Apply initial match if we have conditions
     if (matchConditions.length > 0) {
       pipeline.push({
         $match: { $or: matchConditions },
       });
     }
 
-    // Join with organization data
     pipeline.push({
       $lookup: {
         from: 'organizations',
@@ -157,12 +141,10 @@ export const search = async (req: Request, res: Response) => {
       },
     });
 
-    // Unwind the organization array to get a single object
     pipeline.push({
       $unwind: '$organizationData',
     });
 
-    // Add organization-based conditions
     const orgConditions: any[] = [];
 
     if (searchQuery) {
@@ -171,51 +153,17 @@ export const search = async (req: Request, res: Response) => {
     }
 
     if (locationQuery) {
-      const escapedLocation = locationQuery.replace(
-        /[.*+?^${}()|[\]\\]/g,
-        '\\$&',
-      );
-
+      const locRegex = new RegExp(locationQuery, 'i');
       orgConditions.push(
-        {
-          'organizationData.location.address': {
-            $regex: escapedLocation,
-            $options: 'i',
-          },
-        },
-        {
-          'organizationData.location.area': {
-            $regex: escapedLocation,
-            $options: 'i',
-          },
-        },
-        {
-          'organizationData.location.sub_area': {
-            $regex: escapedLocation,
-            $options: 'i',
-          },
-        },
-        {
-          'organizationData.location.city': {
-            $regex: escapedLocation,
-            $options: 'i',
-          },
-        },
+        { 'organizationData.location.address': locRegex },
+        { 'organizationData.location.area': locRegex },
+        { 'organizationData.location.sub_area': locRegex },
+        { 'organizationData.location.city': locRegex },
       );
     }
 
-    // Apply organization match if we have conditions
-    if (orgConditions.length > 0) {
-      pipeline.push({
-        $match: { $or: orgConditions },
-      });
-    }
-
-    // Add a match stage that combines conditions from both turf and org
     if (matchConditions.length > 0 && orgConditions.length > 0) {
-      // We already applied individual match stages, now let's replace with a combined one
-      // This is to ensure we match turfs that either match turf conditions OR org conditions
-      pipeline.splice(0, pipeline.length); // Clear previous pipeline
+      pipeline.splice(0, pipeline.length);
 
       pipeline.push({
         $lookup: {
@@ -235,19 +183,20 @@ export const search = async (req: Request, res: Response) => {
           $or: [{ $or: matchConditions }, { $or: orgConditions }],
         },
       });
+    } else if (orgConditions.length > 0) {
+      pipeline.push({
+        $match: { $or: orgConditions },
+      });
     }
 
-    // Get total count for pagination
     const countPipeline = [...pipeline];
     countPipeline.push({ $count: 'total' });
     const countResult = await Turf.aggregate(countPipeline);
     const total = countResult.length > 0 ? countResult[0].total : 0;
 
-    // Add pagination
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limitNum });
 
-    // Project only the fields we need
     pipeline.push({
       $project: {
         _id: 1,
@@ -267,7 +216,6 @@ export const search = async (req: Request, res: Response) => {
       },
     });
 
-    // Execute search query
     const results = await Turf.aggregate(pipeline);
 
     res.status(200).json({
