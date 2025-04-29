@@ -1,17 +1,17 @@
-"use client";
-import { useState, useEffect } from "react";
+'use client';
+import TimeSlotGrid from '@/components/booking/TimeSlotGrid';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import TimeSlotGrid from "@/components/booking/TimeSlotGrid";
-import { ITimeSlot } from "@/types/timeslot";
-import { fetchAvailableTimeSlots as fetchAvailableTimeSlotsAPI } from "@/lib/server-apis/booking/fetchAvailableTimeSlot-api";
+} from '@/components/ui/dialog';
+import { fetchAvailableTimeSlots as fetchAvailableTimeSlotsAPI } from '@/lib/server-apis/booking/fetchAvailableTimeSlot-api';
+import { ITimeSlot } from '@/types/timeslot';
+import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -39,14 +39,14 @@ export default function BookingModal({
     setIsLoading(true);
     try {
       const response = await fetchAvailableTimeSlotsAPI(turfId, selectedDate);
-      
+
       if (response.success) {
         setTimeSlots(response.data);
       } else {
-        console.error("Failed to fetch time slots");
+        console.error('Failed to fetch time slots');
       }
     } catch (error) {
-      console.error("Error fetching time slots:", error);
+      console.error('Error fetching time slots:', error);
     } finally {
       setIsLoading(false);
     }
@@ -66,13 +66,36 @@ export default function BookingModal({
   const handleBooking = () => {
     if (selectedSlot) {
       // Implement booking logic here
-      console.log("Booking slot:", selectedSlot);
+      console.log('Booking slot:', selectedSlot);
       onClose();
     }
   };
 
+  let slotContent;
+  if (isLoading) {
+    slotContent = (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  } else if (timeSlots.length > 0) {
+    slotContent = (
+      <TimeSlotGrid
+        timeSlots={timeSlots}
+        selectedSlot={selectedSlot}
+        onSelect={handleSlotSelect}
+      />
+    );
+  } else {
+    slotContent = (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        No available slots for this date
+      </div>
+    );
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
@@ -88,7 +111,7 @@ export default function BookingModal({
               selected={selectedDate}
               onSelect={handleDateChange}
               className="border rounded-md p-3"
-              disabled={(date) =>
+              disabled={date =>
                 date < new Date(new Date().setHours(0, 0, 0, 0))
               }
             />
@@ -96,21 +119,7 @@ export default function BookingModal({
           <div className="flex flex-col space-y-4">
             <h3 className="font-medium">Available Time Slots</h3>
             <div className="h-[300px] overflow-y-auto border rounded-md p-3">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : timeSlots.length > 0 ? (
-                <TimeSlotGrid
-                  timeSlots={timeSlots}
-                  selectedSlot={selectedSlot}
-                  onSelect={handleSlotSelect}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No available slots for this date
-                </div>
-              )}
+              {slotContent}
             </div>
           </div>
         </div>
