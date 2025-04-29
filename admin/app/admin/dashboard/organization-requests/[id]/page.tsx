@@ -98,9 +98,9 @@ export default function OrganizationRequestDetailPage() {
       router.push(`/admin/dashboard/organization-form/${params.id}`);
     } catch (err: unknown) {
       
-      const error_message=handleAxiosError(error, 'Failed to process request');
-      setError(error_message);
-      toast.error(error_message);
+      const error_message = handleAxiosError(err, 'Failed to reject request');
+  setError(error_message);
+  toast.error(error_message);
     } finally {
       setProcessing(false);
     }
@@ -118,7 +118,7 @@ export default function OrganizationRequestDetailPage() {
       setRequest(response);
       toast.success('Processing cancelled successfully');
     } catch (err: unknown) {
-      const error_message=handleAxiosError(error, 'Failed to cancel process request');
+      const error_message = handleAxiosError(err, 'Failed to reject request');
       setError(error_message);
       toast.error(error_message);
     } finally {
@@ -144,7 +144,7 @@ export default function OrganizationRequestDetailPage() {
       toast.success('Request rejected successfully');
       setRejectionNotes(''); // Reset notes after successful rejection
     } catch (err: any) {
-      const error_message=handleAxiosError(error, 'Failed to reject request');
+      const error_message = handleAxiosError(err, 'Failed to reject request');
       setError(error_message);
       toast.error(error_message);
     } finally {
