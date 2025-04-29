@@ -188,7 +188,7 @@ export default class TurfController {
     },
   );
 
-  /**
+/**
  * @route PUT /api/v1/turfs/:id
  * @desc Update a turf's details and images by ID
  * @access Private/Admin
