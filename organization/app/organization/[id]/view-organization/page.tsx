@@ -1,3 +1,4 @@
+// app/organization/[id]/view-turfs/[turfId]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";

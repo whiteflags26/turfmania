@@ -78,9 +78,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       path: `/organization/${orgId}/view-organization`
     },
     {
-      name: "Members",
+      name: "View Turfs",
       icon: <FiUsers className="h-5 w-5" />,
-      path: `/organization/${orgId}/members`
+      path: `/organization/${orgId}/view-turfs`
     },
     {
       name: "Analytics",

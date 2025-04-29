@@ -8,6 +8,9 @@ export interface ITurf {
   organization: {
     _id: string;
     name: string;
+    facilities: string[];
+    orgContactPhone: string;
+    orgContactEmail: string;
     location: {
       coordinates: {
         type: string;

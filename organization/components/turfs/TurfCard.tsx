@@ -27,7 +27,7 @@ const TurfCard: React.FC<TurfCardProps> = ({ turf }) => {
       transition={{ duration: 0.3 }}
       className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col"
     >
-      <Link href={`/turf/${turf._id}`} className="block h-full">
+      <Link href={`/organization/${turf.organization._id}/view-turfs/${turf._id}`} className="block h-full">
         <div className="relative h-48 w-full">
           <Image
             src={imageUrl}
