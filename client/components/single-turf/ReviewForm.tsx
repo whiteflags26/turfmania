@@ -1,38 +1,38 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/Button";
-import { Textarea } from "@/components/ui/textarea";
-import { DialogTitle } from "@/components/ui/dialog";
-import { Star } from "lucide-react";
-import { motion } from "framer-motion";
-import { createTurfReview } from "@/lib/server-apis/single-turf/createTurfReview-api";
-import toast from "react-hot-toast";
-import { updateTurfReview } from "@/lib/server-apis/single-turf/updateTurfReview-api";
-import { UpdateReviewData } from "@/types/turf-review";
+import { Button } from '@/components/Button';
+import { DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { createTurfReview } from '@/lib/server-apis/single-turf/createTurfReview-api';
+import { updateTurfReview } from '@/lib/server-apis/single-turf/updateTurfReview-api';
+import { UpdateReviewData } from '@/types/turf-review';
+import { motion } from 'framer-motion';
+import { Star } from 'lucide-react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 interface ReviewFormProps {
-  turfId: string;
-  onSuccess: () => void;
-  initialData?: {
+  readonly turfId: string;
+  readonly onSuccess: () => void;
+  readonly initialData?: {
     reviewId?: string;
     rating: number;
     review: string;
     images: string[];
   };
-  isEditing?: boolean;
+  readonly isEditing?: boolean;
 }
 
-export default function ReviewForm({ 
-  turfId, 
-  onSuccess, 
-  initialData, 
-  isEditing = false 
+export default function ReviewForm({
+  turfId,
+  onSuccess,
+  initialData,
+  isEditing = false,
 }: ReviewFormProps) {
-  const [review, setReview] = useState(initialData?.review || "");
-  const [rating, setRating] = useState(initialData?.rating || 5);
+  const [review, setReview] = useState(initialData?.review ?? '');
+  const [rating, setRating] = useState(initialData?.rating ?? 5);
   const [images, setImages] = useState<File[]>([]);
   const [existingImages] = useState<string[]>(initialData?.images || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,7 +40,7 @@ export default function ReviewForm({
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 2) {
-      toast.error("Maximum 2 images allowed");
+      toast.error('Maximum 2 images allowed');
       return;
     }
     setImages(files);
@@ -55,51 +55,60 @@ export default function ReviewForm({
           rating,
           review: review.trim(),
           images,
-          existingImages
+          existingImages,
         };
 
         await updateTurfReview(initialData.reviewId, updateData);
-        toast.success("Review updated successfully!");
+        toast.success('Review updated successfully!');
       } else {
         const formData = new FormData();
-        formData.append("turfId", turfId);
-        formData.append("rating", rating.toString());
-        
+        formData.append('turfId', turfId);
+        formData.append('rating', rating.toString());
+
         if (review.trim()) {
-          formData.append("review", review.trim());
+          formData.append('review', review.trim());
         }
-        
-        images.forEach((file) => {
-          formData.append("images", file);
+
+        images.forEach(file => {
+          formData.append('images', file);
         });
 
         await createTurfReview(formData);
-        toast.success("Review submitted successfully!");
+        toast.success('Review submitted successfully!');
       }
-      
+
       onSuccess();
     } catch (error) {
       console.error('Review submission error:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to submit review");
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to submit review',
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const getButtonText = (): string => {
+    if (isSubmitting) {
+      return 'Submitting...';
+    }
+    return isEditing ? 'Update Review' : 'Submit Review';
+  };
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="space-y-6 p-4"
     >
       <DialogTitle className="text-xl font-semibold mb-4">
-        {isEditing ? "Edit Review" : "Write a Review"}
+        {isEditing ? 'Edit Review' : 'Write a Review'}
       </DialogTitle>
 
       <div className="space-y-2">
         <Label className="text-base">Rating (Required)</Label>
         <div className="flex gap-2">
-          {[1,2,3,4,5].map((star) => (
+          {[1, 2, 3, 4, 5].map(star => (
             <motion.button
               type="button"
               key={star}
@@ -111,8 +120,8 @@ export default function ReviewForm({
               <Star
                 className={`h-8 w-8 ${
                   star <= rating
-                    ? "text-yellow-400 fill-current"
-                    : "text-gray-300"
+                    ? 'text-yellow-400 fill-current'
+                    : 'text-gray-300'
                 }`}
               />
             </motion.button>
@@ -124,7 +133,7 @@ export default function ReviewForm({
         <Label className="text-base">Your Review (Optional)</Label>
         <Textarea
           value={review}
-          onChange={(e) => setReview(e.target.value)}
+          onChange={e => setReview(e.target.value)}
           placeholder="Share your experience..."
           className="min-h-[100px] resize-none"
         />
@@ -142,12 +151,8 @@ export default function ReviewForm({
         <p className="text-sm text-gray-500">Maximum 2 images allowed</p>
       </div>
 
-      <Button 
-        onClick={handleSubmit}
-        className="w-full"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? "Submitting..." : isEditing ? "Update Review" : "Submit Review"}
+      <Button onClick={handleSubmit} className="w-full" disabled={isSubmitting}>
+        {getButtonText()}
       </Button>
     </motion.div>
   );

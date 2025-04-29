@@ -1,11 +1,11 @@
-"use client";
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils/utils";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
+'use client';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils/utils';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface TurfImageSliderProps {
   images: string[];
@@ -15,11 +15,11 @@ const TurfImageSlider: React.FC<TurfImageSliderProps> = ({ images }) => {
   const [current, setCurrent] = useState(0);
 
   const nextSlide = useCallback(() => {
-    setCurrent((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    setCurrent(prev => (prev === images.length - 1 ? 0 : prev + 1));
   }, [images.length]);
 
   const prevSlide = useCallback(() => {
-    setCurrent((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    setCurrent(prev => (prev === 0 ? images.length - 1 : prev - 1));
   }, [images.length]);
 
   useEffect(() => {
@@ -29,8 +29,8 @@ const TurfImageSlider: React.FC<TurfImageSliderProps> = ({ images }) => {
 
   const handleDotClick = (index: number) => setCurrent(index);
 
-  const handleSwipe = (direction: "left" | "right") => {
-    if (direction === "left") {
+  const handleSwipe = (direction: 'left' | 'right') => {
+    if (direction === 'left') {
       nextSlide();
     } else {
       prevSlide();
@@ -68,14 +68,14 @@ const TurfImageSlider: React.FC<TurfImageSliderProps> = ({ images }) => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.4 }}
-              onTouchStart={(e) =>
+              onTouchStart={e =>
                 (e.currentTarget.dataset.startX = String(e.touches[0].clientX))
               }
-              onTouchEnd={(e) => {
+              onTouchEnd={e => {
                 const startX = Number(e.currentTarget.dataset.startX);
                 const diff = e.changedTouches[0].clientX - startX;
                 if (Math.abs(diff) > 50) {
-                  handleSwipe(diff < 0 ? "left" : "right");
+                  handleSwipe(diff < 0 ? 'left' : 'right');
                 }
               }}
             />
@@ -104,17 +104,17 @@ const TurfImageSlider: React.FC<TurfImageSliderProps> = ({ images }) => {
 
       {/* Dots Navigation */}
       <div className="absolute bottom-4 w-full flex justify-center items-center gap-2">
-        {images.map((_, index) => (
+        {images.map(image => (
           <button
-            key={index}
-            onClick={() => handleDotClick(index)}
+            key={image}
+            onClick={() => handleDotClick(images.indexOf(image))}
             className={cn(
-              "transition-all duration-300 rounded-full shadow-sm border border-white/20",
-              index === current
-                ? "bg-white w-3 h-3"
-                : "bg-white/60 hover:bg-white/80 w-2 h-2"
+              'transition-all duration-300 rounded-full shadow-sm border border-white/20',
+              images.indexOf(image) === current
+                ? 'bg-white w-3 h-3'
+                : 'bg-white/60 hover:bg-white/80 w-2 h-2',
             )}
-            aria-label={`Go to slide ${index + 1}`}
+            aria-label={`Go to slide ${images.indexOf(image) + 1}`}
           />
         ))}
       </div>
