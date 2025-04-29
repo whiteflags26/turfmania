@@ -1,3 +1,5 @@
+'use client';
+
 import { Request, Response } from 'express';
 import Organization from '../organization/organization.model';
 import { Turf } from '../turf/turf.model';
@@ -73,8 +75,12 @@ export const getSearchSuggestions = async (
 
     // Sort by relevance (exact matches first)
     const sortedSuggestions = [...suggestions].sort((a, b) => {
-      const aStarts = a.name.toLowerCase().startsWith(query.toLowerCase()) ? -1 : 0;
-      const bStarts = b.name.toLowerCase().startsWith(query.toLowerCase()) ? -1 : 0;
+      const aStarts = a.name.toLowerCase().startsWith(query.toLowerCase())
+        ? -1
+        : 0;
+      const bStarts = b.name.toLowerCase().startsWith(query.toLowerCase())
+        ? -1
+        : 0;
       return aStarts - bStarts;
     });
 
@@ -169,7 +175,6 @@ export const search = async (req: Request, res: Response) => {
         /[.*+?^${}()|[\]\\]/g,
         '\\$&',
       );
-      
 
       orgConditions.push(
         {

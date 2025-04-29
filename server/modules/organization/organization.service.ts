@@ -1,5 +1,5 @@
 import { DeleteResult } from "mongodb";
-import { Types } from "mongoose";
+import mongoose,{ Types } from "mongoose";
 import { deleteImage, uploadImage } from "../../utils/cloudinary";
 import ErrorResponse from "../../utils/errorResponse";
 import { extractPublicIdFromUrl } from "../../utils/extractUrl";
@@ -12,7 +12,7 @@ import { Turf } from "../turf/turf.model";
 import OrganizationRequestService from "../organization-request/organization-request.service";
 import FaciltyService from "../facility/facility.service";
 import { TurfReview } from "../turf-review/turf-review.model";
-import mongoose from "mongoose";
+
 
 export interface IOrganizationRoleAssignment {
   organizationId: Types.ObjectId;
