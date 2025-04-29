@@ -729,14 +729,23 @@ export default function EditOrganizationForm() {
                             <div className="aspect-square w-full overflow-hidden rounded-md">
                               <img
                                 src={imageUrl}
-                                alt={`Item ${idx + 1}`} // Changed from "Image" to "Item"
+                                alt={`Item ${idx + 1}`}
                                 className="object-cover w-full h-full"
                                 onError={e => {
                                   const target = e.target as HTMLImageElement;
                                   target.src = '/placeholder-image.jpg';
-                                  target.alt = 'Not available'; // Simplified error alt text
+                                  target.alt = 'Not available';
                                 }}
                               />
+                              {/* Add remove button */}
+                              <button
+                                type="button"
+                                onClick={() => removeExistingImage(idx)}
+                                className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label="Remove image"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -797,14 +806,23 @@ export default function EditOrganizationForm() {
                                   imageUrls[newImageFiles.indexOf(file)] ||
                                   '/placeholder-image.jpg'
                                 }
-                                alt={file.name} // Using just the filename
+                                alt={file.name}
                                 className="object-cover w-full h-full"
                                 onError={e => {
                                   const target = e.target as HTMLImageElement;
                                   target.src = '/placeholder-image.jpg';
-                                  target.alt = 'Not available'; // Consistent error alt text
+                                  target.alt = 'Not available';
                                 }}
                               />
+                              {/* Add remove button */}
+                              <button
+                                type="button"
+                                onClick={() => removeNewImage(file.name)}
+                                className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label="Remove image"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
                             </div>
                           </div>
                         ))}
