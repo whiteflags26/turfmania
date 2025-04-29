@@ -32,6 +32,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { CustomTooltip } from '../CustomTooltip';
 
 interface ReviewSectionProps {
   readonly turfId: string;
@@ -282,16 +283,8 @@ export default function ReviewSection({
                     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                     padding: '8px 12px',
                   }}
-                  content={({ payload, label }) => (
-                    <div className="text-sm">
-                      <p className="font-medium text-slate-700">
-                        {label} Stars
-                      </p>
-                      <p className="text-slate-600">
-                        {payload?.[0]?.value || 0} Reviews
-                      </p>
-                    </div>
-                  )}
+                 
+                  content={<CustomTooltip />}
                 />
                 <Bar
                   dataKey="count"

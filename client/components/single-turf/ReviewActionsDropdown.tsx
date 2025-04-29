@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ApiError } from '@/types/api-error';
-import { ITurfReview } from '@/types/turf-review';
+import { ITurfReview, UpdateReviewData } from '@/types/turf-review';
 import { IUser } from '@/types/user';
 import { Edit, Flag, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -30,7 +30,7 @@ interface ReviewActionsDropdownProps {
   readonly review: ITurfReview;
   readonly currentUser: IUser | null;
   readonly onDelete: () => Promise<void>;
-
+  readonly onEdit: (data: UpdateReviewData) => Promise<void>;
   readonly onReload: () => void;
 }
 
