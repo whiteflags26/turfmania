@@ -1,22 +1,23 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { getUserReviews } from "@/lib/server-apis/profile/getUserReviews-api";
-import { StarIcon } from "@heroicons/react/20/solid";
-import { StarIcon as StarIconOutline } from "@heroicons/react/24/outline";
-import Image from "next/image";
-import { format } from "date-fns";
-import Link from "next/link";
-import { toast } from "react-hot-toast";
-import { IUserReviewsResponse } from "@/types/userReviewsRespone";
+import { getUserReviews } from '@/lib/server-apis/profile/getUserReviews-api';
+import { IUserReviewsResponse } from '@/types/userReviewsRespone';
+import { StarIcon } from '@heroicons/react/20/solid';
+import { StarIcon as StarIconOutline } from '@heroicons/react/24/outline';
+import { format } from 'date-fns';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import {
-  BarChart,
   Bar,
+  BarChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+} from 'recharts';
+import { CustomTooltip } from '../CustomTooltip';
 
 export default function ReviewsSection() {
   const [data, setData] = useState<IUserReviewsResponse | null>(null);
@@ -31,7 +32,7 @@ export default function ReviewsSection() {
       } catch (err) {
         const error = err as Error;
         setError(error.message);
-        toast.error("Failed to load reviews");
+        toast.error('Failed to load reviews');
       } finally {
         setIsLoading(false);
       }
@@ -45,7 +46,7 @@ export default function ReviewsSection() {
       <div className="space-y-6">
         <div className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3].map(i => (
               <div key={i} className="space-y-2">
                 <div className="h-8 bg-gray-200 rounded-lg w-24 mx-auto"></div>
                 <div className="h-4 bg-gray-200 rounded-lg w-32 mx-auto"></div>
@@ -54,7 +55,7 @@ export default function ReviewsSection() {
           </div>
         </div>
         <div className="space-y-4">
-          {[1, 2].map((i) => (
+          {[1, 2].map(i => (
             <div
               key={i}
               className="bg-white rounded-xl shadow-sm p-6 animate-pulse"
@@ -118,43 +119,46 @@ export default function ReviewsSection() {
           <div className="text-center">
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[5,4,3,2,1].map(rating => ({
-                  star: rating,
-                  count: data.ratingDistribution[rating] || 0
-                }))}>
+                <BarChart
+                  data={[5, 4, 3, 2, 1].map(rating => ({
+                    star: rating,
+                    count: data.ratingDistribution[rating] || 0,
+                  }))}
+                >
                   <defs>
-                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="barGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="0%" stopColor="#22c55e" />
                       <stop offset="100%" stopColor="#16a34a" />
                     </linearGradient>
                   </defs>
                   <XAxis
                     dataKey="star"
-                    tick={{ fontSize: 14, fill: "#64748b" }}
+                    tick={{ fontSize: 14, fill: '#64748b' }}
                     tickLine={false}
-                    axisLine={{ stroke: "#e2e8f0" }}
+                    axisLine={{ stroke: '#e2e8f0' }}
                   />
                   <YAxis
                     allowDecimals={false}
-                    tick={{ fontSize: 14, fill: "#64748b" }}
+                    tick={{ fontSize: 14, fill: '#64748b' }}
                     tickLine={false}
-                    axisLine={{ stroke: "#e2e8f0" }}
+                    axisLine={{ stroke: '#e2e8f0' }}
                   />
                   <Tooltip
-                    cursor={{ fill: "rgba(0, 0, 0, 0.04)" }}
+                    cursor={{ fill: 'rgba(0, 0, 0, 0.04)' }}
                     contentStyle={{
-                      background: "white",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "8px",
-                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                      padding: "8px 12px",
+                      background: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                      padding: '8px 12px',
                     }}
-                    content={({ payload, label }) => (
-                      <div className="text-sm">
-                        <p className="font-medium text-slate-700">{label} Stars</p>
-                        <p className="text-slate-600">{payload?.[0]?.value || 0} Reviews</p>
-                      </div>
-                    )}
+                    content={<CustomTooltip />}
                   />
                   <Bar
                     dataKey="count"
@@ -174,7 +178,7 @@ export default function ReviewsSection() {
 
       {/* Reviews List */}
       <div className="space-y-4">
-        {data.reviews.map((review) => (
+        {data.reviews.map(review => (
           <div
             key={review._id}
             className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
@@ -188,8 +192,8 @@ export default function ReviewsSection() {
                   {review.turf.name}
                 </Link>
                 <p className="text-sm text-gray-500">
-                  {review.turf.organization.name} •{" "}
-                  {format(new Date(review.createdAt), "MMM dd, yyyy")}
+                  {review.turf.organization.name} •{' '}
+                  {format(new Date(review.createdAt), 'MMM dd, yyyy')}
                 </p>
               </div>
               <div className="flex items-center gap-1 bg-yellow-50 px-3 py-1 rounded-full self-start">
@@ -208,14 +212,14 @@ export default function ReviewsSection() {
 
             {review.images && review.images.length > 0 && (
               <div className="mt-4 flex gap-3 overflow-x-auto py-2">
-                {review.images.map((image, index) => (
+                {review.images.map(image => (
                   <div
-                    key={index}
+                    key={image}
                     className="relative h-24 w-24 flex-shrink-0 rounded-lg overflow-hidden ring-1 ring-black/5"
                   >
                     <Image
                       src={image}
-                      alt={`Review image ${index + 1}`}
+                      alt={`Review image`}
                       fill
                       className="object-cover hover:opacity-90 transition-opacity"
                     />
