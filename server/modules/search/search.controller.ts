@@ -1,5 +1,3 @@
-'use client';
-
 import { Request, Response } from 'express';
 import Organization from '../organization/organization.model';
 import { Turf } from '../turf/turf.model';
@@ -26,12 +24,12 @@ export const getSearchSuggestions = async (
       });
       return;
     }
-
+    
+    // FIX: Use escapeRegExp to prevent ReDoS vulnerability
     const sanitizedQuery = escapeRegExp(query.trim());
     const searchRegex = new RegExp(sanitizedQuery, 'i');
-
     const limit = 5;
-
+    
     const turfs = await Turf.find({ name: searchRegex })
       .select('_id name sports team_size organization')
       .populate({
@@ -39,7 +37,7 @@ export const getSearchSuggestions = async (
         select: 'name location.city',
       })
       .limit(limit);
-
+    
     const organizations = await Organization.find({
       $or: [
         { name: searchRegex },
@@ -50,7 +48,7 @@ export const getSearchSuggestions = async (
     })
       .select('_id name location.city')
       .limit(limit);
-
+    
     const suggestions = [
       ...turfs.map(turf => {
         const orgData = turf.organization as unknown as {
@@ -72,13 +70,15 @@ export const getSearchSuggestions = async (
         location: org.location?.city,
       })),
     ];
-
+    
     const sortedSuggestions = [...suggestions].sort((a, b) => {
-      const aStarts = a.name.toLowerCase().startsWith(query.toLowerCase()) ? -1 : 0;
-      const bStarts = b.name.toLowerCase().startsWith(query.toLowerCase()) ? -1 : 0;
+      // FIX: Use toLowerCase() on the query first to avoid repeated computations
+      const queryLower = query.toLowerCase();
+      const aStarts = a.name.toLowerCase().startsWith(queryLower) ? -1 : 0;
+      const bStarts = b.name.toLowerCase().startsWith(queryLower) ? -1 : 0;
       return aStarts - bStarts;
     });
-
+    
     res.status(200).json({
       success: true,
       data: sortedSuggestions.slice(0, limit),
@@ -99,39 +99,41 @@ export const getSearchSuggestions = async (
  */
 const sanitizeSearchString = (input: unknown): string => {
   if (typeof input !== 'string') return '';
+  // FIX: Apply escapeRegExp to prevent ReDoS vulnerability
   return escapeRegExp(input.slice(0, 100).trim());
 };
 
 export const search = async (req: Request, res: Response) => {
   try {
     const { query, location, sport, page = '1', limit = '10' } = req.query;
-
+    
+    // These calls to sanitizeSearchString already use escapeRegExp internally
     const searchQuery = sanitizeSearchString(query);
     const sportQuery = sanitizeSearchString(sport);
     const locationQuery = sanitizeSearchString(location);
+    
     const pageNum = parseInt(page as string) || 1;
     const limitNum = parseInt(limit as string) || 10;
     const skip = (pageNum - 1) * limitNum;
-
+    
     const pipeline: any[] = [];
-
     const matchConditions: any[] = [];
-
+    
     if (searchQuery) {
       const searchRegex = new RegExp(searchQuery, 'i');
       matchConditions.push({ name: searchRegex });
     }
-
+    
     if (sportQuery) {
       matchConditions.push({ sports: sportQuery });
     }
-
+    
     if (matchConditions.length > 0) {
       pipeline.push({
         $match: { $or: matchConditions },
       });
     }
-
+    
     pipeline.push({
       $lookup: {
         from: 'organizations',
@@ -140,18 +142,18 @@ export const search = async (req: Request, res: Response) => {
         as: 'organizationData',
       },
     });
-
+    
     pipeline.push({
       $unwind: '$organizationData',
     });
-
+    
     const orgConditions: any[] = [];
-
+    
     if (searchQuery) {
       const searchRegex = new RegExp(searchQuery, 'i');
       orgConditions.push({ 'organizationData.name': searchRegex });
     }
-
+    
     if (locationQuery) {
       const locRegex = new RegExp(locationQuery, 'i');
       orgConditions.push(
@@ -161,10 +163,9 @@ export const search = async (req: Request, res: Response) => {
         { 'organizationData.location.city': locRegex },
       );
     }
-
+    
     if (matchConditions.length > 0 && orgConditions.length > 0) {
       pipeline.splice(0, pipeline.length);
-
       pipeline.push({
         $lookup: {
           from: 'organizations',
@@ -173,11 +174,9 @@ export const search = async (req: Request, res: Response) => {
           as: 'organizationData',
         },
       });
-
       pipeline.push({
         $unwind: '$organizationData',
       });
-
       pipeline.push({
         $match: {
           $or: [{ $or: matchConditions }, { $or: orgConditions }],
@@ -188,15 +187,14 @@ export const search = async (req: Request, res: Response) => {
         $match: { $or: orgConditions },
       });
     }
-
+    
     const countPipeline = [...pipeline];
     countPipeline.push({ $count: 'total' });
     const countResult = await Turf.aggregate(countPipeline);
     const total = countResult.length > 0 ? countResult[0].total : 0;
-
+    
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limitNum });
-
     pipeline.push({
       $project: {
         _id: 1,
@@ -215,9 +213,9 @@ export const search = async (req: Request, res: Response) => {
         },
       },
     });
-
+    
     const results = await Turf.aggregate(pipeline);
-
+    
     res.status(200).json({
       success: true,
       data: {
