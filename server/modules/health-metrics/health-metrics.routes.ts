@@ -1,7 +1,9 @@
-// src/modules/health/health.routes.ts
+
 import express from 'express';
 import { checkPermission, protect } from '../auth/auth.middleware';
 import HealthController from '../health-metrics/health-metrics.controller';
+import { standardApiLimiter } from '../../utils/rateLimiter';
+
 
 const router = express.Router();
 const healthController = new HealthController();
@@ -28,13 +30,16 @@ metricsRouter.get(
 const metricsApiRouter = express.Router();
 metricsApiRouter.get(
   '/latest',
+  standardApiLimiter,
+
   protect,
   checkPermission('get_health_check'),
   healthController.getLatestMetrics,
 );
 metricsApiRouter.get(
   '/history',
-  protect,
+  standardApiLimiter,
+    protect,
   checkPermission('get_health_check'),
   healthController.getMetricsHistory,
 );

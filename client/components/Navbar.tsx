@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, FormEvent } from "react";
@@ -8,18 +9,8 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import {
-  Search,
-  Menu,
-  CircleUserRound,
-  CircleChevronDown,
-  X,
-  Loader2,
-  MapPin,
-  ExternalLink,
-} from "lucide-react";
+import { Search, Menu, X } from "lucide-react";
 import { NAV_LINKS } from "@/constants";
 import { Button } from "@/components/Button";
 import {
@@ -37,11 +28,16 @@ import {
   fetchSearchResults,
 } from "@/lib/server-apis/search-api";
 import { ISuggestion, ISearchResult, SearchPagination } from "@/types/search";
+
+// Import the components we've just created
+import UserContent from "@/components/UserContent";
+import SuggestionsDropdown from "./SuggestionsDropDown";
+import SearchResultsModalContent from "@/components/SearchResultsModalContent";
+
 const Navbar = () => {
   const [isHidden, setIsHidden] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const { user, isLoading, logout } = useAuth();
 
   // Search related states
@@ -53,8 +49,7 @@ const Navbar = () => {
   // Search results modal states
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchResults, setSearchResults] = useState<ISearchResult[]>([]);
-  const [searchPagination, setSearchPagination] =
-    useState<SearchPagination | null>(null);
+  const [searchPagination, setSearchPagination] = useState<SearchPagination | null>(null);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
 
   const router = useRouter();
@@ -212,53 +207,6 @@ const Navbar = () => {
     setShowSearchModal(false);
   };
 
-  let userContent;
-
-  if (isLoading) {
-    userContent = (
-      <span className="text-lg text-gray-700">Loading User...</span>
-    );
-  } else if (user) {
-    userContent = (
-      <div className="relative">
-        <button
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="flex items-center gap-2 text-lg text-gray-700 hover:text-green-700"
-        >
-          <CircleUserRound className="w-8 h-8 text-gray-500" />
-          {user.first_name} {user.last_name}
-          <CircleChevronDown className="w-4 h-4" />
-        </button>
-        {dropdownOpen && (
-          <div className="absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white border border-gray-200">
-            <Link
-              href="/profile"
-              className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-            >
-              View Profile
-            </Link>
-            <button
-              onClick={logout}
-              className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
-            >
-              Logout
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  } else {
-    userContent = (
-      <Button
-        href="/sign-in"
-        variant="default"
-        className="hidden lg:inline-flex px-7"
-      >
-        Sign In
-      </Button>
-    );
-  }
-
   return (
     <>
       <motion.div
@@ -330,57 +278,18 @@ const Navbar = () => {
                 )}
 
                 {/* Search suggestions dropdown */}
-                {isSearchExpanded && showSuggestions && (
-                  <div className="absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg z-20">
-                    {isLoading_suggestions ? (
-                      <div className="p-4 text-center text-gray-500">
-                        Loading...
-                      </div>
-                    ) : suggestions.length > 0 ? (
-                      <div>
-                        {suggestions.map((suggestion) => (
-                          <div
-                            key={`${suggestion.type}-${suggestion._id}`}
-                            className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                            onClick={() => handleSuggestionClick(suggestion)}
-                          >
-                            <div className="font-medium">{suggestion.name}</div>
-                            <div className="flex items-center text-xs text-gray-500">
-                              <span className="mr-2 rounded bg-gray-100 px-1 py-0.5 text-gray-700">
-                                {suggestion.type === "turf"
-                                  ? "Turf"
-                                  : "Organization"}
-                              </span>
-                              {suggestion.location && (
-                                <span>{suggestion.location}</span>
-                              )}
-                              {suggestion.sport && (
-                                <span className="ml-2 rounded bg-green-100 px-1 py-0.5 text-green-700">
-                                  {suggestion.sport}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                        <div className="border-t border-gray-100 p-2">
-                          <button
-                            onClick={handleSearchSubmit}
-                            className="text-sm text-green-600 hover:text-green-700 w-full text-center"
-                          >
-                            See all results for &quot;{searchQuery}&quot;
-                          </button>
-                        </div>
-                      </div>
-                    ) : searchQuery.trim().length >= 2 ? (
-                      <div className="p-4 text-center text-gray-500">
-                        No results found for &quot;{searchQuery}&quot;
-                      </div>
-                    ) : null}
-                  </div>
-                )}
+                <SuggestionsDropdown
+                  isSearchExpanded={isSearchExpanded}
+                  showSuggestions={showSuggestions}
+                  isLoading={isLoading_suggestions}
+                  suggestions={suggestions}
+                  searchQuery={searchQuery}
+                  handleSuggestionClick={handleSuggestionClick}
+                  handleSearchSubmit={handleSearchSubmit}
+                />
               </motion.div>
             </div>
-            {userContent}
+            <UserContent user={user} isLoading={isLoading} logout={logout} />
             <Sheet>
               <SheetTrigger asChild>
                 <Button className="lg:hidden">
@@ -416,58 +325,15 @@ const Navbar = () => {
                       )}
 
                       {/* Mobile search suggestions dropdown */}
-                      {showSuggestions && (
-                        <div className="absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg z-20">
-                          {isLoading_suggestions ? (
-                            <div className="p-4 text-center text-gray-500">
-                              Loading...
-                            </div>
-                          ) : suggestions.length > 0 ? (
-                            <div>
-                              {suggestions.map((suggestion) => (
-                                <div
-                                  key={`${suggestion.type}-${suggestion._id}`}
-                                  className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                                  onClick={() =>
-                                    handleSuggestionClick(suggestion)
-                                  }
-                                >
-                                  <div className="font-medium">
-                                    {suggestion.name}
-                                  </div>
-                                  <div className="flex items-center text-xs text-gray-500">
-                                    <span className="mr-2 rounded bg-gray-100 px-1 py-0.5 text-gray-700">
-                                      {suggestion.type === "turf"
-                                        ? "Turf"
-                                        : "Organization"}
-                                    </span>
-                                    {suggestion.location && (
-                                      <span>{suggestion.location}</span>
-                                    )}
-                                    {suggestion.sport && (
-                                      <span className="ml-2 rounded bg-green-100 px-1 py-0.5 text-green-700">
-                                        {suggestion.sport}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                              <div className="border-t border-gray-100 p-2">
-                                <button
-                                  onClick={handleSearchSubmit}
-                                  className="text-sm text-green-600 hover:text-green-700 w-full text-center"
-                                >
-                                  See all results for &quot;{searchQuery}&quot;
-                                </button>
-                              </div>
-                            </div>
-                          ) : searchQuery.trim().length >= 2 ? (
-                            <div className="p-4 text-center text-gray-500">
-                              No results found for &quote;{searchQuery}&quote;
-                            </div>
-                          ) : null}
-                        </div>
-                      )}
+                      <SuggestionsDropdown
+                        isSearchExpanded={true}
+                        showSuggestions={showSuggestions}
+                        isLoading={isLoading_suggestions}
+                        suggestions={suggestions}
+                        searchQuery={searchQuery}
+                        handleSuggestionClick={handleSuggestionClick}
+                        handleSearchSubmit={handleSearchSubmit}
+                      />
                     </div>
                   </form>
                 </div>
@@ -501,141 +367,15 @@ const Navbar = () => {
       {/* Search Results Modal */}
       <AnimatePresence>
         {showSearchModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <motion.div
-              ref={modalRef}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.3 }}
-              className="relative mx-4 max-w-4xl w-full max-h-[80vh] bg-white rounded-xl shadow-xl overflow-hidden"
-            >
-              {/* Modal header */}
-              <div className="sticky top-0 z-10 bg-white px-6 py-4 border-b flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-semibold">Search Results</h3>
-                  <p className="text-sm text-gray-500">
-                    {searchPagination?.total || 0} results for &quote;
-                    {searchQuery}&quote;
-                  </p>
-                </div>
-                <button
-                  onClick={handleCloseModal}
-                  className="p-2 rounded-full hover:bg-gray-100"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Modal content */}
-              <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
-                {isLoadingResults ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-green-600 mb-4" />
-                    <p className="text-gray-500">Loading search results...</p>
-                  </div>
-                ) : searchResults.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500 text-lg">No results found</p>
-                    <p className="text-gray-400 mt-2">
-                      Try different keywords or filters
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {searchResults.map((result) => (
-                      <div
-                        key={result._id}
-                        className="flex border rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200"
-                      >
-                        <div className="w-1/3 h-32 bg-gray-100 relative">
-                          {result.images && result.images.length > 0 ? (
-                            <Image
-                              src={result.images[0]}
-                              alt={result.name}
-                              fill
-                              sizes="(max-width: 768px) 100vw, 33vw"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
-                              No Image
-                            </div>
-                          )}
-                        </div>
-                        <div className="w-2/3 p-4 flex flex-col justify-between">
-                          <div>
-                            <h4 className="font-medium text-gray-900 line-clamp-1">
-                              {result.name}
-                            </h4>
-                            <div className="flex items-center mt-1 text-sm text-gray-500">
-                              <MapPin className="h-3 w-3 mr-1" />
-                              <span className="line-clamp-1">
-                                {result.organization.location.address ||
-                                  result.organization.location.city}
-                              </span>
-                            </div>
-                            {result.sports && result.sports.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                {result.sports.slice(0, 2).map((sport) => (
-                                  <span
-                                    key={sport}
-                                    className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded"
-                                  >
-                                    {sport}
-                                  </span>
-                                ))}
-                                {result.sports.length > 2 && (
-                                  <span className="text-xs bg-gray-100 text-gray-800 px-2 py-0.5 rounded">
-                                    +{result.sports.length - 2}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex justify-between items-center mt-2">
-                            {result.basePrice && (
-                              <div className="text-green-700 font-medium">
-                                ${result.basePrice}/hr
-                              </div>
-                            )}
-                            <Link href={`/venues/${result._id}`} passHref>
-                              <button className="text-xs flex items-center text-blue-600 hover:text-blue-800">
-                                View <ExternalLink className="h-3 w-3 ml-1" />
-                              </button>
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Modal footer */}
-              <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-center items-center">
-                {searchPagination &&
-                searchPagination.page < searchPagination.pages ? (
-                  <button
-                    onClick={handleLoadMoreResults}
-                    className="text-green-600 hover:text-green-700 font-medium flex items-center"
-                    disabled={isLoadingResults}
-                  >
-                    {isLoadingResults ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Loading...
-                      </>
-                    ) : (
-                      "Load more"
-                    )}
-                  </button>
-                ) : (
-                  <div></div>
-                )}
-              </div>
-            </motion.div>
-          </div>
+          <SearchResultsModalContent
+            modalRef={modalRef}
+            searchQuery={searchQuery}
+            searchResults={searchResults}
+            searchPagination={searchPagination}
+            isLoadingResults={isLoadingResults}
+            handleCloseModal={handleCloseModal}
+            handleLoadMoreResults={handleLoadMoreResults}
+          />
         )}
       </AnimatePresence>
     </>

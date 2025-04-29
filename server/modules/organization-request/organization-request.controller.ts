@@ -4,9 +4,9 @@ import validator from "validator";
 import asyncHandler from "../../shared/middleware/async";
 import ErrorResponse from "../../utils/errorResponse";
 import { AuthRequest } from "../auth/auth.middleware";
-import OrganizationRequestService from "./organization-request.service";
+import OrganizationRequestService,{ RequestFilters, PaginationOptions } from "./organization-request.service";
 import { RequestStatus } from "./organization-request.model";
-import { RequestFilters, PaginationOptions } from "./organization-request.service";
+
 
 export default class OrganizationRequestController {
   private readonly organizationRequestService: OrganizationRequestService;
@@ -72,7 +72,7 @@ export default class OrganizationRequestController {
 
       // Validate organization contact email
       const sanitizedOrgContactEmail = validator
-        .trim(orgContactEmail || "")
+        .trim(orgContactEmail ?? "")
         .toLowerCase();
 
       if (!validator.isEmail(sanitizedOrgContactEmail)) {
@@ -81,19 +81,17 @@ export default class OrganizationRequestController {
 
       // Process facilities if it's a string
       let parsedFacilities: string[];
-      try {
+      
         parsedFacilities =
           typeof facilities === "string" ? JSON.parse(facilities) : facilities;
         if (!Array.isArray(parsedFacilities) || parsedFacilities.length === 0) {
           throw new ErrorResponse("Facilities must be a non-empty array", 400);
         }
-      } catch (error) {
-        throw new ErrorResponse("Invalid facilities format", 400);
-      }
+      
 
       // Process location if it's a string
       let parsedLocation: any;
-      try {
+     
         parsedLocation =
           typeof location === "string" ? JSON.parse(location) : location;
 
@@ -106,9 +104,7 @@ export default class OrganizationRequestController {
         ) {
           throw new ErrorResponse("Location missing required fields", 400);
         }
-      } catch (error) {
-        throw new ErrorResponse("Invalid location format", 400);
-      }
+     
 
       // Handle file uploads
       const images = (req.files as Express.Multer.File[]) || [];
@@ -136,29 +132,7 @@ export default class OrganizationRequestController {
     }
   );
 
-  // /**
-  //  * @route   GET /api/v1/organization-requests/validate-owner-email/:email
-  //  * @desc    Validate if owner email exists in database
-  //  * @access  Private (Admin only)
-  //  */
-  // public validateOwnerEmail = asyncHandler(
-  //   async (req: Request, res: Response) => {
-  //     const { email } = req.params;
-
-  //     if (!email) {
-  //       throw new ErrorResponse("Email parameter is required", 400);
-  //     }
-
-  //     const isValid = await this.organizationRequestService.validateOwnerEmail(
-  //       email
-  //     );
-
-  //     res.status(200).json({
-  //       success: true,
-  //       data: { exists: isValid },
-  //     });
-  //   }
-  // );
+ 
 
   /**
    * @route   PUT /api/v1/organization-requests/:id/process

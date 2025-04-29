@@ -1,3 +1,4 @@
+// timeslot.model.ts
 import mongoose, { Document, Schema } from 'mongoose';
 export interface ITimeSlot extends Document {
   turf: mongoose.Types.ObjectId;
@@ -5,6 +6,7 @@ export interface ITimeSlot extends Document {
   end_time: Date;
   is_available: boolean;
   price_override?: number;
+  booking?: mongoose.Types.ObjectId; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,6 +40,11 @@ const TimeSlotSchema: Schema = new Schema(
         v ? parseFloat(v.toFixed(2)) : undefined,
       set: (v: number | undefined) =>
         v ? parseFloat(v.toFixed(2)) : undefined,
+    },
+    booking: {  
+      type: Schema.Types.ObjectId,
+      ref: 'Booking',
+      index: true,
     },
   },
   { timestamps: true },
