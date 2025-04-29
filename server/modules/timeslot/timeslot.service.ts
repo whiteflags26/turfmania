@@ -75,7 +75,7 @@ export default class TimeSlotService {
     });
   }
   async getTimeSlots(filters = {}): Promise<ITimeSlot[]> {
-    return await TimeSlot.find(filters).sort('start_time').populate('turf');
+    return await TimeSlot.find(filters).sort('start_time');
   }
   async getAvailableTimeSlots(
     turfId: string,
