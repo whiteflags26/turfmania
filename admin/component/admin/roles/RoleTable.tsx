@@ -1,3 +1,4 @@
+"use client"
 import {
   Check,
   ChevronDown,
@@ -119,12 +120,13 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
               {filteredRoles.map(role => {
-                const scopeClass =
-                  role.scope === 'global'
-                    ? 'bg-purple-100 text-purple-800'
-                    : role.scope === 'organization'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-green-100 text-green-800';
+                // Extract nested ternary into variable
+                let scopeClass = 'bg-green-100 text-green-800'; // Default for 'local'
+                if (role.scope === 'global') {
+                  scopeClass = 'bg-purple-100 text-purple-800';
+                } else if (role.scope === 'organization') {
+                  scopeClass = 'bg-blue-100 text-blue-800';
+                }
 
                 return (
                   <>
@@ -207,11 +209,8 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
                           {!role.isDefault && (
                             <>
                               {deleteConfirm === role._id ? (
-                                <div
-                                  role="group"
-                                  aria-label="Delete confirmation actions"
-                                  className="flex items-center justify-end space-x-2"
-                                >
+                                <fieldset className="flex items-center justify-end space-x-2">
+                                  <legend className="sr-only">Delete confirmation actions</legend>
                                   <button
                                     onClick={() => handleDelete(role._id)}
                                     onKeyDown={e => {
@@ -234,7 +233,7 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
                                   >
                                     Cancel
                                   </button>
-                                </div>
+                                </fieldset>
                               ) : (
                                 <button
                                   onClick={e => {
