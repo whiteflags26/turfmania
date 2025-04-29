@@ -62,7 +62,7 @@ export default class TurfController {
         // Combine all parsed data
         const turfData: Partial<ITurf> = {
           name,
-          organization: new mongoose.Types.ObjectId(organization),
+          organization: organization.id,
           ...basePriceResult.data,
           ...sportsResult.data,
           ...operatingHoursResult.data,
