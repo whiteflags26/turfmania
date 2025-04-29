@@ -62,7 +62,7 @@ export default function TimeslotForm({ turfId, onSuccess }: TimeslotFormProps) {
       });
     } catch (error) {
       console.error(error);
-      toast.error('Failed to generate timeslots');
+      toast.error(error instanceof Error ? error.message : 'Failed to generate timeslots');
     } finally {
       setIsSubmitting(false);
     }

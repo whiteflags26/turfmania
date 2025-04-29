@@ -28,7 +28,7 @@ export async function generateTimeSlots(
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to generate timeslots");
+      throw new Error(errorData.error || errorData.message || "Failed to generate timeslots");
     }
 
     return await response.json();
