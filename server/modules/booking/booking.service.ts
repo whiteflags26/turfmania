@@ -4,6 +4,8 @@ import { TimeSlot } from '../timeslot/timeslot.model';
 import { Turf } from '../turf/turf.model';
 import ErrorResponse from '../../utils/errorResponse';
 import { validateId } from '../../utils/validation';
+import { sendEmail } from '../../utils/email';
+import User from '../user/user.model';
 import { z } from 'zod';
 
 export interface CreateBookingDto {
@@ -42,6 +44,8 @@ export interface BookingsResult {
 
 export default class BookingService {
   private readonly ADVANCE_PAYMENT_PERCENTAGE = 0.65; // 65% advance payment
+  private readonly ALLOWED_STATUSES = ['pending', 'advance_payment_completed', 'completed', 'cancelled'];
+  private readonly ALLOWED_SORT_FIELDS = ['createdAt', 'updatedAt', 'totalAmount'];
 
   /**
    * Create a new booking with advance payment
@@ -111,6 +115,9 @@ export default class BookingService {
       // Commit transaction
       await session.commitTransaction();
 
+      // send email
+      await this.sendBookingConfirmationEmail(booking[0]);
+
       return booking[0];
     } catch (error) {
       // Abort transaction on error
@@ -154,6 +161,9 @@ export default class BookingService {
 
       await booking.save();
 
+      // send email
+      await this.sendBookingCompletionEmail(booking);
+
       return booking;
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -191,66 +201,147 @@ export default class BookingService {
   }
 
   /**
-   * Get all bookings with filters and pagination
+  * Sanitize and validate ObjectId
+  * @private
+  */
+  private sanitizeObjectId(id: string, fieldName: string): Types.ObjectId {
+    try {
+      const validId = validateId(id);
+      return new Types.ObjectId(validId);
+    } catch (error) {
+      throw new ErrorResponse(`Invalid ${fieldName} format`, 400);
+    }
+  }
+
+  /**
+   * Sanitize status filter
+   * @private
    */
-  async getBookings(
-    filters: BookingFilters = {},
-    pagination: PaginationOptions = { page: 1, limit: 10 }
+  private sanitizeStatusFilter(status: BookingStatus | BookingStatus[]): BookingStatus | { $in: BookingStatus[] } {
+    if (Array.isArray(status)) {
+      const validStatuses = status.filter(s =>
+        this.ALLOWED_STATUSES.includes(s)
+      );
+      return validStatuses.length > 0 ? { $in: validStatuses } : { $in: [] };
+    } else if (this.ALLOWED_STATUSES.includes(status)) {
+      return status;
+    }
+    return { $in: [] }; // Return empty filter if invalid status
+  }
+
+  /**
+   * Sanitize date filter
+   * @private
+   */
+  private sanitizeDateFilter(fromDate?: Date, toDate?: Date): { $gte?: Date, $lte?: Date } | null {
+    const dateFilter: { $gte?: Date, $lte?: Date } = {};
+    let hasValidDate = false;
+
+    if (fromDate) {
+      const parsedFromDate = new Date(fromDate);
+      if (!isNaN(parsedFromDate.getTime())) {
+        dateFilter.$gte = parsedFromDate;
+        hasValidDate = true;
+      }
+    }
+
+    if (toDate) {
+      const parsedToDate = new Date(toDate);
+      if (!isNaN(parsedToDate.getTime())) {
+        dateFilter.$lte = parsedToDate;
+        hasValidDate = true;
+      }
+    }
+
+    return hasValidDate ? dateFilter : null;
+  }
+
+  /**
+   * Sanitize sort options
+   * @private
+   */
+  private sanitizeSortOptions(sortBy?: string, sortOrder?: string): Record<string, 1 | -1> {
+    const sortOptions: Record<string, 1 | -1> = {};
+    const validSortBy = this.ALLOWED_SORT_FIELDS.includes(sortBy as any)
+      ? sortBy
+      : 'createdAt';
+
+    const validSortOrder = sortOrder === 'asc' ? 1 : -1;
+    sortOptions[validSortBy as string] = validSortOrder;
+
+    return sortOptions;
+  }
+
+  /**
+   * Build a sanitized query from filters
+   * @private
+   */
+  private buildSanitizedQuery(filters: BookingFilters, baseQuery: Record<string, any> = {}): Record<string, any> {
+    const query = { ...baseQuery };
+
+    // userId filter (if not already in base query)
+    if (filters.userId && !query.userId) {
+      query.userId = this.sanitizeObjectId(filters.userId, 'user ID');
+    }
+
+    // turfId filter (if not already in base query)
+    if (filters.turfId && !query.turf) {
+      query.turf = this.sanitizeObjectId(filters.turfId, 'turf ID');
+    }
+
+    // Status filter
+    if (filters.status) {
+      query.status = this.sanitizeStatusFilter(filters.status);
+    }
+
+    // Date filters
+    if (filters.fromDate || filters.toDate) {
+      const dateFilter = this.sanitizeDateFilter(filters.fromDate, filters.toDate);
+      if (dateFilter) {
+        query.createdAt = dateFilter;
+      }
+    }
+
+    // isPaid filter
+    if (filters.isPaid !== undefined) {
+      query.isPaid = Boolean(filters.isPaid);
+    }
+
+    return query;
+  }
+
+  /**
+   * Execute paginated query with sanitized parameters
+   * @private
+   */
+  private async executePaginatedQuery(
+    query: Record<string, any>,
+    sortOptions: Record<string, 1 | -1>,
+    pagination: PaginationOptions,
+    populate: Array<{ path: string, select?: string }> = []
   ): Promise<BookingsResult> {
-    const {
-      userId,
-      turfId,
-      status,
-      fromDate,
-      toDate,
-      isPaid,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-    } = filters;
-
-    const { page, limit } = pagination;
-    const query: any = {};
-
-    // Apply filters
-    if (userId) {
-      query.userId = new Types.ObjectId(userId);
-    }
-
-    if (turfId) {
-      query.turf = new Types.ObjectId(turfId);
-    }
-
-    if (status) {
-      query.status = Array.isArray(status) ? { $in: status } : status;
-    }
-
-    if (fromDate || toDate) {
-      query.createdAt = {};
-      if (fromDate) query.createdAt.$gte = fromDate;
-      if (toDate) query.createdAt.$lte = toDate;
-    }
-
-    if (isPaid !== undefined) {
-      query.isPaid = isPaid;
-    }
+    // Sanitize pagination
+    const page = Math.max(1, pagination.page || 1);
+    const limit = Math.min(50, Math.max(1, pagination.limit || 10));
+    const skip = (page - 1) * limit;
 
     // Count total before pagination
     const total = await Booking.countDocuments(query);
     const pages = Math.ceil(total / limit);
-    const skip = (page - 1) * limit;
 
-    // Build sort object
-    const sortOptions: any = {};
-    sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-    // Fetch paginated results
-    const bookings = await Booking.find(query)
+    // Build query
+    let bookingsQuery = Booking.find(query)
       .sort(sortOptions)
       .skip(skip)
-      .limit(limit)
-      .populate('userId', 'first_name last_name email')
-      .populate('turf', 'name location')
-      .populate('timeSlots', 'start_time end_time');
+      .limit(limit);
+
+    // Apply population
+    for (const pop of populate) {
+      bookingsQuery = bookingsQuery.populate(pop.path, pop.select);
+    }
+
+    // Execute query
+    const bookings = await bookingsQuery;
 
     return {
       total,
@@ -259,66 +350,68 @@ export default class BookingService {
       bookings,
     };
   }
+
   /**
- * Get user bookings with filters, sorting and pagination
- */
+   * Get all bookings with filters and pagination
+   */
+  async getBookings(
+    filters: BookingFilters = {},
+    pagination: PaginationOptions = { page: 1, limit: 10 }
+  ): Promise<BookingsResult> {
+    try {
+      // Build sanitized query
+      const query = this.buildSanitizedQuery(filters);
+
+      // Build sanitized sort options
+      const sortOptions = this.sanitizeSortOptions(filters.sortBy, filters.sortOrder);
+
+      // Define populate options
+      const populate = [
+        { path: 'userId', select: 'first_name last_name email' },
+        { path: 'turf', select: 'name location' },
+        { path: 'timeSlots', select: 'start_time end_time' }
+      ];
+
+      // Execute query
+      return await this.executePaginatedQuery(query, sortOptions, pagination, populate);
+    } catch (error) {
+      if (error instanceof ErrorResponse) {
+        throw error;
+      }
+      throw new ErrorResponse('Error fetching bookings', 500);
+    }
+  }
+
+  /**
+   * Get user bookings with filters, sorting and pagination
+   */
   async getUserBookings(
     userId: string,
     filters: BookingFilters = {},
     pagination: PaginationOptions = { page: 1, limit: 10 }
   ): Promise<BookingsResult> {
     try {
-      const validUserId = validateId(userId);
+      // Validate user ID
+      const validUserId = this.sanitizeObjectId(userId, 'user ID');
 
-      // Prepare query object
-      const query: any = { userId: validUserId };
+      // Build sanitized query with base query containing userId
+      const query = this.buildSanitizedQuery(filters, { userId: validUserId });
 
-      // Apply status filter if provided
-      if (filters.status) {
-        query.status = Array.isArray(filters.status) ? { $in: filters.status } : filters.status;
-      }
+      // Build sanitized sort options
+      const sortOptions = this.sanitizeSortOptions(filters.sortBy, filters.sortOrder);
 
-      // Apply date filters if provided
-      if (filters.fromDate || filters.toDate) {
-        query.createdAt = {};
-        if (filters.fromDate) query.createdAt.$gte = filters.fromDate;
-        if (filters.toDate) query.createdAt.$lte = filters.toDate;
-      }
+      // Define populate options
+      const populate = [
+        { path: 'turf', select: 'name basePrice' },
+        { path: 'timeSlots', select: 'start_time end_time' }
+      ];
 
-      // Apply isPaid filter if provided
-      if (filters.isPaid !== undefined) {
-        query.isPaid = filters.isPaid;
-      }
-
-      // Determine sort options
-      const sortBy = filters.sortBy || 'createdAt';
-      const sortOrder = filters.sortOrder || 'desc';
-      const sortOptions: any = {};
-      sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-      // Get pagination options
-      const { page, limit } = pagination;
-      const skip = (page - 1) * limit;
-
-      // Count total documents
-      const total = await Booking.countDocuments(query);
-      const pages = Math.ceil(total / limit);
-
-      // Fetch paginated bookings
-      const bookings = await Booking.find(query)
-        .sort(sortOptions)
-        .skip(skip)
-        .limit(limit)
-        .populate('turf', 'name basePrice')
-        .populate('timeSlots', 'start_time end_time');
-
-      return {
-        total,
-        page,
-        pages,
-        bookings,
-      };
+      // Execute query
+      return await this.executePaginatedQuery(query, sortOptions, pagination, populate);
     } catch (error) {
+      if (error instanceof ErrorResponse) {
+        throw error;
+      }
       if (error instanceof z.ZodError) {
         throw new ErrorResponse('Invalid user ID format', 400);
       }
@@ -335,63 +428,34 @@ export default class BookingService {
     pagination: PaginationOptions = { page: 1, limit: 10 }
   ): Promise<BookingsResult> {
     try {
-      const validTurfId = validateId(turfId);
+      // Validate turf ID
+      const validTurfId = this.sanitizeObjectId(turfId, 'turf ID');
 
-      // Prepare query object
-      const query: any = { turf: validTurfId };
+      // Build sanitized query with base query containing turfId
+      const query = this.buildSanitizedQuery(filters, { turf: validTurfId });
 
-      // Apply status filter if provided
-      if (filters.status) {
-        query.status = Array.isArray(filters.status) ? { $in: filters.status } : filters.status;
-      }
+      // Build sanitized sort options
+      const sortOptions = this.sanitizeSortOptions(filters.sortBy, filters.sortOrder);
 
-      // Apply date filters if provided
-      if (filters.fromDate || filters.toDate) {
-        query.createdAt = {};
-        if (filters.fromDate) query.createdAt.$gte = filters.fromDate;
-        if (filters.toDate) query.createdAt.$lte = filters.toDate;
-      }
+      // Define populate options
+      const populate = [
+        { path: 'userId', select: 'first_name last_name email' },
+        { path: 'timeSlots', select: 'start_time end_time' }
+      ];
 
-      // Apply isPaid filter if provided
-      if (filters.isPaid !== undefined) {
-        query.isPaid = filters.isPaid;
-      }
-
-      // Determine sort options
-      const sortBy = filters.sortBy || 'createdAt';
-      const sortOrder = filters.sortOrder || 'desc';
-      const sortOptions: any = {};
-      sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-      // Get pagination options
-      const { page, limit } = pagination;
-      const skip = (page - 1) * limit;
-
-      // Count total documents
-      const total = await Booking.countDocuments(query);
-      const pages = Math.ceil(total / limit);
-
-      // Fetch paginated bookings
-      const bookings = await Booking.find(query)
-        .sort(sortOptions)
-        .skip(skip)
-        .limit(limit)
-        .populate('userId', 'first_name last_name email')
-        .populate('timeSlots', 'start_time end_time');
-
-      return {
-        total,
-        page,
-        pages,
-        bookings,
-      };
+      // Execute query
+      return await this.executePaginatedQuery(query, sortOptions, pagination, populate);
     } catch (error) {
+      if (error instanceof ErrorResponse) {
+        throw error;
+      }
       if (error instanceof z.ZodError) {
         throw new ErrorResponse('Invalid turf ID format', 400);
       }
       throw error;
     }
   }
+
 
   /**
    * Get monthly earnings for a turf for the current year
@@ -545,6 +609,34 @@ export default class BookingService {
         throw new ErrorResponse('Invalid organization ID format', 400);
       }
       throw error;
+    }
+  }
+
+  private async sendBookingConfirmationEmail(booking: IBooking) {
+    try {
+      const user = await User.findById(booking.userId);
+      if (!user || !user.email) return;
+
+      const subject = 'Booking Confirmation';
+      const text = `Dear ${user.first_name},\n\nYour booking has been confirmed.\n\nBooking ID: ${booking._id}\nTotal Amount: ${booking.totalAmount}\nAdvance Paid: ${booking.advanceAmount}\n\nThank you for using our service.`;
+
+      await sendEmail(user.email, subject, text);
+    } catch (error) {
+      console.error('Error sending booking confirmation email:', error);
+    }
+  }
+
+  private async sendBookingCompletionEmail(booking: IBooking) {
+    try {
+      const user = await User.findById(booking.userId);
+      if (!user || !user.email) return;
+
+      const subject = 'Booking Completed';
+      const text = `Dear ${user.first_name},\n\nYour booking has been successfully completed.\n\nBooking ID: ${booking._id}\nFinal Amount Paid: ${booking.finalAmount}\nTotal Amount: ${booking.totalAmount}\n\nThank you for using our service.`;
+
+      await sendEmail(user.email, subject, text);
+    } catch (error) {
+      console.error('Error sending booking completion email:', error);
     }
   }
 }
