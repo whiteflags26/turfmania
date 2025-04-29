@@ -2,15 +2,13 @@ import { Suspense } from "react";
 import TurfSelection from "@/components/timeslot/TurfSelection";
 
 interface PageProps {
-  params: {
-    id: string;
-  };
+  params: Promise<{id: string}>;
 }
 
 export default async function OrganizationTurfTimeslotPage({
   params,
 }: PageProps) {
-  const organizationId = params.id;
+  const organizationId = (await params).id;
 
   return (
     <div className="container mx-auto px-4 py-8">
