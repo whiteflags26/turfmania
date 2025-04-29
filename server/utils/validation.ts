@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import mongoose from 'mongoose';
+
 import { z } from 'zod';
 
 // Create a custom Zod type for MongoDB ObjectId

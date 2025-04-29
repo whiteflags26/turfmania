@@ -87,17 +87,19 @@ export const createOrganization = asyncHandler(
 
       const images = req.files as Express.Multer.File[];
 
-      const organization = await organizationService.createOrganization(
-        sanitizedName,
-        parsedFacilities,
-        parsedLocation,
-        orgContactPhone,
-        orgContactEmail,
+      const organization = await organizationService.createOrganization({
+        name: sanitizedName,
+        facilities: parsedFacilities,
+        location: parsedLocation,
+        orgContact: {
+          phone: orgContactPhone,
+          email: orgContactEmail,
+        },
         images,
         requestId,
-        userId,
+        adminId: userId,
         adminNotes,
-      );
+      });
 
       if (!organization) {
         throw new ErrorResponse('Failed to create organization', 500);
