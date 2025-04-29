@@ -1,5 +1,5 @@
 export interface HasAccessRequest {
-  hasAccess: boolean;
+  hasRole: boolean;
 }
 
 export interface ICoordinates {
