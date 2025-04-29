@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ApiError } from '@/types/api-error';
-import { ITurfReview, UpdateReviewData } from '@/types/turf-review';
+import { ITurfReview } from '@/types/turf-review';
 import { IUser } from '@/types/user';
 import { Edit, Flag, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useState } from 'react';
