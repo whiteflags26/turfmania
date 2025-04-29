@@ -1,30 +1,30 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import Image from "next/image";
-import { motion } from "framer-motion";
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { generateBarikoiMapLink } from '@/lib/server-apis/barikoi/generateMap-api';
+import { fetchOrganization } from '@/lib/server-apis/organization/getOrganization-api';
+import { fetchOrganizationTurfReviewSummary } from '@/lib/server-apis/organization/getOrganizationTurfReviewSummary-api';
+import { IOrganization } from '@/types/organization';
+import { IOrganizationTurfReviewSummary } from '@/types/organizationTurfReview';
+import { motion } from 'framer-motion';
 import {
   Building2,
+  CalendarClock,
+  CheckCircle,
+  Clock,
+  ExternalLink,
+  Mail,
   MapPin,
   Phone,
-  Mail,
-  CalendarClock,
   Star,
   Users,
-  Clock,
-  CheckCircle,
-  ExternalLink
-} from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { IOrganization } from "@/types/organization";
-import { IOrganizationTurfReviewSummary } from "@/types/organizationTurfReview";
-import { fetchOrganization } from "@/lib/server-apis/organization/getOrganization-api";
-import { fetchOrganizationTurfReviewSummary } from "@/lib/server-apis/organization/getOrganizationTurfReviewSummary-api";
-import { generateBarikoiMapLink } from "@/lib/server-apis/barikoi/generateMap-api";
+} from 'lucide-react';
+import Image from 'next/image';
+import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function OrganizationPage() {
   const { id } = useParams() as { id: string };
@@ -44,16 +44,16 @@ export default function OrganizationPage() {
         ]);
 
         if (!orgData) {
-          throw new Error("Failed to load organization data");
+          throw new Error('Failed to load organization data');
         }
 
         setOrganization(orgData);
         setReviewSummary(reviewData);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "An unknown error occurred"
+          err instanceof Error ? err.message : 'An unknown error occurred',
         );
-        console.error("Error fetching organization data:", err);
+        console.error('Error fetching organization data:', err);
       } finally {
         setLoading(false);
       }
@@ -72,7 +72,7 @@ export default function OrganizationPage() {
         <h2 className="text-2xl font-bold text-red-600 mb-4">
           Unable to load organization
         </h2>
-        <p className="text-slate-600">{error || "Organization not found"}</p>
+        <p className="text-slate-600">{error || 'Organization not found'}</p>
       </div>
     );
   }
@@ -80,7 +80,7 @@ export default function OrganizationPage() {
   // Find a turf summary from the review data, with null check
   const findTurfSummary = (turfId: string) => {
     if (!reviewSummary || !reviewSummary.turfSummaries) return null;
-    return reviewSummary.turfSummaries.find((t) => t.turfId === turfId) || null;
+    return reviewSummary.turfSummaries.find(t => t.turfId === turfId) || null;
   };
 
   return (
@@ -117,7 +117,7 @@ export default function OrganizationPage() {
                 <div className="flex items-center gap-3 text-white/90">
                   <MapPin className="h-4 w-4 flex-shrink-0" />
                   <span className="text-sm md:text-base">
-                    {organization.location?.address || "Address Unavailable"}
+                    {organization.location?.address || 'Address Unavailable'}
                   </span>
                 </div>
               </div>
@@ -142,19 +142,19 @@ export default function OrganizationPage() {
                     <div className="flex items-center gap-3 text-slate-700">
                       <Phone className="h-4 w-4 text-green-600" />
                       <span>
-                        {organization.orgContactPhone || "Not provided"}
+                        {organization.orgContactPhone || 'Not provided'}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-slate-700">
                       <Mail className="h-4 w-4 text-green-600" />
                       <span>
-                        {organization.orgContactEmail || "Not provided"}
+                        {organization.orgContactEmail || 'Not provided'}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-slate-700">
                       <CalendarClock className="h-4 w-4 text-green-600" />
                       <span>
-                        Member since{" "}
+                        Member since{' '}
                         {new Date(organization.createdAt).toLocaleDateString()}
                       </span>
                     </div>
@@ -168,7 +168,7 @@ export default function OrganizationPage() {
                         <div>
                           <p>
                             {organization.location.address ||
-                              "Address not available"}
+                              'Address not available'}
                           </p>
                           <p className="text-sm text-slate-500">
                             {[
@@ -178,7 +178,7 @@ export default function OrganizationPage() {
                               organization.location.post_code,
                             ]
                               .filter(Boolean)
-                              .join(", ")}
+                              .join(', ')}
                           </p>
                         </div>
                       </div>
@@ -188,7 +188,7 @@ export default function OrganizationPage() {
                       <a
                         href={generateBarikoiMapLink(
                           organization.location.coordinates.coordinates[0],
-                          organization.location.coordinates.coordinates[1]
+                          organization.location.coordinates.coordinates[1],
                         )}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -204,14 +204,14 @@ export default function OrganizationPage() {
                 {/* Facilities */}
                 <div className="pt-4 border-t border-slate-100">
                   <h3 className="mb-4 flex items-center text-slate-700 font-medium">
-                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />{" "}
+                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />{' '}
                     Available Facilities
                   </h3>
 
                   {organization.facilities &&
                   organization.facilities.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
-                      {organization.facilities.map((facility) => (
+                      {organization.facilities.map(facility => (
                         <Badge
                           key={facility}
                           variant="outline"
@@ -244,7 +244,7 @@ export default function OrganizationPage() {
 
               {organization.turfs && organization.turfs.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {organization.turfs.map((turf) => {
+                  {organization.turfs.map(turf => {
                     const turfSummary = findTurfSummary(turf._id);
 
                     return (
@@ -263,7 +263,7 @@ export default function OrganizationPage() {
                               {/* Rating from review summary if available */}
                               {turfSummary &&
                                 typeof turfSummary.averageRating ===
-                                  "number" && (
+                                  'number' && (
                                   <div className="flex items-center gap-1 text-amber-500">
                                     <Star className="h-4 w-4 fill-amber-500 stroke-amber-500" />
                                     <span className="font-medium">
@@ -276,9 +276,9 @@ export default function OrganizationPage() {
                             <div className="flex items-center text-green-600">
                               <span className="mr-1 text-xl font-bold">৳</span>
                               <span className="font-semibold">
-                                {typeof turf.basePrice === "number"
+                                {typeof turf.basePrice === 'number'
                                   ? turf.basePrice.toFixed(2)
-                                  : "N/A"}
+                                  : 'N/A'}
                               </span>
                               <span className="text-sm text-slate-500 ml-1">
                                 /hour
@@ -286,17 +286,16 @@ export default function OrganizationPage() {
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                              {turf.sports &&
-                                turf.sports.map((sport) => (
-                                  <Badge
-                                    key={sport}
-                                    variant="secondary"
-                                    className="bg-green-50 text-green-600 text-xs px-2 py-0.5 rounded-md"
-                                  >
-                                    {sport}
-                                  </Badge>
-                                ))}
-                              {typeof turf.team_size === "number" && (
+                              {turf.sports?.map(sport => (
+                                <Badge
+                                  key={sport}
+                                  variant="secondary"
+                                  className="bg-green-50 text-green-600 text-xs px-2 py-0.5 rounded-md"
+                                >
+                                  {sport}
+                                </Badge>
+                              ))}
+                              {typeof turf.team_size === 'number' && (
                                 <Badge
                                   variant="secondary"
                                   className="bg-slate-50 text-slate-600 text-xs px-2 py-0.5 rounded-md"
@@ -354,7 +353,7 @@ export default function OrganizationPage() {
                 </h2>
 
                 {reviewSummary &&
-                typeof reviewSummary.overallAverageRating === "number" ? (
+                typeof reviewSummary.overallAverageRating === 'number' ? (
                   <div className="space-y-4">
                     <div className="flex items-center justify-center bg-slate-50 p-4 rounded-lg space-x-3">
                       <div className="text-center">
@@ -366,14 +365,14 @@ export default function OrganizationPage() {
                         </div>
                       </div>
                       <div className="flex">
-                        {[1, 2, 3, 4, 5].map((star) => (
+                        {[1, 2, 3, 4, 5].map(star => (
                           <Star
                             key={star}
                             className={`h-5 w-5 ${
                               star <=
                               Math.round(reviewSummary.overallAverageRating)
-                                ? "fill-amber-500 stroke-amber-500"
-                                : "stroke-slate-300"
+                                ? 'fill-amber-500 stroke-amber-500'
+                                : 'stroke-slate-300'
                             }`}
                           />
                         ))}
@@ -386,7 +385,7 @@ export default function OrganizationPage() {
                           <h3 className="text-sm font-medium text-slate-700">
                             Turf Ratings
                           </h3>
-                          {reviewSummary.turfSummaries.map((turfSummary) => (
+                          {reviewSummary.turfSummaries.map(turfSummary => (
                             <div
                               key={turfSummary.turfId}
                               className="flex items-center justify-between border-b border-slate-100 pb-2"
@@ -397,9 +396,9 @@ export default function OrganizationPage() {
                               <div className="flex items-center">
                                 <Star className="h-4 w-4 fill-amber-500 stroke-amber-500 mr-1" />
                                 <span className="text-sm font-medium">
-                                  {typeof turfSummary.averageRating === "number"
+                                  {typeof turfSummary.averageRating === 'number'
                                     ? turfSummary.averageRating.toFixed(1)
-                                    : "-"}
+                                    : '-'}
                                 </span>
                                 <span className="text-xs text-slate-500 ml-1">
                                   ({turfSummary.reviewCount || 0})
@@ -449,30 +448,31 @@ export default function OrganizationPage() {
                         value={`turf-${turfIndex}`}
                         className="space-y-3"
                       >
-                        {turf.operatingHours &&
-                          turf.operatingHours.map((hour, hourIndex) => (
-                            <div
-                              key={hourIndex}
-                              className="flex items-center justify-between text-sm text-slate-700"
-                            >
-                              <span className="font-medium">
-                                {
-                                  [
-                                    "Sunday",
-                                    "Monday",
-                                    "Tuesday",
-                                    "Wednesday",
-                                    "Thursday",
-                                    "Friday",
-                                    "Saturday",
-                                  ][hour.day]
-                                }
-                              </span>
-                              <span className="font-mono">
-                                {hour.open} - {hour.close}
-                              </span>
-                            </div>
-                          ))}
+                        {turf.operatingHours?.map(hour => (
+                          <div
+                            key={`${hour?.day ?? 'unknown'}-${
+                              hour?.open ?? 'unknown'
+                            }-${hour?.close ?? 'unknown'}`}
+                            className="flex items-center justify-between text-sm text-slate-700"
+                          >
+                            <span className="font-medium">
+                              {
+                                [
+                                  'Sunday',
+                                  'Monday',
+                                  'Tuesday',
+                                  'Wednesday',
+                                  'Thursday',
+                                  'Friday',
+                                  'Saturday',
+                                ][hour?.day ?? 0]
+                              }
+                            </span>
+                            <span className="font-mono">
+                              {hour?.open ?? '--:--'} - {hour?.close ?? '--:--'}
+                            </span>
+                          </div>
+                        ))}
                       </TabsContent>
                     ))}
                   </Tabs>
@@ -510,7 +510,7 @@ function OrganizationSkeleton() {
                 <Skeleton className="h-7 w-40" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
+                    {[1, 2, 3].map(i => (
                       <div key={i} className="flex items-center gap-3">
                         <Skeleton className="h-4 w-4" />
                         <Skeleton className="h-4 w-36" />
@@ -531,7 +531,7 @@ function OrganizationSkeleton() {
                 <div className="pt-4 border-t border-slate-100">
                   <Skeleton className="h-6 w-48 mb-4" />
                   <div className="flex flex-wrap gap-2">
-                    {[1, 2, 3, 4].map((i) => (
+                    {[1, 2, 3, 4].map(i => (
                       <Skeleton key={i} className="h-8 w-20 rounded-full" />
                     ))}
                   </div>
@@ -546,7 +546,7 @@ function OrganizationSkeleton() {
                 <Skeleton className="h-6 w-16 rounded-full" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[1, 2].map((i) => (
+                {[1, 2].map(i => (
                   <Card key={i} className="overflow-hidden">
                     <CardContent className="p-5 space-y-4">
                       <div className="flex items-start justify-between">
@@ -555,7 +555,7 @@ function OrganizationSkeleton() {
                       </div>
                       <Skeleton className="h-6 w-20" />
                       <div className="flex flex-wrap gap-2">
-                        {[1, 2].map((j) => (
+                        {[1, 2].map(j => (
                           <Skeleton key={j} className="h-5 w-16 rounded-md" />
                         ))}
                       </div>
@@ -578,14 +578,14 @@ function OrganizationSkeleton() {
                   <div className="flex items-center justify-center bg-slate-50 p-4 rounded-lg space-x-3">
                     <Skeleton className="h-16 w-16" />
                     <div className="flex">
-                      {[1, 2, 3, 4, 5].map((i) => (
+                      {[1, 2, 3, 4, 5].map(i => (
                         <Skeleton key={i} className="h-5 w-5 mx-0.5" />
                       ))}
                     </div>
                   </div>
                   <div className="space-y-3">
                     <Skeleton className="h-5 w-24" />
-                    {[1, 2].map((i) => (
+                    {[1, 2].map(i => (
                       <div
                         key={i}
                         className="flex items-center justify-between border-b border-slate-100 pb-2"
@@ -604,7 +604,7 @@ function OrganizationSkeleton() {
                 <Skeleton className="h-7 w-40" />
                 <div className="space-y-2">
                   <Skeleton className="h-8 w-full mb-4" />
-                  {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                  {[1, 2, 3, 4, 5, 6, 7].map(i => (
                     <div key={i} className="flex items-center justify-between">
                       <Skeleton className="h-4 w-24" />
                       <Skeleton className="h-4 w-16" />
