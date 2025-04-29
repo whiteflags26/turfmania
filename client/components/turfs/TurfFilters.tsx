@@ -1,36 +1,34 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/Button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Filter, MapPin, Users, Lightbulb, Clock, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { DualRangeSlider } from "@/components/ui/dual-range-slider";
-import TimeFilterCard from "@/components/turfs/TimeFilterCard";
-import { autocomplete } from "barikoiapis";
-import "@/lib/config/barikoiConfig";
-import { ITurf } from "@/types/turf";
-import { ITurfFilters } from "@/types/turfFilter";
-import { SetPagination } from "@/types/pagination";
-import { reverseGeocode } from "@/lib/server-apis/barikoi/reverseGeocode-api";
-import { IBarikoiSuggestion } from "@/types/barikoi";
-import { TeamSize, Sport, Facility } from "@/types/turfFilterData";
-import { fetchAllFilterData } from "@/lib/server-apis/turf/fetchTurfsWithFilter-api";
+import { Button } from '@/components/Button';
+import TimeFilterCard from '@/components/turfs/TimeFilterCard';
+import { Card, CardContent } from '@/components/ui/card';
+import { DualRangeSlider } from '@/components/ui/dual-range-slider';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import '@/lib/config/barikoiConfig';
+import { reverseGeocode } from '@/lib/server-apis/barikoi/reverseGeocode-api';
+import { fetchAllFilterData } from '@/lib/server-apis/turf/fetchTurfsWithFilter-api';
+import { IBarikoiSuggestion } from '@/types/barikoi';
+import { SetPagination } from '@/types/pagination';
+import { ITurfFilters } from '@/types/turfFilter';
+import { Facility, Sport, TeamSize } from '@/types/turfFilterData';
+import { autocomplete } from 'barikoiapis';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Clock, Filter, Lightbulb, MapPin, Users, X } from 'lucide-react';
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 interface Props {
-  turfs: ITurf[];
-  filters: ITurfFilters;
-  setFilters: Dispatch<SetStateAction<ITurfFilters>>;
-  showFilters: boolean;
-  setShowFilters: Dispatch<SetStateAction<boolean>>;
-  activeTab: string;
-  setActiveTab: Dispatch<SetStateAction<string>>;
-  setPagination: SetPagination;
+  readonly filters: ITurfFilters;
+  readonly setFilters: Dispatch<SetStateAction<ITurfFilters>>;
+  readonly showFilters: boolean;
+  readonly setShowFilters: Dispatch<SetStateAction<boolean>>;
+  readonly activeTab: string;
+  readonly setActiveTab: Dispatch<SetStateAction<string>>;
+  readonly setPagination: SetPagination;
 }
 
 const filterVariants = {
   hidden: { opacity: 0, height: 0 },
-  visible: { opacity: 1, height: "auto" },
+  visible: { opacity: 1, height: 'auto' },
 };
 
 export default function TurfFilters({
@@ -49,7 +47,7 @@ export default function TurfFilters({
   const [isLoading, setIsLoading] = useState(false);
 
   // State for location search
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<IBarikoiSuggestion[]>([]);
   const [locationLoading, setLocationLoading] = useState(false);
 
@@ -62,7 +60,7 @@ export default function TurfFilters({
         setSports(data.sports);
         setFacilities(data.facilities);
       } catch (error) {
-        console.error("Error fetching filter data:", error);
+        console.error('Error fetching filter data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -73,7 +71,7 @@ export default function TurfFilters({
 
   const handleSportFilter = (sport: string) => {
     setActiveTab(sport.toLowerCase());
-    setFilters({ ...filters, sports: sport === "all" ? [] : [sport] });
+    setFilters({ ...filters, sports: sport === 'all' ? [] : [sport] });
     setPagination((prev: { currentPage: number; totalPages: number }) => ({
       ...prev,
       currentPage: 1,
@@ -83,7 +81,7 @@ export default function TurfFilters({
   const handleGeoLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        async (pos) => {
+        async pos => {
           const lat = pos.coords.latitude.toString();
           const lon = pos.coords.longitude.toString();
 
@@ -96,16 +94,16 @@ export default function TurfFilters({
 
           // Get address from coordinates
           const result = await reverseGeocode(lat, lon);
-          if (result && result.place && result.place.address) {
+          if (result?.place?.address) {
             setQuery(result.place.address);
           } else {
             setQuery(`${lat}, ${lon}`);
           }
         },
-        (error) => {
-          console.error("Geolocation error:", error);
-          alert("Please enable location access to use this feature");
-        }
+        error => {
+          console.error('Geolocation error:', error);
+          alert('Please enable location access to use this feature');
+        },
       );
     }
   };
@@ -115,7 +113,7 @@ export default function TurfFilters({
     startTime: string;
     endTime: string;
   }) => {
-    setFilters((prev) => ({
+    setFilters(prev => ({
       ...prev,
       preferredDate: data.date,
       preferredTimeStart: data.startTime,
@@ -135,7 +133,7 @@ export default function TurfFilters({
         const res = await autocomplete({ q: query });
         setSuggestions(res.places || []);
       } catch (err) {
-        console.error("Barikoi error:", err);
+        console.error('Barikoi error:', err);
         setSuggestions([]);
       } finally {
         setLocationLoading(false);
@@ -161,7 +159,7 @@ export default function TurfFilters({
 
   // Sort team sizes numerically
   const sortedTeamSizes = [...teamSizes].sort(
-    (a, b) => parseInt(a.name) - parseInt(b.name)
+    (a, b) => parseInt(a.name) - parseInt(b.name),
   );
 
   return (
@@ -169,10 +167,10 @@ export default function TurfFilters({
       <Tabs defaultValue="all" value={activeTab} className="w-full">
         <div className="flex items-center justify-between mb-4">
           <TabsList className="bg-slate-100">
-            <TabsTrigger value="all" onClick={() => handleSportFilter("all")}>
+            <TabsTrigger value="all" onClick={() => handleSportFilter('all')}>
               All Turfs
             </TabsTrigger>
-            {sortedSports.map((sport) => (
+            {sortedSports.map(sport => (
               <TabsTrigger
                 key={sport._id}
                 value={sport.name.toLowerCase()}
@@ -193,7 +191,7 @@ export default function TurfFilters({
             >
               {showFilters ? <X size={16} /> : <Filter size={16} />}
               <span className="hidden sm:inline">
-                {showFilters ? "Hide Filters" : "More Filters"}
+                {showFilters ? 'Hide Filters' : 'More Filters'}
               </span>
             </Button>
           </div>
@@ -218,22 +216,22 @@ export default function TurfFilters({
                     sports: [],
                     teamSize: [],
                     facilities: [],
-                    minPrice: "0",
-                    maxPrice: "10000",
-                    preferredDate: "",
-                    preferredTimeStart: "",
-                    preferredTimeEnd: "",
-                    latitude: "",
-                    longitude: "",
-                    radius: "",
+                    minPrice: '0',
+                    maxPrice: '10000',
+                    preferredDate: '',
+                    preferredTimeStart: '',
+                    preferredTimeEnd: '',
+                    latitude: '',
+                    longitude: '',
+                    radius: '',
                   });
                   setPagination(
                     (prev: { currentPage: number; totalPages: number }) => ({
                       ...prev,
                       currentPage: 1,
-                    })
+                    }),
                   );
-                  setQuery("");
+                  setQuery('');
                   setSuggestions([]);
                 }}
               >
@@ -272,7 +270,7 @@ export default function TurfFilters({
                       <h3 className="font-medium flex items-center gap-2">
                         <span className="bg-green-100 p-1.5 rounded-full">
                           ৳
-                        </span>{" "}
+                        </span>{' '}
                         Price Range
                       </h3>
                       <div className="px-2">
@@ -284,7 +282,7 @@ export default function TurfFilters({
                             Number(filters.minPrice) || 0,
                             Number(filters.maxPrice) || 5000,
                           ]}
-                          onValueChange={(val) => {
+                          onValueChange={val => {
                             setFilters({
                               ...filters,
                               minPrice: val[0].toString(),
@@ -293,8 +291,8 @@ export default function TurfFilters({
                           }}
                         />
                         <div className="flex justify-between mt-2 text-sm text-slate-500">
-                          <span>৳{filters.minPrice || "0"}</span>
-                          <span>৳{filters.maxPrice || "10000"}</span>
+                          <span>৳{filters.minPrice || '0'}</span>
+                          <span>৳{filters.maxPrice || '10000'}</span>
                         </div>
                       </div>
                     </div>
@@ -305,21 +303,21 @@ export default function TurfFilters({
                         <Users size={15} /> Team Size
                       </h3>
                       <div className="grid grid-cols-5 gap-2">
-                        {sortedTeamSizes.map((size) => (
+                        {sortedTeamSizes.map(size => (
                           <Button
                             key={size._id}
                             variant={
                               filters.teamSize.includes(size.name)
-                                ? "default"
-                                : "outline"
+                                ? 'default'
+                                : 'outline'
                             }
                             size="sm"
                             onClick={() => {
                               const newTeamSize = filters.teamSize.includes(
-                                size.name
+                                size.name,
                               )
                                 ? filters.teamSize.filter(
-                                    (s: string) => s !== size.name
+                                    (s: string) => s !== size.name,
                                   )
                                 : [...filters.teamSize, size.name];
 
@@ -334,7 +332,7 @@ export default function TurfFilters({
                                 }) => ({
                                   ...prev,
                                   currentPage: 1,
-                                })
+                                }),
                               );
                             }}
                           >
@@ -350,13 +348,13 @@ export default function TurfFilters({
                         <Lightbulb size={15} /> Facilities
                       </h3>
                       <div className="flex flex-wrap gap-2">
-                        {facilities.map((facility) => (
+                        {facilities.map(facility => (
                           <Button
                             key={facility._id}
                             variant={
                               filters.facilities.includes(facility.name)
-                                ? "default"
-                                : "outline"
+                                ? 'default'
+                                : 'outline'
                             }
                             size="sm"
                             className="whitespace-normal break-words text-xs px-3 py-2 text-center h-auto min-w-[6rem] max-w-[10rem]"
@@ -364,7 +362,7 @@ export default function TurfFilters({
                               const updatedFacilities =
                                 filters.facilities.includes(facility.name)
                                   ? filters.facilities.filter(
-                                      (f) => f !== facility.name
+                                      f => f !== facility.name,
                                     )
                                   : [...filters.facilities, facility.name];
 
@@ -379,7 +377,7 @@ export default function TurfFilters({
                                 }) => ({
                                   ...prev,
                                   currentPage: 1,
-                                })
+                                }),
                               );
                             }}
                           >
@@ -421,7 +419,7 @@ export default function TurfFilters({
                             placeholder="Search location..."
                             className="w-full pr-10"
                             value={query}
-                            onChange={(e) => setQuery(e.target.value)}
+                            onChange={e => setQuery(e.target.value)}
                           />
 
                           {locationLoading && (
@@ -452,14 +450,15 @@ export default function TurfFilters({
                         {/* Suggestions List */}
                         {suggestions.length > 0 && (
                           <div className="border rounded bg-white shadow-md max-h-48 overflow-y-auto divide-y text-sm">
-                            {suggestions.map((place) => (
-                              <div
+                            {suggestions.map(place => (
+                              <button
                                 key={place.id}
-                                className="p-3 cursor-pointer hover:bg-slate-100 transition rounded-sm"
+                                type="button"
+                                className="w-full text-left p-3 cursor-pointer hover:bg-slate-100 transition rounded-sm"
                                 onClick={() => handleLocationSelect(place)}
                               >
                                 {place.address}
-                              </div>
+                              </button>
                             ))}
                           </div>
                         )}
@@ -471,7 +470,7 @@ export default function TurfFilters({
                             placeholder="Radius (km)"
                             className="w-full"
                             value={filters.radius}
-                            onChange={(e) =>
+                            onChange={e =>
                               setFilters({ ...filters, radius: e.target.value })
                             }
                           />

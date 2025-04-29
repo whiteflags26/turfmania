@@ -120,7 +120,7 @@ export default function CreateOrganizationRequestForm() {
       );
 
       if (!result.isValid) {
-        toast.error(result.errorMessage || 'Invalid image upload');
+        toast.error(result.errorMessage ?? 'Invalid image upload');
         return;
       }
 
@@ -834,29 +834,35 @@ export default function CreateOrganizationRequestForm() {
                         Images to Upload
                       </h3>
                       <div className="grid grid-cols-2 gap-2">
-                        {images.map((file, idx) => (
-                          <div key={`new-${idx}`} className="relative group">
-                            <div className="aspect-square w-full overflow-hidden rounded-md">
-                              <Image
-                                src={URL.createObjectURL(file)}
-                                alt={`Organization image ${idx + 1}`}
-                                className="object-cover w-full h-full"
-                                fill
-                                sizes="(max-width: 768px) 50vw, 33vw"
-                                priority={idx === 0}
-                              />
-                              <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button
-                                  type="button"
-                                  onClick={() => removeImage(idx)}
-                                  className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600"
-                                >
-                                  Remove
-                                </button>
+                        {images.map(file => {
+                          const uniqueKey = `${file.name}-${file.lastModified}`;
+
+                          return (
+                            <div key={uniqueKey} className="relative group">
+                              <div className="aspect-square w-full overflow-hidden rounded-md">
+                                <Image
+                                  src={URL.createObjectURL(file)}
+                                  alt={`Organization image ${file.name}`}
+                                  className="object-cover w-full h-full"
+                                  fill
+                                  sizes="(max-width: 768px) 50vw, 33vw"
+                                  priority={images[0] === file}
+                                />
+                                <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeImage(images.indexOf(file))
+                                    }
+                                    className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -933,4 +939,3 @@ export default function CreateOrganizationRequestForm() {
     </div>
   );
 }
-
