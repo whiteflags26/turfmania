@@ -7,76 +7,53 @@ export async function fetchTurfs(
 ) {
   const params = new URLSearchParams();
 
-  if (filters?.minPrice && filters.minPrice !== "")
-    params.append("minPrice", filters.minPrice.toString());
+  // Helper to append a single-valued param if it’s neither undefined nor empty
+  const appendParam = (key: string, value: string | number | undefined) => {
+    if (value !== undefined && value !== "") {
+      params.append(key, value.toString());
+    }
+  };
 
-  if (filters?.maxPrice && filters.maxPrice !== "")
-    params.append("maxPrice", filters.maxPrice.toString());
+  // 1) Append all single-value filters in one go
+  ([
+    "minPrice",
+    "maxPrice",
+    "radius",
+    "latitude",
+    "longitude",
+    "preferredDate",
+    "preferredTimeStart",
+    "preferredTimeEnd",
+  ] as const).forEach((key) => {
+    
+    appendParam(key, filters[key]);
+  });
 
-  if (
-    filters?.teamSize &&
-    Array.isArray(filters.teamSize) &&
-    filters.teamSize.length > 0
-  ) {
-    filters.teamSize.forEach((size) => {
-      if (size) params.append("teamSize", size.toString());
-    });
-  }
+  // 2) Append all multi-value filters via a shared loop
+  (["teamSize", "facilities", "sports"] as const).forEach((key) => {
+   
+    const arr = filters[key];
+    if (Array.isArray(arr)) {
+      arr.forEach((v) => {
+        if (v !== undefined && v !== "") {
+          params.append(key, v.toString());
+        }
+      });
+    }
+  });
 
-  if (
-    filters?.facilities &&
-    Array.isArray(filters.facilities) &&
-    filters.facilities.length > 0
-  ) {
-    filters.facilities.forEach((f) => {
-      if (f) params.append("facilities", f.toString());
-    });
-  }
+  // 3) Append pagination
+  appendParam("page", pagination.currentPage);
+  appendParam("limit", pagination.limit);
 
-  if (filters?.radius && filters.radius !== "")
-    params.append("radius", filters.radius.toString());
-
-  if (filters?.latitude && filters.latitude !== "")
-    params.append("latitude", filters.latitude.toString());
-
-  if (filters?.longitude && filters.longitude !== "")
-    params.append("longitude", filters.longitude.toString());
-
-  if (
-    filters?.sports &&
-    Array.isArray(filters.sports) &&
-    filters.sports.length > 0
-  ) {
-    filters.sports.forEach((sport) => {
-      if (sport) params.append("sports", sport.toString());
-    });
-  }
-
-  if (filters?.preferredDate && filters.preferredDate !== "")
-    params.append("preferredDate", filters.preferredDate.toString());
-
-  if (filters?.preferredTimeStart && filters.preferredTimeStart !== "")
-    params.append("preferredTimeStart", filters.preferredTimeStart.toString());
-
-  if (filters?.preferredTimeEnd && filters.preferredTimeEnd !== "")
-    params.append("preferredTimeEnd", filters.preferredTimeEnd.toString());
-
-  if (pagination?.currentPage)
-    params.append("page", pagination.currentPage.toString());
-
-  if (pagination?.limit) params.append("limit", pagination.limit.toString());
-
-  const res = await fetch(
-    `${
-      process.env.NEXT_PUBLIC_API_URL
-    }/api/v1/turf/filter/search?${params.toString()}`
-  );
+  // 4) Fetch, check, and return
+  const url = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf/filter/search?${params.toString()}`;
+  const res = await fetch(url);
 
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.message || "Failed to fetch turfs");
+    const err = await res.json();
+    throw new Error(err.message ?? "Failed to fetch turfs");
   }
 
-  const data = await res.json();
-  return data;
+  return await res.json();
 }
