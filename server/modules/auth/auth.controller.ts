@@ -329,7 +329,7 @@ export const getMe = asyncHandler(
 
     // If it's an organization/turf owner request, check organization access
     if (req.cookies.org_token && req.params.organizationId) {
-      try {
+      
         const hasOrgAccess = await authService.checkUserRoleInOrganization(
           user._id,
           req.params.organizationId,
@@ -339,11 +339,7 @@ export const getMe = asyncHandler(
             new ErrorResponse('Not authorized as organization owner', 403),
           );
         }
-      } catch (error) {
-        return next(
-          new ErrorResponse('Organization access verification failed', 403),
-        );
-      }
+     
     }
 
     res.status(200).json({

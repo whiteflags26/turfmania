@@ -1,9 +1,9 @@
-// src/modules/health/health.routes.ts
+
 import express from 'express';
 import { checkPermission, protect } from '../auth/auth.middleware';
 import HealthController from '../health-metrics/health-metrics.controller';
 import { standardApiLimiter } from '../../utils/rateLimiter';
-standardApiLimiter
+
 
 const router = express.Router();
 const healthController = new HealthController();

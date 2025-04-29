@@ -11,7 +11,7 @@ import {
   resendVerificationEmail
 } from './auth.controller';
 import { protect } from './auth.middleware';
-import { authLimiter,standardApiLimiter } from '../../utils/rateLimiter';
+import { authLimiter} from '../../utils/rateLimiter';
 
 
 
@@ -20,7 +20,7 @@ const router = express.Router();
 
 router.post('/register',authLimiter, register);
 
-router.post('/login', login);
+router.post('/login',authLimiter, login);
 
 router.post('/logout', logout);
 

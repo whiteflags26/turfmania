@@ -1,10 +1,10 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import mongoose from 'mongoose';
 import asyncHandler from '../../shared/middleware/async';
 import ErrorResponse from '../../utils/errorResponse';
 import FacilityService from './facility.service';
 import validator from 'validator';
-import { AuthRequest } from '../auth/auth.middleware';
+
 import { AuthenticatedRequest } from '../../types/request';
 
 export default class FacilityController {

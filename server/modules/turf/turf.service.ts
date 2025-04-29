@@ -113,74 +113,111 @@ export default class TurfService {
   }
 
   /**@desc Update turf by ID with image upload and data validation **/
-  async updateTurf(
+  public async updateTurf(
     id: string,
     updateData: Partial<ITurf>,
     newImages?: Express.Multer.File[]
   ): Promise<ITurf | null> {
     try {
-      const turf = await Turf.findById(id);
-      if (!turf) throw new ErrorResponse("Turf not found", 404);
-
-      // Prevent organization updates
-      if (updateData.organization && !updateData.organization.equals(turf.organization)) {
-        throw new ErrorResponse("Cannot change the organization of an existing turf", 400);
-      }
-
-      // If updating name, check uniqueness within organization
-      if (updateData.name && updateData.name !== turf.name) {
-        const existingTurf = await Turf.findOne({
-          name: updateData.name,
-          organization: turf.organization,
-          _id: { $ne: id } // exclude current turf
-        });
-
-        if (existingTurf) {
-          throw new ErrorResponse("A turf with this name already exists in the organization", 400);
-        }
-      }
-
-      // Validate sports and team size if they're being updated
-      if (updateData.sports ?? updateData.team_size) {
-        const sportsToValidate = updateData.sports ?? turf.sports;
-        const teamSizeToValidate = updateData.team_size ?? turf.team_size;
-        await this.validateTurfData(sportsToValidate, teamSizeToValidate);
-      }
-
-      // Handle image updates
+      const turf = await this.fetchTurfOrThrow(id);
+      this.ensureOrganizationUnchanged(updateData, turf);
+      await this.ensureNameUnique(updateData, turf);
+      await this.ensureTurfDataValid(updateData, turf);
       if (newImages && newImages.length > 0) {
-        // Upload new images
-        const uploadPromises = newImages.map((image) => uploadImage(image));
-        const uploadedImages = await Promise.all(uploadPromises);
-        const newImageUrls = uploadedImages.map((img) => img.url);
-
-        // Delete old images if they exist
-        if (turf.images.length > 0) {
-          await Promise.all(
-            turf.images.map((imgUrl) => {
-              const publicId = extractPublicIdFromUrl(imgUrl);
-              return publicId ? deleteImage(publicId) : Promise.resolve();
-            })
-          );
-        }
-
-        updateData.images = newImageUrls;
+        updateData.images = await this.processImageUpdates(turf.images, newImages);
       }
-
-      const updatedTurf = await Turf.findByIdAndUpdate(id, updateData, {
+      return await Turf.findByIdAndUpdate(id, updateData, {
         new: true,
         runValidators: true,
       });
-
-      return updatedTurf;
     } catch (error) {
       console.error(error);
       throw new ErrorResponse(
-        error instanceof ErrorResponse ? error.message : "Failed to update turf",
+        error instanceof ErrorResponse ? error.message : 'Failed to update turf',
         error instanceof ErrorResponse ? error.statusCode : 500
       );
     }
   }
+
+  // Helper: fetch turf or throw 404
+  private async fetchTurfOrThrow(id: string): Promise<ITurf & mongoose.Document> {
+    const turf = await Turf.findById(id);
+    if (!turf) throw new ErrorResponse('Turf not found', 404);
+    return turf;
+  }
+
+  // Helper: prevent changing organization
+  private ensureOrganizationUnchanged(
+    updateData: Partial<ITurf>,
+    turf: ITurf
+  ): void {
+    if (
+      updateData.organization &&
+      !updateData.organization.equals(turf.organization)
+    ) {
+      throw new ErrorResponse(
+        'Cannot change the organization of an existing turf',
+        400
+      );
+    }
+  }
+
+  // Helper: ensure name uniqueness
+  private async ensureNameUnique(
+    updateData: Partial<ITurf>,
+    turf: ITurf
+  ): Promise<void> {
+    if (updateData.name && updateData.name !== turf.name) {
+      const exists = await Turf.exists({
+        name: updateData.name,
+        organization: turf.organization,
+        _id: { $ne: turf._id },
+      });
+      if (exists) {
+        throw new ErrorResponse(
+          'A turf with this name already exists in the organization',
+          400
+        );
+      }
+    }
+  }
+
+  // Helper: validate sports and team size
+  private async ensureTurfDataValid(
+    updateData: Partial<ITurf>,
+    turf: ITurf
+  ): Promise<void> {
+    if (updateData.sports ?? updateData.team_size) {
+      const sportsToValidate = updateData.sports ?? turf.sports;
+      const teamSizeToValidate = updateData.team_size ?? turf.team_size;
+      await this.validateTurfData(sportsToValidate, teamSizeToValidate);
+    }
+  }
+
+  // Helper: handle deleting old images and uploading new
+  private async processImageUpdates(
+    oldImages: string[],
+    newImages: Express.Multer.File[]
+  ): Promise<string[]> {
+    // Upload new images
+    const uploadResults = await Promise.all(
+      newImages.map((file) => uploadImage(file, "turfmania"))
+    );
+    const newImageUrls = uploadResults.map(r => r.url);
+
+    // Delete old images
+    await Promise.all(
+      oldImages.map(url => {
+        const publicId = extractPublicIdFromUrl(url);
+        return publicId ? deleteImage(publicId) : Promise.resolve();
+      })
+    );
+    return newImageUrls;
+  }
+
+  // ... other methods ...
+
+
 
   /**@desc Delete turf by ID and all associated reviews **/
   async deleteTurf(id: string): Promise<ITurf | null> {
