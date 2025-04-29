@@ -72,18 +72,10 @@ export const getSearchSuggestions = async (
     ];
 
     // Sort by relevance (exact matches first)
-    const sortedSuggestions = suggestions.sort((a, b) => {
-      const aStartsWithQuery = a.name
-        .toLowerCase()
-        .startsWith(query.toLowerCase())
-        ? -1
-        : 0;
-      const bStartsWithQuery = b.name
-        .toLowerCase()
-        .startsWith(query.toLowerCase())
-        ? -1
-        : 0;
-      return aStartsWithQuery - bStartsWithQuery;
+    const sortedSuggestions = [...suggestions].sort((a, b) => {
+      const aStarts = a.name.toLowerCase().startsWith(query.toLowerCase()) ? -1 : 0;
+      const bStarts = b.name.toLowerCase().startsWith(query.toLowerCase()) ? -1 : 0;
+      return aStarts - bStarts;
     });
 
     res.status(200).json({
@@ -177,7 +169,7 @@ export const search = async (req: Request, res: Response) => {
         /[.*+?^${}()|[\]\\]/g,
         '\\$&',
       );
-      const locationRegex = new RegExp(escapedLocation, 'i');
+      
 
       orgConditions.push(
         {
