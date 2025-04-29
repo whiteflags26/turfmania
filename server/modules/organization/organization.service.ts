@@ -19,6 +19,7 @@ export interface IOrganizationRoleAssignment {
   role: Types.ObjectId;
 }
 
+
 class OrganizationService {
   organizationRequestService = new OrganizationRequestService();
   facilityService = new FaciltyService();
@@ -108,8 +109,8 @@ class OrganizationService {
 
             // Assign the default organization owner role
             await this.assignOwnerToOrganizationWithSession(
-              organization._id.toString(),
-              owner._id.toString(),
+              organization.id,
+              owner.id,
               session
             );
 
@@ -128,14 +129,14 @@ class OrganizationService {
             await this.organizationRequestService.approveRequestWithSession(
               requestId,
               adminId,
-              organization._id.toString(),
+              organization.id,
               wasEdited,
               adminNotes,
               session
             );
 
             console.log(
-              `Organization request ${requestId} approved and linked to organization ${organization._id}`
+              `Organization request ${requestId} approved and linked to organization ${organization.id}`
             );
           });
 

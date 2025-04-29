@@ -264,15 +264,8 @@ export default class HealthService {
             day: { $dayOfMonth: "$timestamp" },
           };
           break;
-        default:
-          groupByInterval = {
-            year: { $year: "$timestamp" },
-            month: { $month: "$timestamp" },
-            day: { $dayOfMonth: "$timestamp" },
-            hour: { $hour: "$timestamp" },
-          };
       }
-
+    
       // Get metrics with aggregation
       return await HealthMetrics.aggregate([
         { $match: timeFilter },
