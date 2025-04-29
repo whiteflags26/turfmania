@@ -807,12 +807,12 @@ export default function EditOrganizationForm() {
                                   imageUrls[newImageFiles.indexOf(file)] ||
                                   '/placeholder-image.jpg'
                                 }
-                                alt={`Upload preview of ${file.name}`}
+                                alt={file.name}
                                 className="object-cover w-full h-full"
                                 onError={e => {
                                   const target = e.target as HTMLImageElement;
                                   target.src = '/placeholder-image.jpg';
-                                  target.alt = 'Preview not available';
+                                  target.alt = 'Not available'; // Compliant
                                 }}
                               />
                               <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
