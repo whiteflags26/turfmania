@@ -12,8 +12,8 @@ import { TurfReview } from "../turf-review/turf-review.model";
 import User from "../user/user.model";
 
 export default class TurfService {
-  private sportsService: SportsService;
-  private teamSizeService: TeamSizeService;
+   private readonly sportsService: SportsService;
+  private readonly teamSizeService: TeamSizeService;
 
   constructor() {
     this.sportsService = new SportsService();
@@ -141,9 +141,9 @@ export default class TurfService {
       }
 
       // Validate sports and team size if they're being updated
-      if (updateData.sports || updateData.team_size) {
-        const sportsToValidate = updateData.sports || turf.sports;
-        const teamSizeToValidate = updateData.team_size || turf.team_size;
+      if (updateData.sports ?? updateData.team_size) {
+        const sportsToValidate = updateData.sports ?? turf.sports;
+        const teamSizeToValidate = updateData.team_size ?? turf.team_size;
         await this.validateTurfData(sportsToValidate, teamSizeToValidate);
       }
 

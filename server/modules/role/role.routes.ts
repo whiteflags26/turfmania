@@ -13,13 +13,16 @@ import { standardApiLimiter } from '../../utils/rateLimiter';
 
 const router = express.Router({ mergeParams: true });
 
-router.use(protect);
+
 
 // Get all roles for an organization
 router.get(
   
   '/organizations/:organizationId/roles',
+ 
+
   standardApiLimiter,
+  protect,
   checkPermission('view_roles'),
   getOrganizationRoles,
 );
@@ -45,6 +48,7 @@ router.post(
 router.get(
   '/global',
   standardApiLimiter,
+  protect,
   checkPermission('manage_user_global_roles'),
   getGlobalRoles,
 );
@@ -53,6 +57,7 @@ router.get(
 router.get(
   '/:roleId',
   standardApiLimiter,
+  protect,
   checkPermission('manage_user_global_roles'),
   getRoleById,
 );
@@ -70,6 +75,7 @@ router.get(
 router.delete(
   '/:roleId',
   standardApiLimiter,
+  protect,
   checkPermission('manage_user_global_roles'),
   deleteRole,
 );

@@ -6,6 +6,6 @@ standardApiLimiter
 
 const router= Router()
 const bookingController= new BookingController();
-router.post('/',protect,standardApiLimiter,bookingController.createBooking)
+router.post('/',standardApiLimiter,protect,bookingController.createBooking)
 
 export default router;
