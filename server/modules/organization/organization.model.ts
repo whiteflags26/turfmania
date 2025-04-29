@@ -14,6 +14,7 @@ interface ILocation {
   post_code?: string;
 }
 
+
 export interface IOrganization extends Document {
   name: string;
   facilities: string[];
