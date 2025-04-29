@@ -85,7 +85,7 @@ export default class OrganizationRequestService {
     requestData: CreateRequestDto,
     images?: Express.Multer.File[],
   ): Promise<IOrganizationRequest> {
-    try {
+    
       // Validate owner email exists in database
       const existingRequest = await OrganizationRequest.findOne({
         organizationName: {
@@ -127,9 +127,7 @@ export default class OrganizationRequestService {
       });
 
       return request;
-    } catch (error) {
-      throw error;
-    }
+   
   }
 
   public async getRequestById(
@@ -225,7 +223,7 @@ export default class OrganizationRequestService {
     try {
       // Validate all IDs
       const validatedRequestId = validateId(requestId);
-      // const validatedAdminId = validateId(adminId);
+     
       const validatedOrgId = validateId(organizationId);
 
       const options = session ? { session } : {};

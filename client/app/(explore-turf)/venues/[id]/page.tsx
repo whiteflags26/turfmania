@@ -11,7 +11,7 @@ import { auth } from "@/lib/server-auth/auth";
 import { Card } from "@/components/ui/card";
 
 interface SingleTurfPageProps {
-  params: Promise<{ id: string }>;
+  readonly params: Promise<{ id: string }>;
 }
 
 export default async function SingleTurfPage({ params }: SingleTurfPageProps) {
