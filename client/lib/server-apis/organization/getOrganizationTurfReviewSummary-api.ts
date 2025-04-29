@@ -1,24 +1,26 @@
-import { IOrganizationTurfReviewSummary } from "@/types/organizationTurfReview";
-import { TurfReviewData } from "@/types/organizationTurfReview";
+import {
+  IOrganizationTurfReviewSummary,
+  TurfReviewData,
+} from '@/types/organizationTurfReview';
 
 export async function fetchOrganizationTurfReviewSummary(
-  organizationId: string
+  organizationId: string,
 ): Promise<IOrganizationTurfReviewSummary | null> {
   try {
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/organization-summary/${organizationId}`,
       {
-        method: "GET",
+        method: 'GET',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-      }
+      },
     );
 
     if (!response.ok) {
       const error = await response.json();
       throw new Error(
-        error.message || "Failed to fetch organization turf review summary"
+        error.message ?? 'Failed to fetch organization turf review summary',
       );
     }
 
@@ -29,7 +31,7 @@ export async function fetchOrganizationTurfReviewSummary(
       // Transform the data to match the expected interface
       const transformedData: IOrganizationTurfReviewSummary = {
         organizationId: organizationId,
-        organizationName: "", 
+        organizationName: '',
         overallAverageRating: data.data.summary.organizationAverageRating,
         totalReviewCount: data.data.summary.totalReviews,
         turfSummaries: data.data.turfs.map((turf: TurfReviewData) => ({
@@ -51,7 +53,7 @@ export async function fetchOrganizationTurfReviewSummary(
 
     return null;
   } catch (error) {
-    console.error("Fetch organization turf review summary error:", error);
+    console.error('Fetch organization turf review summary error:', error);
     return null;
   }
 }
