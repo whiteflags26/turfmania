@@ -727,26 +727,16 @@ export default function EditOrganizationForm() {
                         {existingImages.map((imageUrl, idx) => (
                           <div key={`${imageUrl}`} className="relative group">
                             <div className="aspect-square w-full overflow-hidden rounded-md">
-                              {/* Add error handling for image loading */}
                               <img
                                 src={imageUrl}
-                                alt={`Item ${idx + 1}`} // remove the word "image"
+                                alt={`Item ${idx + 1}`} // Changed from "Image" to "Item"
                                 className="object-cover w-full h-full"
                                 onError={e => {
                                   const target = e.target as HTMLImageElement;
                                   target.src = '/placeholder-image.jpg';
-                                  target.alt = 'Not available'; // short and clean fallback alt
+                                  target.alt = 'Not available'; // Simplified error alt text
                                 }}
                               />
-                              <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button
-                                  type="button"
-                                  onClick={() => removeExistingImage(idx)}
-                                  className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600"
-                                >
-                                  Remove
-                                </button>
-                              </div>
                             </div>
                           </div>
                         ))}
@@ -807,23 +797,14 @@ export default function EditOrganizationForm() {
                                   imageUrls[newImageFiles.indexOf(file)] ||
                                   '/placeholder-image.jpg'
                                 }
-                                alt={file.name}
+                                alt={file.name} // Using just the filename
                                 className="object-cover w-full h-full"
                                 onError={e => {
                                   const target = e.target as HTMLImageElement;
                                   target.src = '/placeholder-image.jpg';
-                                  target.alt = 'Not available'; // Compliant
+                                  target.alt = 'Not available'; // Consistent error alt text
                                 }}
                               />
-                              <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button
-                                  type="button"
-                                  onClick={() => removeNewImage(file.name)}
-                                  className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600"
-                                >
-                                  Remove
-                                </button>
-                              </div>
                             </div>
                           </div>
                         ))}
