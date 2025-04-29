@@ -83,9 +83,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       path: `/organization/${orgId}/view-turfs`
     },
     {
-      name: "Analytics",
+      name: "Turf TimeSlot",
       icon: <FiBarChart2 className="h-5 w-5" />,
-      path: `/organization/${orgId}/analytics`
+      path: `/organization/${orgId}/turf-timeslot`
     },
     {
       name: "Payments",
