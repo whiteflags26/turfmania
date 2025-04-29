@@ -3,23 +3,18 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchTurfReviewSummary } from '@/lib/server-apis/single-turf/fetchTurfReviewSummary-api';
-import { IPagination } from '@/types/pagination';
 import { ITurf } from '@/types/turf';
-import { ITurfFilters } from '@/types/turfFilter';
 import { motion } from 'framer-motion';
 import { Clock, MapPin, Search, Star, Users } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface Props {
-  loading: boolean;
-  turfs: ITurf[];
-  filters: ITurfFilters;
-  pagination: IPagination;
-  selectedTurf: ITurf | null;
-  setSelectedTurf: Dispatch<SetStateAction<ITurf | null>>;
-  resetFilters: () => void;
+  readonly loading: boolean;
+  readonly turfs: ITurf[];
+
+  readonly resetFilters: () => void;
 }
 
 interface TurfReviewSummary {
@@ -29,7 +24,7 @@ interface TurfReviewSummary {
   };
 }
 
-export default function TurfGrid({ loading, turfs, resetFilters }:  Props) {
+export default function TurfGrid({ loading, turfs, resetFilters }: Props) {
   const [reviewSummaries, setReviewSummaries] = useState<TurfReviewSummary>({});
 
   useEffect(() => {
@@ -47,9 +42,9 @@ export default function TurfGrid({ loading, turfs, resetFilters }:  Props) {
   const renderContent = () => {
     // Loading state
     if (loading) {
-      return Array.from({ length: 6 }).map((_, i) => (
-        // 2. Use a unique ID instead of array index
-        <Card key={`skeleton-${i}-${Date.now()}`} className="overflow-hidden">
+      const skeletonKeys = ['a', 'b', 'c', 'd', 'e', 'f'];
+      return skeletonKeys.map(key => (
+        <Card key={`skeleton-${key}`} className="overflow-hidden">
           <Skeleton className="h-64 w-full" />
           <CardContent className="p-4">
             <Skeleton className="h-6 w-3/4 mb-4" />
