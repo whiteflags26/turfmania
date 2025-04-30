@@ -3,6 +3,15 @@
 <div align="center">
   <img src="https://res.cloudinary.com/dzqgzquno/image/upload/fl_preserve_transparency/v1746033754/Gemini_Generated_Image_r4hs33r4hs33r4hs_bvkqii.jpg?_s=public-apps" alt="TurfMania Logo" width="300"/>
   <h3>Your Game, Your Turf, Your Time</h3>
+  
+  ![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)
+  ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+  ![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
+  ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
+  ![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)
+  ![Azure](https://img.shields.io/badge/Microsoft_Azure-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+  ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
+  ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 </div>
 
 ## Overview
@@ -48,7 +57,9 @@ TurfMania is a comprehensive turf booking platform that connects sports enthusia
 - **Automation**: Scheduled cronjobs for emails and database maintenance
 
 ### Frontend
-- **Framework**: Next.js with TypeScript
+- **Framework**: Next.js
+- **Styling**: (Based on your project, e.g., Tailwind CSS, Material UI)
+- **State Management**: (Based on your project, e.g., Redux, Context API)
 - **Deployment**: Vercel
 
 ## Project Structure
