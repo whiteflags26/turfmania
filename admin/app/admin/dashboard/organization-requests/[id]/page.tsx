@@ -37,6 +37,16 @@ interface User {
   email: string;
 }
 
+// Helper function to safely format dates
+const formatDate = (
+  dateString: string | undefined | null,
+  formatString: string = 'PPP p',
+): string => {
+  if (!dateString) return 'Not available';
+  const date = new Date(dateString);
+  return !isNaN(date.getTime()) ? format(date, formatString) : 'Invalid date';
+};
+
 export default function OrganizationRequestDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -59,14 +69,19 @@ export default function OrganizationRequestDetailPage() {
           params.id as string,
         );
 
-        setRequest(response);
+        // Check if the response has the expected structure
+        if (!response.success || !response.data) {
+          throw new Error('Invalid response format');
+        }
 
-        if (response.images && response.images.length > 0) {
-          setSelectedImage(response.images[0]);
+        setRequest(response.data as OrganizationRequest);
+
+        if (response.data.images && response.data.images.length > 0) {
+          setSelectedImage(response.data.images[0]);
         }
       } catch (err) {
         setError('Failed to load organization request details');
-        console.error(err);
+        console.error('Error fetching organization request:', err);
       } finally {
         setIsLoading(false);
       }
@@ -82,19 +97,15 @@ export default function OrganizationRequestDetailPage() {
       setProcessing(true);
       setError(null);
 
-      // Call the process API
       const response = await processOrganizationRequest(params.id as string);
 
-      // Update the local state with the new request data
-      setRequest(response);
+      // FIX: Use response.data
+      setRequest(response as OrganizationRequest); 
 
-      // Show success message
       toast.success('Request processing started successfully');
-
-      // Route to organization forms page
       router.push(`/admin/dashboard/organization-form/${params.id}`);
     } catch (err: unknown) {
-      const error_message = handleAxiosError(err, 'Failed to reject request');
+      const error_message = handleAxiosError(err, 'Failed to process request');
       setError(error_message);
       toast.error(error_message);
     } finally {
@@ -102,7 +113,6 @@ export default function OrganizationRequestDetailPage() {
     }
   };
 
-  // Add new handlers
   const handleCancelProcessing = async () => {
     try {
       setIsCancelling(true);
@@ -111,10 +121,16 @@ export default function OrganizationRequestDetailPage() {
       const response = await CancelProcessOrganizationRequest(
         params.id as string,
       );
-      setRequest(response);
+
+      // FIX: Use response.data
+      setRequest(response as OrganizationRequest);
+
       toast.success('Processing cancelled successfully');
     } catch (err: unknown) {
-      const error_message = handleAxiosError(err, 'Failed to reject request');
+      const error_message = handleAxiosError(
+        err,
+        'Failed to cancel processing',
+      );
       setError(error_message);
       toast.error(error_message);
     } finally {
@@ -136,9 +152,12 @@ export default function OrganizationRequestDetailPage() {
         params.id as string,
         rejectionNotes.trim(),
       );
-      setRequest(response);
+
+      // FIX: Use response.data
+      setRequest(response as OrganizationRequest);
+
       toast.success('Request rejected successfully');
-      setRejectionNotes(''); // Reset notes after successful rejection
+      setRejectionNotes('');
     } catch (err: any) {
       const error_message = handleAxiosError(err, 'Failed to reject request');
       setError(error_message);
@@ -308,7 +327,7 @@ export default function OrganizationRequestDetailPage() {
                     Created At
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900">
-                    {format(new Date(request.createdAt), 'PPP p')}
+                    {formatDate(request.createdAt)}
                   </dd>
                 </div>
 
@@ -317,11 +336,13 @@ export default function OrganizationRequestDetailPage() {
                     <User className="w-4 h-4 mr-1" />
                     Requester
                   </dt>
-                  {/* <dd className="mt-1 text-sm text-gray-900">
-                    {request.requesterId.first_name}{' '}
-                    {request.requesterId.last_name} ({request.requesterId.email}
-                    )
-                  </dd> */}
+                  {request.requesterId && (
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {request.requesterId.first_name}{' '}
+                      {request.requesterId.last_name} (
+                      {request.requesterId.email})
+                    </dd>
+                  )}
                 </div>
 
                 {request.processingAdminId && (
@@ -331,9 +352,9 @@ export default function OrganizationRequestDetailPage() {
                       Processing Admin
                     </dt>
                     <dd className="mt-1 text-sm text-gray-900">
-                      {/* {request.}{' '}
+                      {request.processingAdminId.first_name}{' '}
                       {request.processingAdminId.last_name} (
-                      {request.processingAdminId.email}) */}
+                      {request.processingAdminId.email})
                     </dd>
                   </div>
                 )}
@@ -345,7 +366,7 @@ export default function OrganizationRequestDetailPage() {
                       Processing Started
                     </dt>
                     <dd className="mt-1 text-sm text-gray-900">
-                      {format(new Date(request.processingStartedAt), 'PPP p')}
+                      {formatDate(request.processingStartedAt)}
                     </dd>
                   </div>
                 )}
@@ -356,12 +377,12 @@ export default function OrganizationRequestDetailPage() {
                     Address
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900">
-                    {request.location.address},{' '}
-                    {request.location.area && `${request.location.area}, `}
-                    {request.location.sub_area &&
+                    {request.location?.address || 'N/A'},{' '}
+                    {request.location?.area && `${request.location.area}, `}
+                    {request.location?.sub_area &&
                       `${request.location.sub_area}, `}
-                    {request.location.city}{' '}
-                    {request.location.post_code &&
+                    {request.location?.city || 'N/A'}{' '}
+                    {request.location?.post_code &&
                       `- ${request.location.post_code}`}
                   </dd>
                 </div>
@@ -372,9 +393,14 @@ export default function OrganizationRequestDetailPage() {
                     Coordinates
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900">
-                    Lat: {request.location.coordinates.coordinates[1]}, Long:{' '}
-                    {request.location.coordinates.coordinates[0]}
-                    {/* Here you could add a small map view */}
+                    {request.location?.coordinates?.coordinates ? (
+                      <>
+                        Lat: {request.location.coordinates.coordinates[1]},
+                        Long: {request.location.coordinates.coordinates[0]}
+                      </>
+                    ) : (
+                      'Coordinates not available'
+                    )}
                   </dd>
                 </div>
               </dl>
@@ -391,9 +417,9 @@ export default function OrganizationRequestDetailPage() {
             </div>
             <div className="p-6">
               <div className="flex flex-wrap gap-2">
-                {request.facilities.map(facility => (
+                {(request.facilities || []).map(facility => (
                   <span
-                    key={facility} // Using facility name as the key since it's unique
+                    key={facility}
                     className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
                   >
                     {formatFacilityName(facility)}
@@ -432,10 +458,10 @@ export default function OrganizationRequestDetailPage() {
                 <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
                   <div className="col-span-1">
                     <dt className="text-sm font-medium text-gray-500">
-                      Organization Name
+                      Organization Email
                     </dt>
                     <dd className="mt-1 text-sm text-gray-900">
-                      {request.orgContactEmail}
+                      {request.orgContactEmail || 'N/A'}
                     </dd>
                   </div>
 
@@ -444,7 +470,7 @@ export default function OrganizationRequestDetailPage() {
                       Organization ID
                     </dt>
                     <dd className="mt-1 text-sm text-gray-900">
-                      {request.organizationId._id}
+                      {request.organizationId._id || 'N/A'}
                     </dd>
                   </div>
 
@@ -455,14 +481,16 @@ export default function OrganizationRequestDetailPage() {
                     </dt>
                     <dd className="mt-1">
                       <div className="flex flex-wrap gap-2">
-                        {request.organizationId.facilities.map(facility => (
-                          <span
-                            key={facility} // Using facility name as the key since it's unique
-                            className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm font-medium"
-                          >
-                            {formatFacilityName(facility)}
-                          </span>
-                        ))}
+                        {(request.organizationId.facilities || []).map(
+                          facility => (
+                            <span
+                              key={facility}
+                              className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm font-medium"
+                            >
+                              {formatFacilityName(facility)}
+                            </span>
+                          ),
+                        )}
                       </div>
                     </dd>
                   </div>
@@ -473,13 +501,13 @@ export default function OrganizationRequestDetailPage() {
                       Address
                     </dt>
                     <dd className="mt-1 text-sm text-gray-900">
-                      {request.organizationId.location.address},
-                      {request.organizationId.location.area &&
+                      {request.organizationId.location?.address || 'N/A'},
+                      {request.organizationId.location?.area &&
                         ` ${request.organizationId.location.area},`}
-                      {request.organizationId.location.sub_area &&
+                      {request.organizationId.location?.sub_area &&
                         ` ${request.organizationId.location.sub_area},`}
-                      {request.organizationId.location.city}
-                      {request.organizationId.location.post_code &&
+                      {request.organizationId.location?.city || 'N/A'}
+                      {request.organizationId.location?.post_code &&
                         ` - ${request.organizationId.location.post_code}`}
                     </dd>
                   </div>
@@ -577,7 +605,7 @@ export default function OrganizationRequestDetailPage() {
                             </p>
                           </div>
                           <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                            {format(new Date(request.createdAt), 'PP')}
+                            {formatDate(request.createdAt, 'PP')}
                           </div>
                         </div>
                       </div>
@@ -600,10 +628,7 @@ export default function OrganizationRequestDetailPage() {
                               </p>
                             </div>
                             <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                              {format(
-                                new Date(request.processingStartedAt),
-                                'PP',
-                              )}
+                              {formatDate(request.processingStartedAt, 'PP')}
                             </div>
                           </div>
                         </div>
@@ -640,7 +665,7 @@ export default function OrganizationRequestDetailPage() {
                                 </p>
                               </div>
                               <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                                {format(new Date(request.updatedAt), 'PP')}
+                                {formatDate(request.updatedAt, 'PP')}
                               </div>
                             </div>
                           </div>
