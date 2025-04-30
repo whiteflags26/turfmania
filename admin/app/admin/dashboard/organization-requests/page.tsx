@@ -43,8 +43,8 @@ export default function OrganizationRequestsPage() {
       setData(response);
     } catch (err: any) {
       const statusCode = err.response?.status;
-      
-      const errorMessage = err.response?.data?.message || err.message;
+
+      const errorMessage = err.response?.data?.message ?? err.message;
 
       if (statusCode === 403) {
         setError('Unauthorized');
@@ -52,15 +52,11 @@ export default function OrganizationRequestsPage() {
       }
 
       setError(errorMessage);
-      toast.error(errorMessage || 'Failed to load organization requests');
+      toast.error(errorMessage ?? 'Failed to load organization requests');
     } finally {
       setIsLoading(false);
     }
   }, [filters]);
-
-  if (error === 'Unauthorized') {
-    return <ErrorDisplay statusCode={403} />;
-  }
 
   useEffect(() => {
     fetchData();
@@ -109,6 +105,10 @@ export default function OrganizationRequestsPage() {
     }
     return 'text-gray-500 hover:bg-gray-100';
   };
+
+  if (error === 'Unauthorized') {
+    return <ErrorDisplay statusCode={403} />;
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

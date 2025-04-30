@@ -164,29 +164,31 @@ export function FilterPanel({
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <fieldset
+            id="status-filter-group"
+            className="flex flex-wrap gap-2 border-0 p-0 m-0"
+          >
+            <legend className="block text-sm font-medium text-gray-700 mb-2">
               Status
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {statusOptions.map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => toggleStatus(option.value)}
-                  className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    filters.status.includes(option.value)
-                      ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                      : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
-                  }`}
-                >
-                  {filters.status.includes(option.value) && (
-                    <Check className="h-3 w-3 mr-1" />
-                  )}
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
+            </legend>
+            {statusOptions.map(option => (
+              <button
+                key={option.value}
+                onClick={() => toggleStatus(option.value)}
+                className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  filters.status.includes(option.value)
+                    ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                    : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+                }`}
+                type="button"
+              >
+                {filters.status.includes(option.value) && (
+                  <Check className="h-3 w-3 mr-1" />
+                )}
+                {option.label}
+              </button>
+            ))}
+          </fieldset>
         </div>
       )}
     </div>

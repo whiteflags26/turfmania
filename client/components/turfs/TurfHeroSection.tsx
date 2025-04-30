@@ -1,12 +1,12 @@
-import { BackgroundSlider } from "@/components/turfs/BackGroundSlider";
-import { SearchForm } from "@/components/turfs/SearchForm";
+import { BackgroundSlider } from '@/components/turfs/BackGroundSlider';
+import { SearchForm } from '@/components/turfs/SearchForm';
 
 export default function TurfHeroSection() {
   return (
     <div className="relative w-full h-[60vh] sm:h-[70vh] md:h-[80vh] flex items-center justify-center overflow-hidden mb-8 sm:mb-12 mx-auto rounded-md">
       {/* Background Slider */}
       <BackgroundSlider />
-      
+
       {/* Dark Overlay with gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/70"></div>
 
@@ -20,10 +20,15 @@ export default function TurfHeroSection() {
             <br />
             <span className="text-white">Sports Turf</span>
           </h1>
-          
+
           <p className="text-slate-200 max-w-2xl mx-auto text-base sm:text-lg md:text-xl font-light leading-relaxed">
-            Discover and book the best sports turfs in your area. 
-            <span className="hidden sm:inline"> Filter by sport, price, and location to find the perfect match for your game.</span>
+            Discover and book the best sports turfs in your area.
+            {/* Move the space before the span */}
+            <span className="hidden sm:inline">
+              {' '}
+              Filter by sport, price, and location to find the perfect match for
+              your game.
+            </span>
           </p>
 
           <SearchForm />

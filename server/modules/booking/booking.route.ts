@@ -42,7 +42,7 @@ router.get(
     '/',
     standardApiLimiter,
     protect,
-    //checkPermission('global_manage_bookings'),
+    checkPermission('global_manage_bookings'),
     bookingController.getAllBookings
 );
 
@@ -50,7 +50,7 @@ router.get(
     '/admin/:id',
     standardApiLimiter,
     protect,
-    //checkPermission('global_manage_bookings'),
+    checkPermission('global_manage_bookings'),
     bookingController.getBookingAsAdmin
 );
 
@@ -59,7 +59,7 @@ router.get(
     '/turf/:turfId',
     standardApiLimiter,
     protect,
-    //checkPermission('manage_bookings'),
+    checkPermission('manage_bookings'),
     bookingController.getTurfBookings
 );
 
@@ -68,7 +68,7 @@ router.get(
     '/turf/:turfId/monthly-earnings',
     standardApiLimiter,
     protect,
-    //checkPermission('manage_bookings'),
+    checkPermission('manage_bookings'),
     bookingController.getTurfMonthlyEarnings
 );
 
@@ -76,7 +76,7 @@ router.get(
     '/turf/:turfId/current-month-earnings',
     standardApiLimiter,
     protect,
-    //checkPermission('manage_bookings'),
+    checkPermission('manage_bookings'),
     bookingController.getTurfCurrentMonthEarnings
 );
 
@@ -84,7 +84,7 @@ router.get(
     '/organization/:organizationId/current-month-earnings',
     standardApiLimiter,
     protect,
-    //checkPermission('manage_bookings'),
+    checkPermission('manage_bookings'),
     bookingController.getOrganizationCurrentMonthEarnings
 );
 

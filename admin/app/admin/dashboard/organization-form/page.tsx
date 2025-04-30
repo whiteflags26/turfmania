@@ -42,6 +42,17 @@ export default function OrganizationForm() {
   const [ownerEmail, setOwnerEmail] = useState('');
 
   useEffect(() => {
+    // Cleanup function to revoke object URLs
+    return () => {
+      imageFiles.forEach(file => {
+        if (file.preview) {
+          URL.revokeObjectURL(file.preview);
+        }
+      });
+    };
+  }, [imageFiles]);
+
+  useEffect(() => {
     const fetchFacilities = async () => {
       try {
         const response = await getAllFacilities();
@@ -80,7 +91,7 @@ export default function OrganizationForm() {
     );
 
     if (!result.isValid) {
-      toast.error(result.errorMessage || 'Image upload failed');
+      toast.error(result.errorMessage ?? 'Image upload failed');
       return;
     }
 
@@ -136,27 +147,39 @@ export default function OrganizationForm() {
         [], // No existing images for new organization
       );
 
-      // Call the backend service
-      const response = await createOrganization(preparedFormData);
+      // Call the backend service and use the response
+      await createOrganization(preparedFormData);
 
+      // Show success message
       toast.success('Organization created successfully!');
       setSuccess(true);
 
       // Reset form or redirect
       setTimeout(() => {
         setSuccess(false);
-        // Optional: Reset form or redirect
+        // Reset form fields
+        setName('');
+        setAddress('');
+        setPlaceId('');
+        setCity('');
+        setFacilities([]);
+        setImageFiles([]);
+        setOrgContactPhone('');
+        setOrgContactEmail('');
+        setAdminNotes('');
+        setContactPhone('');
+        setOwnerEmail('');
       }, 3000);
     } catch (err: any) {
       const statusCode = err.response?.status;
-      const errorMessage = err.response?.data?.message || err.message;
+      const errorMessage = err.response?.data?.message ?? err.message;
 
       if (statusCode === 403) {
         return <ErrorDisplay statusCode={403} />;
       }
 
       setError(errorMessage);
-      toast.error(errorMessage || 'Failed to create organization');
+      toast.error(errorMessage ?? 'Failed to create organization');
     } finally {
       setLoading(false);
     }
@@ -385,6 +408,55 @@ export default function OrganizationForm() {
                   />
                 </div>
 
+                {/* New Area and Sub Area fields */}
+                <div>
+                  <label
+                    htmlFor="area"
+                    className="block text-sm font-medium text-gray-900"
+                  >
+                    Area
+                  </label>
+                  <input
+                    id="area"
+                    value={area}
+                    onChange={e => setArea(e.target.value)}
+                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter area (optional)"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="subArea"
+                    className="block text-sm font-medium text-gray-900"
+                  >
+                    Sub Area
+                  </label>
+                  <input
+                    id="subArea"
+                    value={subArea}
+                    onChange={e => setSubArea(e.target.value)}
+                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter sub area (optional)"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="postCode"
+                    className="block text-sm font-medium text-gray-900"
+                  >
+                    Post Code
+                  </label>
+                  <input
+                    id="postCode"
+                    value={postCode}
+                    onChange={e => setPostCode(e.target.value)}
+                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter post code (optional)"
+                  />
+                </div>
+
                 <div>
                   <label
                     htmlFor="longitude"
@@ -496,9 +568,9 @@ export default function OrganizationForm() {
                 {imageFiles.length > 0 && (
                   <div className="grid grid-cols-2 gap-2">
                     {imageFiles.map((file, index) => (
-                      <div key={index} className="relative group">
+                      <div key={file.name} className="relative group">
                         <img
-                          src={file.preview || URL.createObjectURL(file)}
+                          src={file.preview ?? URL.createObjectURL(file)}
                           alt={`Preview ${index + 1}`}
                           className="object-cover w-full h-32 rounded-md"
                           onLoad={() => {
@@ -540,17 +612,4 @@ export default function OrganizationForm() {
       </form>
     </div>
   );
-  useEffect(() => {
-    // Cleanup function to revoke object URLs
-    return () => {
-      imageFiles.forEach(file => {
-        if (file.preview) {
-          URL.revokeObjectURL(file.preview);
-        }
-      });
-    };
-  }, [imageFiles]);
 }
-
-// Add this useEffect near your other hooks
-

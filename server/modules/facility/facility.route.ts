@@ -6,7 +6,7 @@ import { standardApiLimiter } from "../../utils/rateLimiter";
 
 const router = Router();
 const facilityController = new FacilityController();
-standardApiLimiter
+
 
 router.post("/",standardApiLimiter,protect, checkPermission("manage_tags"), facilityController.createFacility);
 router.get("/",standardApiLimiter,facilityController.getAllFacilities);

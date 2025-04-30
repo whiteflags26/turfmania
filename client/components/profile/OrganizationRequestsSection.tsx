@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { getUserOrganizationRequests } from "@/lib/server-apis/profile/getUserOrganizationRequests-api";
-import { IOrganizationRequest } from "@/types/organizationRequest";
-import { format } from "date-fns";
-import { toast } from "react-hot-toast";
+import { getUserOrganizationRequests } from '@/lib/server-apis/profile/getUserOrganizationRequests-api';
+import { IOrganizationRequest } from '@/types/organizationRequest';
+import { format } from 'date-fns';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import {
-  BsCheckCircleFill,
-  BsXCircleFill,
-  BsClock,
-  BsBuilding,
   BsArrowRight,
-  BsTelephone,
+  BsBuilding,
+  BsCheckCircleFill,
+  BsClock,
   BsEnvelope,
   BsGeoAlt,
   BsImage,
-} from "react-icons/bs";
-import Image from "next/image";
-import Link from "next/link";
+  BsTelephone,
+  BsXCircleFill,
+} from 'react-icons/bs';
 
 export default function OrganizationRequestsSection() {
   const [requests, setRequests] = useState<IOrganizationRequest[]>([]);
@@ -32,7 +32,7 @@ export default function OrganizationRequestsSection() {
       } catch (err) {
         const error = err as Error;
         setError(error.message);
-        toast.error("Failed to load organization requests");
+        toast.error('Failed to load organization requests');
       } finally {
         setIsLoading(false);
       }
@@ -43,26 +43,26 @@ export default function OrganizationRequestsSection() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case "approved":
-      case "approved_with_changes":
-        return "text-green-600 bg-green-50";
-      case "rejected":
-        return "text-red-600 bg-red-50";
-      case "processing":
-        return "text-blue-600 bg-blue-50";
+      case 'approved':
+      case 'approved_with_changes':
+        return 'text-green-600 bg-green-50';
+      case 'rejected':
+        return 'text-red-600 bg-red-50';
+      case 'processing':
+        return 'text-blue-600 bg-blue-50';
       default:
-        return "text-yellow-600 bg-yellow-50";
+        return 'text-yellow-600 bg-yellow-50';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
-      case "approved":
-      case "approved_with_changes":
+      case 'approved':
+      case 'approved_with_changes':
         return <BsCheckCircleFill className="text-green-600" />;
-      case "rejected":
+      case 'rejected':
         return <BsXCircleFill className="text-red-600" />;
-      case "processing":
+      case 'processing':
         return <BsClock className="text-blue-600" />;
       default:
         return <BsClock className="text-yellow-600" />;
@@ -72,7 +72,7 @@ export default function OrganizationRequestsSection() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        {[1, 2].map((i) => (
+        {[1, 2].map(i => (
           <div
             key={i}
             className="bg-white rounded-xl shadow-sm p-6 animate-pulse"
@@ -128,7 +128,7 @@ export default function OrganizationRequestsSection() {
 
   return (
     <div className="space-y-6">
-      {requests.map((request) => (
+      {requests.map(request => (
         <div
           key={request._id}
           className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
@@ -144,12 +144,12 @@ export default function OrganizationRequestsSection() {
                   {request.organizationName}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
-                  {format(new Date(request.createdAt), "MMM dd, yyyy")}
+                  {format(new Date(request.createdAt), 'MMM dd, yyyy')}
                 </p>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {request.facilities.slice(0, 3).map((facility, index) => (
+                  {request.facilities.slice(0, 3).map(facility => (
                     <span
-                      key={index}
+                      key={facility}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
                     >
                       {facility}
@@ -167,10 +167,10 @@ export default function OrganizationRequestsSection() {
               {getStatusIcon(request.status)}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                  request.status
+                  request.status,
                 )}`}
               >
-                {request.status.replace("_", " ")}
+                {request.status.replace('_', ' ')}
               </span>
             </div>
           </div>
@@ -223,11 +223,11 @@ export default function OrganizationRequestsSection() {
                   <h4 className="text-sm font-medium text-gray-700">Images</h4>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {request.images.map((image, index) => (
-                    <div key={index} className="relative aspect-square">
+                  {request.images.map(image => (
+                    <div key={image} className="relative aspect-square">
                       <Image
                         src={image}
-                        alt={`Organization image ${index + 1}`}
+                        alt="Organization image"
                         fill
                         className="object-cover rounded-lg"
                         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -239,10 +239,10 @@ export default function OrganizationRequestsSection() {
             )}
 
             {/* Processing Started Date */}
-            {request.status === "processing" && request.processingStartedAt && (
+            {request.status === 'processing' && request.processingStartedAt && (
               <div className="text-sm text-gray-500">
-                Processing started on:{" "}
-                {format(new Date(request.processingStartedAt), "MMM dd, yyyy")}
+                Processing started on:{' '}
+                {format(new Date(request.processingStartedAt), 'MMM dd, yyyy')}
               </div>
             )}
           </div>
@@ -272,7 +272,7 @@ export default function OrganizationRequestsSection() {
             </div>
           )}
 
-          {request.status === "approved" && request.organizationId && (
+          {request.status === 'approved' && request.organizationId && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <Link
                 href={`/organizations/${request.organizationId}`}

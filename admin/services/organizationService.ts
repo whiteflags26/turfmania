@@ -5,7 +5,6 @@ import {
   OrganizationRequestsResponse,
   SingleOrganizationRequestResponse,
 } from '@/types/organization';
-import { AxiosError } from 'axios';
 
 export interface RequestFilters {
   requesterEmail: string;
@@ -29,7 +28,6 @@ export async function getOrganizationRequests(
     console.log('Received response:', data);
     return data;
   } catch (error: any) {
-    const err = error as AxiosError<{ message: string }>;
     throw new Error(
       error.response?.data?.message ?? 'Failed to fetch organization requests',
     );
@@ -113,7 +111,7 @@ export async function createOrganization(
       },
       withCredentials: true,
     });
-    console.log(response.data)
+    console.log(response.data);
 
     return response.data;
   } catch (error: any) {

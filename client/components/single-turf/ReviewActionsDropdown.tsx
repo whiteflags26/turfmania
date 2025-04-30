@@ -1,11 +1,5 @@
-"use client";
+'use client';
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,23 +9,29 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash2, Flag } from "lucide-react";
-import { useState } from "react";
-import { ITurfReview, UpdateReviewData } from "@/types/turf-review";
-import { IUser } from "@/types/user";
-import ReviewForm from "./ReviewForm";
-import toast from "react-hot-toast";
-import { ApiError } from "@/types/api-error";
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ApiError } from '@/types/api-error';
+import { ITurfReview, UpdateReviewData } from '@/types/turf-review';
+import { IUser } from '@/types/user';
+import { Edit, Flag, MoreHorizontal, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import ReviewForm from './ReviewForm';
 
 interface ReviewActionsDropdownProps {
-  review: ITurfReview;
-  currentUser: IUser | null;
-  onDelete: () => Promise<void>;
-  onEdit: (data: UpdateReviewData) => Promise<void>;
-  onReload: () => void;
+  readonly review: ITurfReview;
+  readonly currentUser: IUser | null;
+  readonly onDelete: () => Promise<void>;
+  readonly onEdit: (data: UpdateReviewData) => Promise<void>;
+  readonly onReload: () => void;
 }
 
 export default function ReviewActionsDropdown({
@@ -50,11 +50,11 @@ export default function ReviewActionsDropdown({
     try {
       setIsDeleting(true);
       await onDelete();
-      toast.success("Review deleted successfully");
+      toast.success('Review deleted successfully');
       onReload();
     } catch (err) {
       const error = err as ApiError;
-      toast.error("Failed to delete review. "+error.message);
+      toast.error('Failed to delete review. ' + error.message);
     } finally {
       setIsDeleting(false);
       setShowDeleteAlert(false);
@@ -100,7 +100,8 @@ export default function ReviewActionsDropdown({
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. Your review will be permanently deleted.
+              This action cannot be undone. Your review will be permanently
+              deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -110,7 +111,7 @@ export default function ReviewActionsDropdown({
               className="bg-red-600 hover:bg-red-700"
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -119,7 +120,9 @@ export default function ReviewActionsDropdown({
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <ReviewForm
-            turfId={typeof review.turf === 'string' ? review.turf : review.turf._id}
+            turfId={
+              typeof review.turf === 'string' ? review.turf : review.turf._id
+            }
             onSuccess={() => {
               setShowEditDialog(false);
               onReload();
@@ -127,7 +130,7 @@ export default function ReviewActionsDropdown({
             initialData={{
               reviewId: review._id,
               rating: review.rating,
-              review: review.review || "",
+              review: review.review ?? '',
               images: review.images || [],
             }}
             isEditing={true}

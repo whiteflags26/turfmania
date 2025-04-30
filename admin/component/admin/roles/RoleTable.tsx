@@ -1,4 +1,13 @@
-import { Check, ChevronDown, Info, Search, Shield, Trash2, X } from 'lucide-react';
+"use client"
+import {
+  Check,
+  ChevronDown,
+  Info,
+  Search,
+  Shield,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Role } from './types';
 
@@ -6,6 +15,12 @@ type Props = {
   readonly roles: Role[];
   readonly canDelete: boolean;
   readonly onDelete: (roleId: string) => void;
+};
+
+type ScopeClassMap = {
+  global: string;
+  organization: string;
+  local: string;
 };
 
 export default function RoleTable({ roles, canDelete, onDelete }: Props) {
@@ -22,9 +37,8 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
     setExpandedRow(expandedRow === roleId ? null : roleId);
   };
 
-  const filteredRoles = roles.filter(role => 
-    role.name.toLowerCase().includes(searchQuery.toLowerCase()) 
-    
+  const filteredRoles = roles.filter(role =>
+    role.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   if (roles.length === 0) {
@@ -37,7 +51,8 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
           No Roles Found
         </h3>
         <p className="mt-2 text-sm text-gray-500 max-w-md mx-auto">
-          Get started by creating a new role. Roles define what actions users can perform in the system.
+          Get started by creating a new role. Roles define what actions users
+          can perform in the system.
         </p>
         <button className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
           Create New Role
@@ -56,13 +71,14 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
             placeholder="Search roles"
           />
         </div>
         <div className="text-sm text-gray-500">
-          {filteredRoles.length} {filteredRoles.length === 1 ? 'role' : 'roles'} found
+          {filteredRoles.length} {filteredRoles.length === 1 ? 'role' : 'roles'}{' '}
+          found
         </div>
       </div>
 
@@ -103,141 +119,186 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
-              {filteredRoles.map(role => (
-                <>
-                  <tr 
-                    key={role._id} 
-                    className={`${expandedRow === role._id ? 'bg-blue-50' : 'hover:bg-gray-50'} cursor-pointer`}
-                    onClick={() => toggleExpandRow(role._id)}
-                  >
-                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
-                      <div className="flex items-center">
-                        <div className={`p-1.5 rounded-full ${role.isDefault ? 'bg-blue-100' : 'bg-gray-100'} mr-3`}>
-                          <Shield className={`h-5 w-5 ${role.isDefault ? 'text-blue-600' : 'text-gray-500'}`} />
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900 flex items-center">
-                            {role.name}
-                            <ChevronDown
-                              className={`ml-1 h-4 w-4 transition-transform ${expandedRow === role._id ? 'rotate-180' : ''}`}
+              {filteredRoles.map(role => {
+                // Extract nested ternary into variable
+                let scopeClass = 'bg-green-100 text-green-800'; // Default for 'local'
+                if (role.scope === 'global') {
+                  scopeClass = 'bg-purple-100 text-purple-800';
+                } else if (role.scope === 'organization') {
+                  scopeClass = 'bg-blue-100 text-blue-800';
+                }
+
+                return (
+                  <>
+                    <tr
+                      key={role._id}
+                      className={`${
+                        expandedRow === role._id
+                          ? 'bg-blue-50'
+                          : 'hover:bg-gray-50'
+                      } cursor-pointer`}
+                      onClick={() => toggleExpandRow(role._id)}
+                    >
+                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+                        <div className="flex items-center">
+                          <div
+                            className={`p-1.5 rounded-full ${
+                              role.isDefault ? 'bg-blue-100' : 'bg-gray-100'
+                            } mr-3`}
+                          >
+                            <Shield
+                              className={`h-5 w-5 ${
+                                role.isDefault
+                                  ? 'text-blue-600'
+                                  : 'text-gray-500'
+                              }`}
                             />
                           </div>
-                      
+                          <div>
+                            <div className="font-medium text-gray-900 flex items-center">
+                              {role.name}
+                              <ChevronDown
+                                className={`ml-1 h-4 w-4 transition-transform ${
+                                  expandedRow === role._id ? 'rotate-180' : ''
+                                }`}
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-4 text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize
-                        ${role.scope === 'global' ? 'bg-purple-100 text-purple-800' : 
-                          role.scope === 'organization' ? 'bg-blue-100 text-blue-800' : 
-                          'bg-green-100 text-green-800'}`}>
-                        {role.scope}
-                      </span>
-                    </td>
-                    <td className="px-3 py-4 text-sm text-gray-500">
-                      <div className="flex flex-wrap gap-1.5">
-                        {role.permissions.slice(0, 3).map(perm => (
-                          <span
-                            key={perm._id}
-                            className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                            title={perm.description}
-                          >
-                            {perm.name}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${scopeClass}`}
+                        >
+                          {role.scope}
+                        </span>
+                      </td>
+                      <td className="px-3 py-4 text-sm text-gray-500">
+                        <div className="flex flex-wrap gap-1.5">
+                          {role.permissions.slice(0, 3).map(perm => (
+                            <span
+                              key={perm._id}
+                              className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                              title={perm.description}
+                            >
+                              {perm.name}
+                            </span>
+                          ))}
+                          {role.permissions.length > 3 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+                              +{role.permissions.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm">
+                        {role.isDefault ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <Check className="h-3 w-3 mr-1" />
+                            Default
                           </span>
-                        ))}
-                        {role.permissions.length > 3 && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
-                            +{role.permissions.length - 3} more
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            <X className="h-3 w-3 mr-1" />
+                            No
                           </span>
                         )}
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-4 text-sm">
-                      {role.isDefault ? (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <Check className="h-3 w-3 mr-1" />
-                          Default
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                          <X className="h-3 w-3 mr-1" />
-                          No
-                        </span>
+                      </td>
+                      {canDelete && (
+                        <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                          {!role.isDefault && (
+                            <>
+                              {deleteConfirm === role._id ? (
+                                <fieldset className="flex items-center justify-end space-x-2">
+                                  <legend className="sr-only">Delete confirmation actions</legend>
+                                  <button
+                                    onClick={() => handleDelete(role._id)}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        handleDelete(role._id);
+                                      }
+                                    }}
+                                    className="text-white bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                  >
+                                    Confirm
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteConfirm(null)}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        setDeleteConfirm(null);
+                                      }
+                                    }}
+                                    className="text-gray-700 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                                  >
+                                    Cancel
+                                  </button>
+                                </fieldset>
+                              ) : (
+                                <button
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    setDeleteConfirm(role._id);
+                                  }}
+                                  className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                >
+                                  <Trash2 className="h-3 w-3 mr-1 text-gray-400" />
+                                  Delete
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </td>
                       )}
-                    </td>
-                    {canDelete && (
-                      <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        {!role.isDefault && (
-                          <>
-                            {deleteConfirm === role._id ? (
-                              <div className="flex items-center justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                  onClick={() => handleDelete(role._id)}
-                                  className="text-white bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs font-medium transition-colors"
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  onClick={() => setDeleteConfirm(null)}
-                                  className="text-gray-700 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded text-xs font-medium transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeleteConfirm(role._id);
-                                }}
-                                className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                              >
-                                <Trash2 className="h-3 w-3 mr-1 text-gray-400" />
-                                Delete
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                  {expandedRow === role._id && (
-                    <tr className="bg-blue-50">
-                      <td colSpan={canDelete ? 5 : 4} className="px-6 py-4">
-                        <div className="mb-3">
-                          <h4 className="text-sm font-medium text-gray-900 mb-2">Full Role Details</h4>
-                          <div className="text-sm text-gray-600 mb-2">
-                        
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            <span className="font-medium">ID:</span> {role._id}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
-                            <span>Permissions</span>
-                            <span className="ml-2 bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">{role.permissions.length}</span>
-                          </h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                            {role.permissions.map(perm => (
-                              <div key={perm._id} className="bg-white p-2 rounded border border-gray-200 flex items-start">
-                                <Info className="h-4 w-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">{perm.name}</div>
-                                  {perm.description && (
-                                    <div className="text-xs text-gray-500">{perm.description}</div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </td>
                     </tr>
-                  )}
-                </>
-              ))}
+                    {expandedRow === role._id && (
+                      <tr className="bg-blue-50">
+                        <td colSpan={canDelete ? 5 : 4} className="px-6 py-4">
+                          <div className="mb-3">
+                            <h4 className="text-sm font-medium text-gray-900 mb-2">
+                              Full Role Details
+                            </h4>
+                            <div className="text-sm text-gray-600 mb-2"></div>
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium">ID:</span>{' '}
+                              {role._id}
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
+                              <span>Permissions</span>
+                              <span className="ml-2 bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
+                                {role.permissions.length}
+                              </span>
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {role.permissions.map(perm => (
+                                <div
+                                  key={perm._id}
+                                  className="bg-white p-2 rounded border border-gray-200 flex items-start"
+                                >
+                                  <Info className="h-4 w-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
+                                  <div>
+                                    <div className="text-sm font-medium text-gray-900">
+                                      {perm.name}
+                                    </div>
+                                    {perm.description && (
+                                      <div className="text-xs text-gray-500">
+                                        {perm.description}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -5,7 +5,7 @@ import {
   getAllFacilities,
   getSingleOrganizationRequest,
 } from '@/services/organizationService';
-import { OrganizationRequest, RequestStatus } from '@/types/organization';
+import { RequestStatus } from '@/types/organization';
 import {
   ArrowLeft,
   Building,
@@ -18,6 +18,20 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
+
+// Add interface for requester state
+interface RequesterState {
+  id: {
+    _id: string;
+    first_name: string;
+    email: string;
+  } | null;
+  processingAdminId?: {
+    _id: string;
+    first_name: string;
+    email: string;
+  } | null;
+}
 
 export default function EditOrganizationForm() {
   const router = useRouter();
@@ -43,7 +57,7 @@ export default function EditOrganizationForm() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [contactPhone, setContactPhone] = useState('');
-  const [orgcontactPhone, setOrgContactPhone] = useState('');
+  const [orgContactPhone, setOrgContactPhone] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [orgContactEmail, setOrgContactEmail] = useState('');
   const [requestNotes, setRequestNotes] = useState('');
@@ -51,10 +65,11 @@ export default function EditOrganizationForm() {
   const [processingStartedAt, setProcessingStartedAt] = useState<
     string | undefined
   >();
-  const [requesterId, setRequesterId] = useState('');
-  const [processingAdminId, setProcessingAdminId] = useState<
-    string | undefined
-  >();
+  const [requesterState, setRequesterState] = useState<RequesterState>({
+    id: null,
+    processingAdminId: null,
+  });
+
   const [facilityOptions, setFacilityOptions] = useState<string[]>([]);
 
   // Create object URLs for new images
@@ -89,19 +104,30 @@ export default function EditOrganizationForm() {
           setPostCode(orgData.location.post_code ?? '');
           setLongitude(orgData.location.coordinates.coordinates[0]);
           setLatitude(orgData.location.coordinates.coordinates[1]);
-
-          // Add these new setters
           setFacilities(orgData.facilities);
           setExistingImages(orgData.images ?? []);
-          setOrgContactPhone(orgData.orgContactPhone);
+          setOrgContactPhone(orgData.orgContactPhone); // Fixed variable name
           setOrgContactEmail(orgData.orgContactEmail);
           setContactPhone(orgData.contactPhone);
           setOwnerEmail(orgData.ownerEmail);
           setRequestNotes(orgData.requestNotes ?? '');
           setStatus(orgData.status);
           setProcessingStartedAt(orgData.processingStartedAt);
-          setRequesterId(orgData.requesterId.first_name);
-          setProcessingAdminId(orgData.processingAdminId?.first_name);
+          // Update requester state
+          setRequesterState({
+            id: {
+              _id: orgData.requesterId._id,
+              first_name: orgData.requesterId.first_name,
+              email: orgData.requesterId.email,
+            },
+            processingAdminId: orgData.processingAdminId
+              ? {
+                  _id: orgData.processingAdminId._id,
+                  first_name: orgData.processingAdminId.first_name,
+                  email: orgData.processingAdminId.email,
+                }
+              : null,
+          });
         }
       } catch (err: any) {
         console.error('Error fetching organization data:', err);
@@ -187,17 +213,37 @@ export default function EditOrganizationForm() {
     setExistingImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const removeNewImage = (index: number) => {
-    setNewImageFiles(prev => prev.filter((_, i) => i !== index));
+  const removeNewImage = (fileName: string) => {
+    setNewImageFiles(prev => prev.filter(file => file.name !== fileName));
+    // Also clean up the corresponding URL
+    const index = newImageFiles.findIndex(file => file.name === fileName);
+    if (index !== -1) {
+      URL.revokeObjectURL(imageUrls[index]);
+      setImageUrls(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null); // Clear any previous errors
 
     try {
-      const payload: Partial<OrganizationRequest> = {
-        name: name,
+      // Validate required fields
+      if (!isFormValid) {
+        throw new Error('Please fill in all required fields');
+      }
+
+      // Validate image sizes before submission
+      const oversizedImages = newImageFiles.filter(
+        file => file.size > 5 * 1024 * 1024,
+      );
+      if (oversizedImages.length > 0) {
+        throw new Error('Some images exceed the 5MB size limit');
+      }
+
+      const payload = {
+        name,
         facilities,
         location: {
           place_id: placeId,
@@ -214,14 +260,15 @@ export default function EditOrganizationForm() {
         contactPhone,
         ownerEmail,
         requestNotes,
-        orgContactPhone: orgcontactPhone,
+        orgContactPhone,
         orgContactEmail,
         requestId: organizationId,
-
         status,
         processingStartedAt,
-        images: [...existingImages],
-        // Add any other fields required by your API
+        images: existingImages,
+        newImages: newImageFiles,
+        requesterId: requesterState.id?._id,
+        processingAdminId: requesterState.processingAdminId?._id,
       };
 
       const response = await createOrganization(payload);
@@ -230,10 +277,12 @@ export default function EditOrganizationForm() {
         setSuccess(true);
         toast.success('Organization updated successfully!');
         router.push('/admin/dashboard/organization-requests');
+      } else {
+        throw new Error(response.message ?? 'Failed to update organization');
       }
     } catch (err: any) {
       console.error('Error updating organization:', err);
-      setError(err.message ?? 'Failed to update organization');
+      setError(err.message ?? 'An unexpected error occurred');
       toast.error(err.message ?? 'Failed to update organization');
     } finally {
       setLoading(false);
@@ -410,7 +459,7 @@ export default function EditOrganizationForm() {
                       <input
                         type="tel"
                         id="orgContactPhone"
-                        value={orgcontactPhone}
+                        value={orgContactPhone}
                         onChange={e => setOrgContactPhone(e.target.value)}
                         className={`${inputClasses} placeholder-gray-500`}
                         placeholder="01XXXXXXXXX"
@@ -676,31 +725,27 @@ export default function EditOrganizationForm() {
                       </h3>
                       <div className="grid grid-cols-2 gap-2">
                         {existingImages.map((imageUrl, idx) => (
-                          <div
-                            key={`${imageUrl}`}
-                            className="relative group"
-                          >
+                          <div key={`${imageUrl}`} className="relative group">
                             <div className="aspect-square w-full overflow-hidden rounded-md">
-                              {/* Add error handling for image loading */}
                               <img
                                 src={imageUrl}
-                                alt={`Item ${idx + 1}`} // remove the word "image"
+                                alt={`Item ${idx + 1}`}
                                 className="object-cover w-full h-full"
                                 onError={e => {
                                   const target = e.target as HTMLImageElement;
                                   target.src = '/placeholder-image.jpg';
-                                  target.alt = 'Not available'; // short and clean fallback alt
+                                  target.alt = 'Not available';
                                 }}
                               />
-                              <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button
-                                  type="button"
-                                  onClick={() => removeExistingImage(idx)}
-                                  className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600"
-                                >
-                                  Remove
-                                </button>
-                              </div>
+                              {/* Add remove button */}
+                              <button
+                                type="button"
+                                onClick={() => removeExistingImage(idx)}
+                                className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label="Remove image"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -750,29 +795,34 @@ export default function EditOrganizationForm() {
                         New Images
                       </h3>
                       <div className="grid grid-cols-2 gap-2">
-                        {newImageFiles.map((file, idx) => (
-                          <div key={`new-${idx}`} className="relative group">
+                        {newImageFiles.map(file => (
+                          <div
+                            key={`${file.name}-${file.lastModified}`}
+                            className="relative group"
+                          >
                             <div className="aspect-square w-full overflow-hidden rounded-md">
-                              {/* Use imageUrls array that's managed with URL.createObjectURL */}
                               <img
-                                src={imageUrls[idx] || '/placeholder-image.jpg'}
-                                alt={`New image ${idx + 1}`}
+                                src={
+                                  imageUrls[newImageFiles.indexOf(file)] ||
+                                  '/placeholder-image.jpg'
+                                }
+                                alt={file.name}
                                 className="object-cover w-full h-full"
                                 onError={e => {
                                   const target = e.target as HTMLImageElement;
                                   target.src = '/placeholder-image.jpg';
-                                  target.alt = 'Image preview not available';
+                                  target.alt = 'Not available';
                                 }}
                               />
-                              <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button
-                                  type="button"
-                                  onClick={() => removeNewImage(idx)}
-                                  className="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600"
-                                >
-                                  Remove
-                                </button>
-                              </div>
+                              {/* Add remove button */}
+                              <button
+                                type="button"
+                                onClick={() => removeNewImage(file.name)}
+                                className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label="Remove image"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
                             </div>
                           </div>
                         ))}

@@ -22,9 +22,9 @@ import { fetchAvailableTimeSlots as fetchAvailableTimeSlotsAPI } from "@/lib/ser
 import { createBooking } from "@/lib/server-apis/booking/createBooking-api";
 
 interface BookingModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  turfId: string;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly turfId: string;
 }
 
 export default function BookingModal({
@@ -75,7 +75,7 @@ export default function BookingModal({
     setIsLoading(true);
     try {
       const response = await fetchAvailableTimeSlotsAPI(turfId, selectedDate);
-      
+
       if (response.success) {
         setTimeSlots(response.data);
       } else {
@@ -219,6 +219,29 @@ export default function BookingModal({
       </div>
     ));
   };
+
+  let slotContent;
+  if (isLoading) {
+    slotContent = (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  } else if (timeSlots.length > 0) {
+    slotContent = (
+      <TimeSlotGrid
+        timeSlots={timeSlots}
+        selectedSlot={selectedSlot}
+        onSelect={handleSlotSelect}
+      />
+    );
+  } else {
+    slotContent = (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        No available slots for this date
+      </div>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

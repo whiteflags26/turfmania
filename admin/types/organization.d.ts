@@ -1,3 +1,4 @@
+import { IUser } from './../../client/types/user.d';
 import { User } from "@/component/admin/users/types";
 
 export interface RequesterInfo {
