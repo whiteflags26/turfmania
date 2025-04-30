@@ -1,7 +1,7 @@
 # TurfMania
 
 <div align="center">
-  <img src="https://asset.cloudinary.com/dzqgzquno/8a0229dd90042ef5d765b79d63664eba" alt="TurfMania Logo" width="300"/>
+  <img src="https://res.cloudinary.com/dzqgzquno/image/upload/fl_preserve_transparency/v1746033754/Gemini_Generated_Image_r4hs33r4hs33r4hs_bvkqii.jpg?_s=public-apps" alt="TurfMania Logo" width="300"/>
   <h3>Your Game, Your Turf, Your Time</h3>
 </div>
 
@@ -35,6 +35,7 @@ TurfMania is a comprehensive turf booking platform that connects sports enthusia
 - **Role-Based Access Control**: Sophisticated user management system with customizable roles
 - **Permission Management**: Create new roles and assign specific permissions
 - **Platform Oversight**: Comprehensive dashboard to monitor platform activities
+- **Automated Tasks**: Scheduled cronjobs for email notifications and database cleanup
 
 ## Tech Stack
 
@@ -44,11 +45,10 @@ TurfMania is a comprehensive turf booking platform that connects sports enthusia
 - **Authentication**: JWT-based authentication
 - **File Storage**: Cloudinary integration
 - **Deployment**: Docker containerization on Azure App Service
+- **Automation**: Scheduled cronjobs for emails and database maintenance
 
 ### Frontend
-- **Framework**: Next.js
-- **Styling**: (Based on your project, e.g., Tailwind CSS, Material UI)
-- **State Management**: (Based on your project, e.g., Redux, Context API)
+- **Framework**: Next.js with TypeScript
 - **Deployment**: Vercel
 
 ## Project Structure
@@ -132,7 +132,7 @@ The application components are deployed as follows:
 ## Development Workflow
 
 Our team follows a structured git workflow:
-![Git Workflow](https://asset.cloudinary.com/dzqgzquno/30082b9fc3478fa3bfb957f8a0b09a92)
+![Git Workflow](https://res.cloudinary.com/dzqgzquno/image/upload/fl_preserve_transparency/v1746033750/WhatsApp_Image_2025-01-22_at_9.54.31_PM_ka9pgr.jpg?_s=public-apps)
 
 ## Documentation
 
