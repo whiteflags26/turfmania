@@ -347,7 +347,7 @@ export default class TurfReviewService {
   }
 
   // Helper to apply rating filters to both filter object and match stage
-  private applyRatingFilters(
+  public applyRatingFilters(
     filter: any,
     matchStage: any,
     options: ReviewFilterOptions,
