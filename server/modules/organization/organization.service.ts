@@ -5,14 +5,15 @@ import ErrorResponse from '../../utils/errorResponse';
 import { extractPublicIdFromUrl } from '../../utils/extractUrl';
 import FaciltyService from '../facility/facility.service';
 import OrganizationRequestService from '../organization-request/organization-request.service';
-import Permission, { PermissionScope } from '../permission/permission.model';
-import Role, { IRole } from '../role/role.model';
+import { PermissionScope } from '../permission/permission.model';
+import Role from '../role/role.model';
 import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
+import User from '../user/user.model';
+
 import { TurfReview } from '../turf-review/turf-review.model';
 import { Turf } from '../turf/turf.model';
-import User from '../user/user.model';
 import Organization, { IOrganization } from './organization.model';
- 
+
 interface OrganizationDetails {
   name: string;
   facilities: string[];
@@ -35,7 +36,6 @@ class OrganizationService {
   organizationRequestService = new OrganizationRequestService();
   facilityService = new FaciltyService();
 
-  
   /**
    * Create a new organization (Admin only)
    * Called by an Admin. Owner is assigned in a separate step if no requestId is provided.
@@ -50,9 +50,9 @@ class OrganizationService {
    * @param adminNotes - Optional notes from admin
    * @returns Promise<IOrganization>
    */
-  
+
   public async createOrganization(
-    orgDetails: OrganizationDetails
+    orgDetails: OrganizationDetails,
   ): Promise<IOrganization | null> {
     try {
       const {
@@ -484,7 +484,7 @@ class OrganizationService {
     organizationId: string,
     roleName: string,
     permissionNames: string[],
-  ): Promise<IRole> {
+  ): Promise<Role> {
     // Permission check ('manage_organization_roles') in middleware
     try {
       const organization = await Organization.findById(organizationId);
@@ -567,5 +567,42 @@ class OrganizationService {
       .limit(6)
       .populate('organization');
   };
+
+  async getOrganizationRoles(orgId: string) {
+    return Role.find({
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    });
+  }
+
+  async getOrganizationRoleMembers(orgId: string) {
+    return UserRoleAssignment.find({
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    })
+      .populate('userId')
+      .populate('roleId');
+  }
+
+  async getOrganizationUnassignedUsers(orgId: string) {
+    const assignedUserIds = await UserRoleAssignment.find({
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    }).distinct('userId');
+    return User.find({ _id: { $nin: assignedUserIds } });
+  }
+
+  async updateOrganizationRolePermissions(
+    orgId: string,
+    roleId: string,
+    permissions: string[],
+  ) {
+    return Role.findOneAndUpdate(
+      { _id: roleId, scope: PermissionScope.ORGANIZATION, scopeId: orgId },
+      { permissions },
+      { new: true },
+    );
+  }
 }
+
 export const organizationService = new OrganizationService();
