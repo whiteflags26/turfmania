@@ -291,6 +291,7 @@ class UserService {
     }
   }
 
+  
   /**
    * Check if user has any role in a specific organization
    * @param userId - The ID of the user
@@ -322,9 +323,9 @@ class UserService {
       throw new ErrorResponse(
         error.message ?? 'Failed to check organization role',
         error.statusCode ?? 500,
-      );
-    }
-  }
+      );
+    }
+  }
 }
 
 export const userService = new UserService();

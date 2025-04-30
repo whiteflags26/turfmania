@@ -17,7 +17,7 @@ router.post(
 );
 
 router.put(
-    '/:id/complete',
+    '/:id/complete-stripe',
     standardApiLimiter,
     protect,
     bookingController.completeBooking

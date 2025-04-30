@@ -18,7 +18,7 @@ export const getUsersAdmin = asyncHandler(
       count: users.length,
       data: users,
     });
-  },
+  }
 );
 
 /**
@@ -30,7 +30,7 @@ export const getUserByIdAdmin = asyncHandler(
   async (
     req: AuthRequest & { params: { userId: string } },
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) => {
     const { userId } = req.params;
     const user = await userService.getUserByIdAdmin(userId);
@@ -39,7 +39,7 @@ export const getUserByIdAdmin = asyncHandler(
       success: true,
       data: user,
     });
-  },
+  }
 );
 
 /**
@@ -50,7 +50,7 @@ export const getUserByIdAdmin = asyncHandler(
 export const getCurrentUserProfile = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user?.id) {
-      throw new ErrorResponse('Not authorized to access this route', 401);
+      throw new ErrorResponse("Not authorized to access this route", 401);
     }
 
     const userProfile = await userService.getCurrentUserProfile(req.user.id);
@@ -70,7 +70,7 @@ export const getCurrentUserProfile = asyncHandler(
 export const updateUserProfile = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user?.id) {
-      throw new ErrorResponse('Not authorized to access this route', 401);
+      throw new ErrorResponse("Not authorized to access this route", 401);
     }
 
     const userProfile = await userService.updateUserProfile(
@@ -93,7 +93,7 @@ export const updateUserProfile = asyncHandler(
 export const changePassword = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user?.id) {
-      throw new ErrorResponse('Not authorized to access this route', 401);
+      throw new ErrorResponse("Not authorized to access this route", 401);
     }
 
     const { currentPassword, newPassword } = req.body;
@@ -123,7 +123,7 @@ export const changePassword = asyncHandler(
 export const getUserOrganizations = asyncHandler(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user?.id) {
-      throw new ErrorResponse('Not authorized to access this route', 401);
+      throw new ErrorResponse("Not authorized to access this route", 401);
     }
 
     const organizations = await userService.getUserOrganizations(req.user.id);
