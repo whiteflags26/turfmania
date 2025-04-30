@@ -472,3 +472,137 @@ export const getOrganization = asyncHandler(
     });
   },
 );
+
+/**
+ * @route   GET /api/v1/organizations/:orgId/roles
+ * @desc    Get all roles for a specific organization
+ * @access  Private (Requires organization access)
+ */
+export const getOrganizationRoles = asyncHandler(
+  async (
+    req: AuthRequest & { params: { orgId: string } },
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { orgId } = req.params;
+      const roles = await organizationService.getOrganizationRoles(orgId);
+      res.status(200).json({ success: true, data: roles });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+export const getOrganizationRoleMembers = asyncHandler(
+  async (
+    req: AuthRequest & { params: { orgId: string } },
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { orgId } = req.params;
+      const members = await organizationService.getOrganizationRoleMembers(
+        orgId,
+      );
+      res.status(200).json({ success: true, data: members });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+export const getOrganizationUnassignedUsers = asyncHandler(
+  async (
+    req: AuthRequest & { params: { orgId: string } },
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { orgId } = req.params;
+      const users = await organizationService.getOrganizationUnassignedUsers(
+        orgId,
+      );
+      res.status(200).json({ success: true, data: users });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+export const updateOrganizationRolePermissions = asyncHandler(
+  async (
+    req: AuthRequest & {
+      params: { orgId: string; roleId: string };
+      body: { permissions: string[] };
+    },
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { orgId, roleId } = req.params;
+      const { permissions } = req.body;
+      const updatedRole =
+        await organizationService.updateOrganizationRolePermissions(
+          orgId,
+          roleId,
+          permissions,
+        );
+      res.status(200).json({ success: true, data: updatedRole });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/**
+ * @route   POST /api/v1/organizations/:orgId/users/:userId/roles/:roleId
+ * @desc    Assign a user to a role within an organization
+ * @access  Private (Requires manage_organization_roles permission)
+ */
+export const assignUserToOrganizationRole = asyncHandler(
+  async (
+    req: AuthRequest & {
+      params: { orgId: string; userId: string; roleId: string };
+    },
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { orgId, userId, roleId } = req.params;
+      const roleAssignment =
+        await organizationService.assignUserToOrganizationRole(
+          orgId,
+          userId,
+          roleId,
+        );
+      res.status(200).json({ success: true, data: roleAssignment });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/**
+ * @route   GET /api/v1/organizations/:orgId/roles/:roleId/permissions
+ * @desc    Get all permissions associated with a specific role
+ * @access  Private (Requires view_organization_roles permission)
+ */
+export const getRolePermissions = asyncHandler(
+  async (
+    req: AuthRequest & { params: { orgId: string; roleId: string } },
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { orgId, roleId } = req.params;
+      const permissions = await organizationService.getRolePermissions(
+        orgId,
+        roleId,
+      );
+      res.status(200).json({ success: true, data: permissions });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
