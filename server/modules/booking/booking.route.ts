@@ -36,7 +36,6 @@ router.get(
     protect,
     bookingController.getUserBookings
 );
-
 router.get(
     '/:id',
     standardApiLimiter,

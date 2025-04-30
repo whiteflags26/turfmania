@@ -4,16 +4,21 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchTurfReviewSummary } from '@/lib/server-apis/single-turf/fetchTurfReviewSummary-api';
 import { ITurf } from '@/types/turf';
+import { ITurfFilters } from '@/types/turfFilter';
+import { IPagination } from '@/types/pagination';
 import { motion } from 'framer-motion';
 import { Clock, MapPin, Search, Star, Users } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 interface Props {
   readonly loading: boolean;
   readonly turfs: ITurf[];
-
+  readonly filters: ITurfFilters; // Add this line
+  readonly pagination: IPagination; // Add this line
+  readonly selectedTurf: ITurf | null; // Add this line
+  readonly setSelectedTurf: Dispatch<SetStateAction<ITurf | null>>; // Add this line
   readonly resetFilters: () => void;
 }
 
