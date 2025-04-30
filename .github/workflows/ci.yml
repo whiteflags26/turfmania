@@ -19,8 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
-      # Create environment files
+
       - name: Create server .env file
         run: |
           cat > ./server/.env << EOF
@@ -35,26 +34,111 @@ jobs:
           CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
           EOF
-        
-      # Server test setup
+
       - name: Install server dependencies
         run: npm ci
         working-directory: ./server
-        
+
       - name: Run server tests with coverage
         run: npm run test:ci
         working-directory: ./server
-        
+
       - name: Verify server coverage file
         run: |
           ls -la coverage/
           [ -f coverage/lcov.info ] || exit 1
           echo "Server coverage file exists with $(wc -l < coverage/lcov.info) lines"
         working-directory: ./server
-        
-      # SonarCloud scan
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-client:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: ./client
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'client/package-lock.json'
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Deploy to Vercel
+        run: |
+          vercel deploy --prod \
+            --token ${{ secrets.VERCEL_TOKEN }} \
+            --build-env NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            --yes \
+            --name turfmania
+
+  deploy-admin:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: ./admin
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'admin/package-lock.json'
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Deploy to Vercel
+        run: |
+          vercel deploy --prod \
+            --token ${{ secrets.VERCEL_TOKEN }} \
+            --build-env NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            --yes \
+            --name turfmania-admin
+
+  deploy-organization:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: ./organization
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'organization/package-lock.json'
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Deploy to Vercel
+        run: |
+          vercel deploy --prod \
+            --token ${{ secrets.VERCEL_TOKEN }} \
+            --build-env NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
+            --yes \
+            --name turfmania-organization
