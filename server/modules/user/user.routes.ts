@@ -21,7 +21,7 @@ router.get(
   "/admin",
   standardApiLimiter,
   protect,
-  //   checkPermission('view_users'),
+    // checkPermission('view_users'),
   getUsersAdmin
 );
 

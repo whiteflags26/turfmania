@@ -1,12 +1,11 @@
-// timeslot.model.ts
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema } from "mongoose";
 export interface ITimeSlot extends Document {
   turf: mongoose.Types.ObjectId;
   start_time: Date;
   end_time: Date;
   is_available: boolean;
   price_override?: number;
-  booking?: mongoose.Types.ObjectId; 
+  booking?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -15,7 +14,7 @@ const TimeSlotSchema: Schema = new Schema(
   {
     turf: {
       type: Schema.Types.ObjectId,
-      ref: 'Turf',
+      ref: "Turf",
       required: true,
       index: true,
     },
@@ -41,13 +40,17 @@ const TimeSlotSchema: Schema = new Schema(
       set: (v: number | undefined) =>
         v ? parseFloat(v.toFixed(2)) : undefined,
     },
-    booking: {  
+    booking: {
       type: Schema.Types.ObjectId,
-      ref: 'Booking',
+      ref: "Booking",
       index: true,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
+
 TimeSlotSchema.index({ turf: 1, start_time: 1, is_available: 1 });
-export const TimeSlot = mongoose.model<ITimeSlot>('TimeSlot', TimeSlotSchema);
+
+TimeSlotSchema.index({ turf: 1, start_time: 1, end_time: 1 }, { unique: true });
+
+export const TimeSlot = mongoose.model<ITimeSlot>("TimeSlot", TimeSlotSchema);

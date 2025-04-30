@@ -4,6 +4,7 @@ import { format } from "date-fns";
 interface FetchAvailableTimeSlotsResponse {
   success: boolean;
   data: ITimeSlot[];
+  message?: string;
 }
 
 export const fetchAvailableTimeSlots = async (
@@ -13,7 +14,11 @@ export const fetchAvailableTimeSlots = async (
   try {
     const formattedDate = format(selectedDate, "yyyy-MM-dd");
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/timeslot/available/${turfId}?date=${formattedDate}`
+      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/timeslot/available/${turfId}?date=${formattedDate}`,
+      {
+        
+        credentials: "include", // Important for sending cookies
+      }
     );
     const data = await response.json();
     return data;

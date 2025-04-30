@@ -302,7 +302,7 @@ export default function CreateOrganizationRequestForm() {
 
       // Reset form after successful submission
       setTimeout(() => {
-        router.push('/organizations');
+        router.push('/organization-request');
       }, 2000);
     } catch (error) {
       console.error('Error submitting organization request:', error);
