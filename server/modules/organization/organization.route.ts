@@ -1,21 +1,23 @@
-import express from "express";
-import multer from "multer";
+import express from 'express';
+import multer from 'multer';
 
-import { checkPermission, protect } from "../auth/auth.middleware";
+import { checkPermission, protect } from '../auth/auth.middleware';
 
+import { standardApiLimiter } from '../../utils/rateLimiter';
+import { getOrganizationRoles } from '../role/role.controller';
+import { assignOrganizationRole } from '../role_assignment/userRoleAssignmentController';
 import {
-  createOrganization,
   assignOwner,
-  updateOrganization,
-  deleteOrganization,
+  createOrganization,
   createOrganizationRole,
+  deleteOrganization,
   fetchOtherTurfs,
-  getOrganization
-} from "./organization.controller";
-import { getOrganizationRoles } from "../role/role.controller";
-import { assignOrganizationRole } from "../role_assignment/userRoleAssignmentController";
-import { standardApiLimiter } from "../../utils/rateLimiter";
-
+  getOrganization,
+  getOrganizationRoleMembers,
+  getOrganizationUnassignedUsers,
+  updateOrganization,
+  updateOrganizationRolePermissions,
+} from './organization.controller';
 
 const router = express.Router();
 
@@ -29,73 +31,103 @@ const upload = multer({
 
 // Create Organization (Admin only)
 router.post(
-  "/",
+  '/',
   standardApiLimiter,
   protect,
-  
-  checkPermission("create_organization"), // Global permission check
-  upload.array("images", 5), // Handle images
-  createOrganization
+
+  checkPermission('create_organization'), // Global permission check
+  upload.array('images', 5), // Handle images
+  createOrganization,
 );
 
 // Assign Owner to Organization (Admin only)
 router.post(
-  "/:id/assign-owner",
+  '/:id/assign-owner',
   standardApiLimiter,
   protect,
-  checkPermission("assign_organization_owner"), // Global permission check
-  assignOwner
+  checkPermission('assign_organization_owner'), // Global permission check
+  assignOwner,
 );
 
 // Update Organization Details (Org Owner or role with permission)
 router.put(
-  "/:id",
+  '/:id',
   standardApiLimiter,
   protect,
-  checkPermission("update_organization"), // Organization-scoped permission check
-  upload.array("images", 5), // Handle optional image updates
-  updateOrganization
+  checkPermission('update_organization'), // Organization-scoped permission check
+  upload.array('images', 5), // Handle optional image updates
+  updateOrganization,
 );
 
 // Delete Organization (Org Owner or Admin)
 router.delete(
-  "/:id",
+  '/:id',
   standardApiLimiter,
   protect,
 
-  checkPermission("delete_own_organization"), // Check this first (most common case)
+  checkPermission('delete_own_organization'), // Check this first (most common case)
 
-  deleteOrganization
+  deleteOrganization,
 );
 
 // Get Organization Details
-router.get("/:id", getOrganization);
+router.get('/:id', getOrganization);
 
 router.post(
-  "/:id/roles", // Use :id for organizationId for consistency
+  '/:id/roles', // Use :id for organizationId for consistency
   standardApiLimiter,
   protect,
-  checkPermission("manage_organization_roles"), // Organization-scoped
-  createOrganizationRole
+  checkPermission('manage_organization_roles'), // Organization-scoped
+  createOrganizationRole,
 );
 
 router.get(
-  "/:organizationId/roles",
+  '/:organizationId/roles',
   standardApiLimiter,
   protect,
-  checkPermission("view_roles"),
-  getOrganizationRoles
+  checkPermission('view_roles'),
+  getOrganizationRoles,
 );
 
 router.post(
-  "/:organizationId/users/:userId/assignments",
+  '/:organizationId/users/:userId/assignments',
   standardApiLimiter,
   protect,
-  checkPermission("manage_organization_roles"),
-  assignOrganizationRole
+  checkPermission('manage_organization_roles'),
+  assignOrganizationRole,
+);
+router.get(
+  '/:orgId/roles',
+  protect,
+
+  getOrganizationRoles,
+);
+
+// Get all members with roles in an organization
+router.get(
+  '/:orgId/role-members',
+  protect,
+
+  getOrganizationRoleMembers,
+);
+
+// Get all users without a role in the organization
+router.get(
+  '/:orgId/unassigned-users',
+  protect,
+
+  getOrganizationUnassignedUsers,
+);
+
+// Update permissions for a role in an organization
+router.put(
+  '/:orgId/roles/:roleId/permissions',
+  protect,
+
+  updateOrganizationRolePermissions,
 );
 
 // Fetch other turfs by organization excluding the given turf
-router.get("/:organizationId/other-turfs/:turfId", fetchOtherTurfs);
+router.get('/:organizationId/other-turfs/:turfId', fetchOtherTurfs);
 
 export default router;

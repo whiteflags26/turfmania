@@ -1,5 +1,3 @@
-
-
 import { DeleteResult } from 'mongodb';
 import mongoose, { Types } from 'mongoose';
 import { deleteImage, uploadImage } from '../../utils/cloudinary';
@@ -8,14 +6,13 @@ import { extractPublicIdFromUrl } from '../../utils/extractUrl';
 import FaciltyService from '../facility/facility.service';
 import OrganizationRequestService from '../organization-request/organization-request.service';
 import Permission, { PermissionScope } from '../permission/permission.model';
-import Role,{IRole} from '../role/role.model';
+import Role, { IRole } from '../role/role.model';
 import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
 import User from '../user/user.model';
 
 import { TurfReview } from '../turf-review/turf-review.model';
 import { Turf } from '../turf/turf.model';
 import Organization, { IOrganization } from './organization.model';
-
 
 interface OrganizationDetails {
   name: string;
@@ -605,6 +602,70 @@ class OrganizationService {
       { permissions },
       { new: true },
     );
+  }
+
+  async assignUserToOrganizationRole(
+    orgId: string,
+    userId: string,
+    roleId: string,
+  ) {
+    // Verify the role belongs to this organization
+    const role = await Role.findOne({
+      _id: roleId,
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    });
+
+    if (!role) {
+      throw new ErrorResponse('Role not found in this organization', 404);
+    }
+
+    // Verify user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new ErrorResponse('User not found', 404);
+    }
+
+    // Check if assignment already exists
+    const existingAssignment = await UserRoleAssignment.findOne({
+      userId,
+      roleId,
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    });
+
+    if (existingAssignment) {
+      throw new ErrorResponse(
+        'User already has this role in the organization',
+        400,
+      );
+    }
+
+    // Create new role assignment
+    const roleAssignment = await UserRoleAssignment.create({
+      userId,
+      roleId,
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    });
+
+    return roleAssignment;
+  }
+
+  async getRolePermissions(orgId: string, roleId: string) {
+    // Find the role and ensure it belongs to this organization
+    const role = await Role.findOne({
+      _id: roleId,
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    });
+
+    if (!role) {
+      throw new ErrorResponse('Role not found in this organization', 404);
+    }
+
+    // Return the permissions array from the role
+    return role.permissions;
   }
 }
 
