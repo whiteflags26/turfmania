@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import 'react-datepicker/dist/react-datepicker.css';
 
 :root {
   --background: #ffffff;
@@ -24,39 +23,4 @@ body {
   background: var(--foreground);
   color: var(--background);
   font-family: Arial, Helvetica, sans-serif;
-}
-
-.react-datepicker {
-  font-family: inherit;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.react-datepicker__header {
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.react-datepicker__current-month,
-.react-datepicker__day-name {
-  color: #374151;
-  font-weight: 500;
-}
-
-.react-datepicker__day {
-  color: #374151;
-}
-
-.react-datepicker__day--selected {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.react-datepicker__day--keyboard-selected {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.react-datepicker__day:hover {
-  background-color: #f3f4f6;
 }

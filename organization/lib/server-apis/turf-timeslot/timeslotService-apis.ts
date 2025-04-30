@@ -17,7 +17,9 @@ export async function generateTimeSlots(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        
       },
+      credentials:"include",
       body: JSON.stringify({
         turfId: params.turfId,
         startDate: params.startDate,
