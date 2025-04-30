@@ -459,8 +459,10 @@ export default class OrganizationRequestService {
     isOwner: boolean,
   ): Promise<void> {
     if (isOwner) {
+      console.log("email sent to ",user.email+subject+message);
       // Send owner-specific message
       await sendEmail(user.email, subject, message);
+      console.log("email sent to ",user.email+subject+message);
     } else {
       // Send standard message to requester
       await sendEmail(user.email, subject, message);
