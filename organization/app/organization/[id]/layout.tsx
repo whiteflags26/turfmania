@@ -80,14 +80,14 @@ export default function DashboardLayout({
       path: `/organization/${orgId}/payments`,
     },
     {
-      name: 'Messages',
+      name: 'Roles',
       icon: <FiMessageSquare className="h-5 w-5" />,
-      path: `/organization/${orgId}/messages`,
+      path: `/organization/${orgId}/roles`,
     },
     {
-      name: 'Settings',
+      name: 'Users',
       icon: <FiSettings className="h-5 w-5" />,
-      path: `/organization/${orgId}/settings`,
+      path: `/organization/${orgId}/users`,
     },
   ];
 
