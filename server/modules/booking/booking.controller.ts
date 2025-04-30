@@ -289,8 +289,15 @@ export default class BookingController {
       }
 
       const { turfId } = req.params;
+      const { organizationId } = req.query; // Extract from query params
+      
       if (!turfId) {
         throw new ErrorResponse('Turf ID is required', 400);
+      }
+      
+      // Set organizationId on request for checkPermission middleware
+      if (organizationId) {
+        req.organizationId = organizationId as string;
       }
 
       const filters = this.extractBookingFilters(req);
@@ -327,8 +334,15 @@ export default class BookingController {
       }
 
       const { turfId } = req.params;
+      const { organizationId } = req.query; // Extract from query params
+      
       if (!turfId) {
         throw new ErrorResponse('Turf ID is required', 400);
+      }
+      
+      // Set organizationId on request for checkPermission middleware
+      if (organizationId) {
+        req.organizationId = organizationId as string;
       }
 
       const earnings = await this.bookingService.getTurfMonthlyEarnings(turfId);
@@ -352,8 +366,15 @@ export default class BookingController {
       }
 
       const { turfId } = req.params;
+      const { organizationId } = req.query; // Extract from query params
+      
       if (!turfId) {
         throw new ErrorResponse('Turf ID is required', 400);
+      }
+      
+      // Set organizationId on request for checkPermission middleware
+      if (organizationId) {
+        req.organizationId = organizationId as string;
       }
 
       const earnings = await this.bookingService.getTurfCurrentMonthEarnings(turfId);

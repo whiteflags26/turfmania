@@ -12,7 +12,6 @@ export const updateOrganization = async (
         body: formData,
         credentials: "include", // Add this line to include cookies with the request
         headers: {
-          // Don't set Content-Type header when sending FormData
           // The browser will set the correct content type with boundary
         }
       }

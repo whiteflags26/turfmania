@@ -107,7 +107,9 @@ function getScopeContext(
   req: AuthRequest
 ): Types.ObjectId | null {
   const organizationId =
+  req.query.organizationId ??
     req.organizationId ?? req.params.id ?? req.params.organizationId;
+    console.log("Organization ID:", organizationId); // Debugging line
   const eventId = req.eventId ?? req.params.eventId;
 
   if (scope === PermissionScope.ORGANIZATION && organizationId) {
@@ -160,6 +162,7 @@ export const checkPermission = (requiredPermissionName: string) => {
       const permissionData = await validateRequiredPermission(
         requiredPermissionName
       );
+      console.log("Permission Data:", permissionData); // Debugging line
       if (!permissionData) {
         return next(
           new ErrorResponse(

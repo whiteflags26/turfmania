@@ -75,9 +75,9 @@ export default function DashboardLayout({
       path: `/organization/${orgId}/turf-timeslot`,
     },
     {
-      name: 'Payments',
+      name: 'Bookings and Payments',
       icon: <FiDollarSign className="h-5 w-5" />,
-      path: `/organization/${orgId}/payments`,
+      path: `/organization/${orgId}/bookings`,
     },
     {
       name: 'Messages',

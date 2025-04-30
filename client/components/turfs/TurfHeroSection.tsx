@@ -1,5 +1,4 @@
 import { BackgroundSlider } from '@/components/turfs/BackGroundSlider';
-import { SearchForm } from '@/components/turfs/SearchForm';
 
 export default function TurfHeroSection() {
   return (
@@ -31,7 +30,7 @@ export default function TurfHeroSection() {
             </span>
           </p>
 
-          <SearchForm />
+
 
           <div className="hidden sm:flex items-center justify-center gap-4 md:gap-8 mt-6 text-white/80 text-xs sm:text-sm">
             <div className="flex items-center">

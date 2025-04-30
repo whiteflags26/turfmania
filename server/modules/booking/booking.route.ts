@@ -1,7 +1,7 @@
-import express from 'express';
-import { protect, checkPermission } from '../auth/auth.middleware';
-import BookingController from './booking.controller';
-import { standardApiLimiter } from '../../utils/rateLimiter';
+import express from "express";
+import { protect, checkPermission } from "../auth/auth.middleware";
+import BookingController from "./booking.controller";
+import { standardApiLimiter } from "../../utils/rateLimiter";
 
 const router = express.Router();
 
@@ -9,89 +9,79 @@ const router = express.Router();
 const bookingController = new BookingController();
 
 // User Endpoints
-router.post(
-    '/',
-    standardApiLimiter,
-    protect,
-    bookingController.createBooking
+router.post("/", standardApiLimiter, protect, bookingController.createBooking);
+
+router.put(
+  "/:id/complete-stripe",
+  standardApiLimiter,
+  protect,
+  bookingController.completeStripeBooking
 );
 
 router.put(
-    '/:id/complete-stripe',
-    standardApiLimiter,
-    protect,
-    bookingController.completeStripeBooking
-);
-
-router.put(
-    '/:id/complete-cash',
-    standardApiLimiter,
-    protect,
-    bookingController.completeCashBooking
+  "/:id/complete-cash",
+  standardApiLimiter,
+  protect,
+  bookingController.completeCashBooking
 );
 
 router.get(
-    '/user',
-    standardApiLimiter,
-    protect,
-    bookingController.getUserBookings
+  "/user",
+  standardApiLimiter,
+  protect,
+  bookingController.getUserBookings
 );
-router.get(
-    '/:id',
-    standardApiLimiter,
-    protect,
-    bookingController.getBooking
-);
+router.get("/:id", standardApiLimiter, protect, bookingController.getBooking);
 
 // Admin Endpoints
 router.get(
-    '/',
-    standardApiLimiter,
-    protect,
-    checkPermission('global_manage_bookings'),
-    bookingController.getAllBookings
+  "/",
+  standardApiLimiter,
+  protect,
+  checkPermission("global_manage_bookings"),
+  bookingController.getAllBookings
 );
 
 router.get(
-    '/admin/:id',
-    standardApiLimiter,
-    protect,
-    checkPermission('global_manage_bookings'),
-    bookingController.getBookingAsAdmin
+  "/admin/:id",
+  standardApiLimiter,
+  protect,
+  checkPermission("global_manage_bookings"),
+  bookingController.getBookingAsAdmin
 );
 
 // New Turf-specific Bookings
 router.get(
-    '/turf/:turfId',
-    standardApiLimiter,
-    protect,
-    checkPermission('manage_bookings'),
-    bookingController.getTurfBookings
+  "/turf/:turfId",
+  standardApiLimiter,
+  protect,
+  checkPermission("manage_bookings"),
+  bookingController.getTurfBookings
 );
 
 // Earnings Reports
 router.get(
-    '/turf/:turfId/monthly-earnings',
-    standardApiLimiter,
-    protect,
-    checkPermission('manage_bookings'),
-    bookingController.getTurfMonthlyEarnings
+  "/turf/:turfId/monthly-earnings",
+  standardApiLimiter,
+  protect,
+  checkPermission("manage_bookings"),
+  bookingController.getTurfMonthlyEarnings
 );
 
 router.get(
-    '/turf/:turfId/current-month-earnings',
-    standardApiLimiter,
-    protect,
-    checkPermission('manage_bookings'),
-    bookingController.getTurfCurrentMonthEarnings
+  "/turf/:turfId/current-month-earnings",
+  standardApiLimiter,
+  protect,
+  checkPermission("manage_bookings"),
+  bookingController.getTurfCurrentMonthEarnings
 );
 
 router.get(
-    '/organization/:organizationId/current-month-earnings',
-    standardApiLimiter,
-    protect,
-    checkPermission('manage_bookings'),
-    bookingController.getOrganizationCurrentMonthEarnings
+  "/organization/:organizationId/current-month-earnings",
+  standardApiLimiter,
+  protect,
+  checkPermission("manage_bookings"),
+  bookingController.getOrganizationCurrentMonthEarnings
 );
 
 export default router;
