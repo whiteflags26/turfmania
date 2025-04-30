@@ -8,11 +8,12 @@ import OrganizationRequestService from '../organization-request/organization-req
 import Permission, { PermissionScope } from '../permission/permission.model';
 import Role, { IRole } from '../role/role.model';
 import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
+import User from '../user/user.model';
+
 import { TurfReview } from '../turf-review/turf-review.model';
 import { Turf } from '../turf/turf.model';
-import User from '../user/user.model';
 import Organization, { IOrganization } from './organization.model';
- 
+
 interface OrganizationDetails {
   name: string;
   facilities: string[];
@@ -35,7 +36,6 @@ class OrganizationService {
   organizationRequestService = new OrganizationRequestService();
   facilityService = new FaciltyService();
 
-  
   /**
    * Create a new organization (Admin only)
    * Called by an Admin. Owner is assigned in a separate step if no requestId is provided.
@@ -50,9 +50,9 @@ class OrganizationService {
    * @param adminNotes - Optional notes from admin
    * @returns Promise<IOrganization>
    */
-  
+
   public async createOrganization(
-    orgDetails: OrganizationDetails
+    orgDetails: OrganizationDetails,
   ): Promise<IOrganization | null> {
     try {
       const {
@@ -567,5 +567,106 @@ class OrganizationService {
       .limit(6)
       .populate('organization');
   };
+
+  async getOrganizationRoles(orgId: string) {
+    return Role.find({
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    });
+  }
+
+  async getOrganizationRoleMembers(orgId: string) {
+    return UserRoleAssignment.find({
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    })
+      .populate('userId')
+      .populate('roleId');
+  }
+
+  async getOrganizationUnassignedUsers(orgId: string) {
+    const assignedUserIds = await UserRoleAssignment.find({
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    }).distinct('userId');
+    return User.find({ _id: { $nin: assignedUserIds } });
+  }
+
+  async updateOrganizationRolePermissions(
+    orgId: string,
+    roleId: string,
+    permissions: string[],
+  ) {
+    return Role.findOneAndUpdate(
+      { _id: roleId, scope: PermissionScope.ORGANIZATION, scopeId: orgId },
+      { permissions },
+      { new: true },
+    );
+  }
+
+  async assignUserToOrganizationRole(
+    orgId: string,
+    userId: string,
+    roleId: string,
+  ) {
+    // Verify the role belongs to this organization
+    const role = await Role.findOne({
+      _id: roleId,
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    });
+
+    if (!role) {
+      throw new ErrorResponse('Role not found in this organization', 404);
+    }
+
+    // Verify user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new ErrorResponse('User not found', 404);
+    }
+
+    // Check if assignment already exists
+    const existingAssignment = await UserRoleAssignment.findOne({
+      userId,
+      roleId,
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    });
+
+    if (existingAssignment) {
+      throw new ErrorResponse(
+        'User already has this role in the organization',
+        400,
+      );
+    }
+
+    // Create new role assignment
+    const roleAssignment = await UserRoleAssignment.create({
+      userId,
+      roleId,
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    });
+
+    return roleAssignment;
+  }
+
+  async getRolePermissions(orgId: string, roleId: string) {
+    // Find the role and ensure it belongs to this organization
+    const role = await Role.findOne({
+      _id: roleId,
+      scope: PermissionScope.ORGANIZATION,
+      scopeId: orgId,
+    });
+
+    if (!role) {
+      throw new ErrorResponse('Role not found in this organization', 404);
+    }
+
+    // Return the permissions array from the role
+    return role.permissions;
+  }
 }
+
 export const organizationService = new OrganizationService();
