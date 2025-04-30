@@ -15,16 +15,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
-import { useToast  } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import TimeSlotGrid from "@/components/booking/TimeSlotGrid";
 import { ITimeSlot } from "@/types/timeslot";
 import { fetchAvailableTimeSlots as fetchAvailableTimeSlotsAPI } from "@/lib/server-apis/booking/fetchAvailableTimeSlot-api";
 import { createBooking } from "@/lib/server-apis/booking/createBooking-api";
 
 interface BookingModalProps {
-  readonly isOpen: boolean;
-  readonly onClose: () => void;
-  readonly turfId: string;
+  isOpen: boolean;
+  onClose: () => void;
+  turfId: string;
 }
 
 export default function BookingModal({
@@ -39,12 +39,13 @@ export default function BookingModal({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeSlots, setTimeSlots] = useState<ITimeSlot[]>([]);
-  
+
   // We're enhancing to support multiple slot selection
   const [selectedSlots, setSelectedSlots] = useState<ITimeSlot[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [advanceAmount, setAdvanceAmount] = useState(0);
   const [transactionId, setTransactionId] = useState("");
+  const [turfBasePrice, setTurfBasePrice] = useState(0);
 
   // Fetch time slots when date changes
   useEffect(() => {
@@ -53,23 +54,28 @@ export default function BookingModal({
     }
   }, [isOpen, turfId, selectedDate]);
 
+  // Fetch turf details when modal opens
+  useEffect(() => {
+    if (isOpen && turfId) {
+      fetchTurfDetails();
+    }
+  }, [isOpen, turfId]);
+
   // Calculate totals when selected slots change
   useEffect(() => {
     if (selectedSlots.length > 0) {
-      const total = selectedSlots.reduce((sum, slot) => {
-        // Use price_override if available, otherwise use a default price
-        const slotPrice = slot.price_override || 0;
-        return sum + slotPrice;
-      }, 0);
+      // Get the price from the turf's basePrice
+      const pricePerSlot = turfBasePrice || 0; // Using the basePrice of the turf
+      const total = selectedSlots.length * pricePerSlot;
 
       setTotalAmount(total);
-      // Calculate 65% for advance payment
+      // Calculate 65% for advance payment (rounded to 2 decimal places)
       setAdvanceAmount(Math.round(total * 0.65 * 100) / 100);
     } else {
       setTotalAmount(0);
       setAdvanceAmount(0);
     }
-  }, [selectedSlots]);
+  }, [selectedSlots, turfBasePrice]);
 
   const fetchAvailableTimeSlots = async () => {
     setIsLoading(true);
@@ -97,6 +103,36 @@ export default function BookingModal({
     }
   };
 
+  const fetchTurfDetails = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf/${turfId}`,
+        {
+          credentials: "include",
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setTurfBasePrice(data.data.basePrice);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch turf details",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching turf details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch turf details",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
       setSelectedDate(date);
@@ -106,13 +142,13 @@ export default function BookingModal({
   };
 
   const handleSlotSelect = (slot: ITimeSlot) => {
-    setSelectedSlots(prev => {
+    setSelectedSlots((prev) => {
       // Check if slot is already selected
-      const isSelected = prev.some(s => s._id === slot._id);
-      
+      const isSelected = prev.some((s) => s._id === slot._id);
+
       if (isSelected) {
         // Remove from selection
-        return prev.filter(s => s._id !== slot._id);
+        return prev.filter((s) => s._id !== slot._id);
       } else {
         // Add to selection
         return [...prev, slot];
@@ -150,8 +186,8 @@ export default function BookingModal({
     try {
       const bookingData = {
         turfId,
-        timeSlotIds: selectedSlots.map(slot => slot._id),
-        advancePaymentTransactionId: transactionId.trim()
+        timeSlotIds: selectedSlots.map((slot) => slot._id),
+        advancePaymentTransactionId: transactionId.trim(),
       };
 
       const result = await createBooking(bookingData);
@@ -161,14 +197,16 @@ export default function BookingModal({
           title: "Booking successful!",
           description: "Your booking has been confirmed",
         });
-        
+
         // Reset form and close modal
         resetForm();
         onClose();
-        
+
         // Redirect to bookings page or refresh
-        router.refresh();
-        router.push("/dashboard/bookings");
+        setTimeout(() => {
+          router.refresh();
+          router.push(`/venues/${turfId}`);
+        }, 2000);
       } else {
         toast({
           title: "Booking failed",
@@ -179,7 +217,8 @@ export default function BookingModal({
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create booking",
+        description:
+          error instanceof Error ? error.message : "Failed to create booking",
         variant: "destructive",
       });
     } finally {
@@ -203,15 +242,16 @@ export default function BookingModal({
   // Helper to display selected slots
   const renderSelectedSlots = () => {
     return selectedSlots.map((slot) => (
-      <div 
-        key={slot._id} 
+      <div
+        key={slot._id}
         className="bg-muted border px-3 py-1 rounded-full text-xs flex items-center"
       >
-        {format(new Date(slot.start_time), "h:mm a")} - {format(new Date(slot.end_time), "h:mm a")}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-4 w-4 ml-1" 
+        {format(new Date(slot.start_time), "h:mm a")} -{" "}
+        {format(new Date(slot.end_time), "h:mm a")}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-4 w-4 ml-1"
           onClick={() => handleSlotSelect(slot)}
         >
           ✕
@@ -219,29 +259,6 @@ export default function BookingModal({
       </div>
     ));
   };
-
-  let slotContent;
-  if (isLoading) {
-    slotContent = (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  } else if (timeSlots.length > 0) {
-    slotContent = (
-      <TimeSlotGrid
-        timeSlots={timeSlots}
-        selectedSlot={selectedSlot}
-        onSelect={handleSlotSelect}
-      />
-    );
-  } else {
-    slotContent = (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        No available slots for this date
-      </div>
-    );
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -298,15 +315,17 @@ export default function BookingModal({
                     {renderSelectedSlots()}
                   </div>
                 </div>
-                
+
                 <div className="flex justify-between">
                   <span className="font-medium">Total Amount:</span>
-                  <span className="font-medium">${totalAmount.toFixed(2)}</span>
+                  <span className="font-medium">৳{totalAmount.toFixed(2)}</span>
                 </div>
-                
+
                 <div className="flex justify-between text-primary">
                   <span className="font-medium">Advance Payment (65%):</span>
-                  <span className="font-medium">${advanceAmount.toFixed(2)}</span>
+                  <span className="font-medium">
+                    ৳{advanceAmount.toFixed(2)}
+                  </span>
                 </div>
               </div>
             )}
@@ -315,35 +334,37 @@ export default function BookingModal({
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="amount">Total Amount</Label>
-              <Input 
-                id="amount" 
-                value={`$${totalAmount.toFixed(2)}`} 
-                disabled 
+              <Input
+                id="amount"
+                value={`৳${totalAmount.toFixed(2)}`}
+                disabled
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="advanceAmount">Advance Payment (65%)</Label>
-              <Input 
-                id="advanceAmount" 
-                value={`$${advanceAmount.toFixed(2)}`} 
-                disabled 
+              <Input
+                id="advanceAmount"
+                value={`৳${advanceAmount.toFixed(2)}`}
+                disabled
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="transactionId">Payment Transaction ID</Label>
-              <Input 
-                id="transactionId" 
-                placeholder="Enter your payment transaction ID" 
+              <Input
+                id="transactionId"
+                placeholder="Enter your payment transaction ID"
                 value={transactionId}
                 onChange={(e) => setTransactionId(e.target.value)}
               />
               <p className="text-sm text-muted-foreground mt-1">
-                Please complete the advance payment of ${advanceAmount.toFixed(2)} via bKash/Nagad and enter the Transaction ID here.
+                Please complete the advance payment of ৳
+                {advanceAmount.toFixed(2)} via bKash/Nagad and enter the
+                Transaction ID here.
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <Label>Booking Summary</Label>
               <div className="bg-muted p-3 rounded-md text-sm space-y-2">
@@ -356,7 +377,8 @@ export default function BookingModal({
                   <div className="ml-2 mt-1">
                     {selectedSlots.map((slot) => (
                       <div key={slot._id}>
-                        {format(new Date(slot.start_time), "h:mm a")} - {format(new Date(slot.end_time), "h:mm a")}
+                        {format(new Date(slot.start_time), "h:mm a")} -{" "}
+                        {format(new Date(slot.end_time), "h:mm a")}
                       </div>
                     ))}
                   </div>
@@ -369,16 +391,16 @@ export default function BookingModal({
         <DialogFooter className="flex justify-between mt-4">
           {step === 2 ? (
             <>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={handleBack}
                 disabled={isSubmitting}
               >
                 Back
               </Button>
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
               >
@@ -394,16 +416,12 @@ export default function BookingModal({
             </>
           ) : (
             <>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={handleClose}
-              >
+              <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button 
-                type="button" 
-                onClick={handleContinue} 
+              <Button
+                type="button"
+                onClick={handleContinue}
                 disabled={selectedSlots.length === 0}
               >
                 Continue to Payment

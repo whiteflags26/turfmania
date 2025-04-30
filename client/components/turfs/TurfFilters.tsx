@@ -10,6 +10,7 @@ import { fetchAllFilterData } from '@/lib/server-apis/turf/fetchTurfsWithFilter-
 import { IBarikoiSuggestion } from '@/types/barikoi';
 import { SetPagination } from '@/types/pagination';
 import { ITurfFilters } from '@/types/turfFilter';
+import { ITurf } from '@/types/turf';
 import { Facility, Sport, TeamSize } from '@/types/turfFilterData';
 import { autocomplete } from 'barikoiapis';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -17,6 +18,7 @@ import { Clock, Filter, Lightbulb, MapPin, Users, X } from 'lucide-react';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 interface Props {
+  readonly turfs: ITurf[];
   readonly filters: ITurfFilters;
   readonly setFilters: Dispatch<SetStateAction<ITurfFilters>>;
   readonly showFilters: boolean;

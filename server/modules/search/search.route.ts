@@ -1,4 +1,4 @@
-// routes/search.ts
+
 import express from 'express';
 import { search, getSearchSuggestions } from './search.controller';
 import { standardApiLimiter } from '../../utils/rateLimiter';
