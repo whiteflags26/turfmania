@@ -1,3 +1,5 @@
+
+
 import { DeleteResult } from 'mongodb';
 import mongoose, { Types } from 'mongoose';
 import { deleteImage, uploadImage } from '../../utils/cloudinary';
@@ -5,14 +7,15 @@ import ErrorResponse from '../../utils/errorResponse';
 import { extractPublicIdFromUrl } from '../../utils/extractUrl';
 import FaciltyService from '../facility/facility.service';
 import OrganizationRequestService from '../organization-request/organization-request.service';
-import { PermissionScope } from '../permission/permission.model';
-import Role from '../role/role.model';
+import Permission, { PermissionScope } from '../permission/permission.model';
+import Role,{IRole} from '../role/role.model';
 import UserRoleAssignment from '../role_assignment/userRoleAssignment.model';
 import User from '../user/user.model';
 
 import { TurfReview } from '../turf-review/turf-review.model';
 import { Turf } from '../turf/turf.model';
 import Organization, { IOrganization } from './organization.model';
+
 
 interface OrganizationDetails {
   name: string;
@@ -484,7 +487,7 @@ class OrganizationService {
     organizationId: string,
     roleName: string,
     permissionNames: string[],
-  ): Promise<Role> {
+  ): Promise<IRole> {
     // Permission check ('manage_organization_roles') in middleware
     try {
       const organization = await Organization.findById(organizationId);
