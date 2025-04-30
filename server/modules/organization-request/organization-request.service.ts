@@ -647,4 +647,19 @@ export default class OrganizationRequestService {
 
     return result.modifiedCount;
   }
+
+  public startPeriodicCleanup(timeoutHours: number = 2, intervalHours: number = 1): void {
+    const intervalMs = intervalHours * 60 * 60 * 1000;
+    
+    setInterval(async () => {
+      try {
+        const count = await this.resetStuckProcessingRequests(timeoutHours);
+        if (count > 0) {
+          console.log(`Reset ${count} stuck processing organization requests`);
+        }
+      } catch (error) {
+        console.error('Error resetting stuck organization requests:', error);
+      }
+    }, intervalMs);
+  }
 }

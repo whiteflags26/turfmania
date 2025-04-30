@@ -670,4 +670,96 @@ export default class BookingService {
       console.error('Error sending booking completion email:', error);
     }
   }
+
+  public async sendBookingReminders(): Promise<number> {
+    try {
+      // Get current time and 30 minutes from now
+      const now = new Date();
+      const reminderTime = new Date(now.getTime() + 30 * 60 * 1000); // 30 minutes from now
+
+      // Find bookings with advance payment completed where first timeslot starts soon
+      const bookings = await Booking.aggregate([
+        {
+          $match: {
+            status: 'advance_payment_completed',
+            isReminderSent: { $ne: true } // Only if reminder hasn't been sent
+          }
+        },
+        {
+          $lookup: {
+            from: 'timeslots',
+            localField: 'timeSlots',
+            foreignField: '_id',
+            as: 'timeslotDetails'
+          }
+        },
+        {
+          $addFields: {
+            firstTimeslot: { $min: '$timeslotDetails.start_time' }
+          }
+        },
+        {
+          $match: {
+            'firstTimeslot': {
+              $gte: now,
+              $lte: reminderTime
+            }
+          }
+        }
+      ]);
+
+      // Send reminders and mark as sent
+      let remindersSent = 0;
+      for (const booking of bookings) {
+        try {
+          await this.sendBookingReminderEmail(booking);
+          await Booking.updateOne(
+            { _id: booking._id },
+            { $set: { isReminderSent: true } }
+          );
+          remindersSent++;
+        } catch (error) {
+          console.error(`Failed to send reminder for booking ${booking._id}:`, error);
+        }
+      }
+
+      return remindersSent;
+    } catch (error) {
+      console.error('Error sending booking reminders:', error);
+      return 0;
+    }
+  }
+
+  private async sendBookingReminderEmail(booking: IBooking): Promise<void> {
+    try {
+      const user = await User.findById(booking.userId);
+      if (!user || !user.email) return;
+
+      const subject = 'Upcoming Booking Reminder';
+      const text = `Dear ${user.first_name},\n\nYour booking is starting soon (in 30 minutes).\n\nBooking ID: ${booking._id}\n\nThank you for using our service.`;
+
+      await sendEmail(user.email, subject, text);
+    } catch (error) {
+      console.error('Error sending booking reminder email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Start periodic reminder service
+   */
+  public startPeriodicReminders(intervalMinutes: number = 5): void {
+    const intervalMs = intervalMinutes * 60 * 1000;
+    
+    setInterval(async () => {
+      try {
+        const count = await this.sendBookingReminders();
+        if (count > 0) {
+          console.log(`Sent ${count} booking reminders`);
+        }
+      } catch (error) {
+        console.error('Error sending booking reminders:', error);
+      }
+    }, intervalMs);
+  }
 }

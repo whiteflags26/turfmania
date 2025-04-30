@@ -20,6 +20,7 @@ export interface IBooking extends Document {
   finalPaymentTransactionId?: string;
   finalPaymentMethod?: PaymentMethod;
   isPaid: boolean;
+  isReminderSent: boolean; 
   createdAt: Date;
   updatedAt: Date;
 }
@@ -82,6 +83,11 @@ const BookingSchema: Schema = new Schema(
       enum: ['stripe', 'cash'],
     },
     isPaid: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isReminderSent: {  
       type: Boolean,
       default: false,
       index: true,
