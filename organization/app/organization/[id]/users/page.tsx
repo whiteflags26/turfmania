@@ -7,8 +7,11 @@ import api from '@/lib/axios';
 import { Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { useParams } from 'next/navigation';
 
 export default function UsersManagement() {
+  const params = useParams();
+  const orgId = params.id as string; 
   const [users, setUsers] = useState<User[]>([]);
   const [globalRoles, setGlobalRoles] = useState<Role[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -38,7 +41,7 @@ export default function UsersManagement() {
   useEffect(() => {
     const fetchGlobalRoles = async () => {
       try {
-        const response = await api.get('/api/v1/roles/global');
+        const response = await api.get(`/api/v1/organizations/${orgId}/roles`);
         setGlobalRoles(response.data.data);
       } catch (err) {
         console.error('Failed to fetch roles:', err);
