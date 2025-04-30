@@ -28,6 +28,7 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { handleAxiosError } from '@/lib/utils/handleAxiosError';
 
 interface User {
   _id: string;
@@ -87,15 +88,19 @@ export default function OrganizationRequestDetailPage() {
       // Update the local state with the new request data
       setRequest(response);
 
+
       // Show success message
       toast.success('Request processing started successfully');
 
+
+
       // Route to organization forms page
       router.push(`/admin/dashboard/organization-form/${params.id}`);
-    } catch (err: any) {
-      console.error('Failed to process request:', err);
-      setError(err.message ?? 'Failed to process request');
-      toast.error(err.message ?? 'Failed to process request');
+    } catch (err: unknown) {
+      
+      const error_message=handleAxiosError(error, 'Failed to process request');
+      setError(error_message);
+      toast.error(error_message);
     } finally {
       setProcessing(false);
     }
@@ -112,10 +117,10 @@ export default function OrganizationRequestDetailPage() {
       );
       setRequest(response);
       toast.success('Processing cancelled successfully');
-    } catch (err: any) {
-      console.error('Failed to cancel processing:', err);
-      setError(err.message ?? 'Failed to cancel processing');
-      toast.error(err.message ?? 'Failed to cancel processing');
+    } catch (err: unknown) {
+      const error_message=handleAxiosError(error, 'Failed to cancel process request');
+      setError(error_message);
+      toast.error(error_message);
     } finally {
       setIsCancelling(false);
     }
@@ -139,9 +144,9 @@ export default function OrganizationRequestDetailPage() {
       toast.success('Request rejected successfully');
       setRejectionNotes(''); // Reset notes after successful rejection
     } catch (err: any) {
-      console.error('Failed to reject request:', err);
-      setError(err.message ?? 'Failed to reject request');
-      toast.error(err.message ?? 'Failed to reject request');
+      const error_message=handleAxiosError(error, 'Failed to reject request');
+      setError(error_message);
+      toast.error(error_message);
     } finally {
       setIsRejecting(false);
     }

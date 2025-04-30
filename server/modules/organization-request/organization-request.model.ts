@@ -1,13 +1,24 @@
-// organization-request.model.ts (Updated)
+// organization-request.model.ts
 import mongoose, { Document, Schema, Types } from "mongoose";
+import { z } from "zod"; 
 
+// Define Zod Schemas for validation
+const bdPhoneSchema = z.string().regex(
+  /^(?:\+88|88)?(01[3-9]\d{8})$/,
+  { message: "Invalid Bangladeshi phone number (e.g. 01712345678 or +8801712345678)" }
+);
+
+const emailSchema = z.string().email({ message: "Invalid email address format" });
+
+// TypeScript Types
 export type RequestStatus = "pending" | "processing" | "approved" | "approved_with_changes" | "rejected";
 
-export interface IOrganizationRequest extends Document {
-  requesterId: Types.ObjectId; // Reference to User model
-  status: RequestStatus;
 
-  // Organization Data
+
+
+export interface IOrganizationRequest extends Document {
+  requesterId: Types.ObjectId;
+  status: RequestStatus;
   organizationName: string;
   facilities: string[];
   location: {
@@ -22,32 +33,21 @@ export interface IOrganizationRequest extends Document {
     city: string;
     post_code?: string;
   };
-
-  // Contact Information
-  contactPhone: string; // Mandatory
-
-  // Owner Information
-  ownerEmail: string; // Mandatory - must exist in user database
-
-  // Additional Request Fields
-  requestNotes?: string; // User's notes/explanation for the request
-  adminNotes?: string; // Admin's notes (especially for rejections)
-  processingAdminId?: Types.ObjectId; // Which admin is processing this request
-  processingStartedAt?: Date; // When processing began
-  orgContactPhone: string; // Mandatory organization contact phone
-  orgContactEmail: string; // Mandatory organization contact email
-
-  // Images (Cloudinary URLs)
+  contactPhone: string;
+  ownerEmail: string;
+  requestNotes?: string;
+  adminNotes?: string;
+  processingAdminId?: Types.ObjectId;
+  processingStartedAt?: Date;
+  orgContactPhone: string;
+  orgContactEmail: string;
   images: string[];
-
-  // Result data
-  organizationId?: Types.ObjectId; // Reference to created organization (if approved)
-
-  // Timestamps
+  organizationId?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
+// Mongoose Schema
 const OrganizationRequestSchema: Schema = new Schema(
   {
     requesterId: {
@@ -60,12 +60,11 @@ const OrganizationRequestSchema: Schema = new Schema(
       enum: ["pending", "processing", "approved", "approved_with_changes", "rejected"],
       default: "pending",
     },
-
-    // Organization Data
     organizationName: {
       type: String,
       required: true,
       trim: true,
+      unique: true,
     },
     facilities: {
       type: [String],
@@ -99,38 +98,25 @@ const OrganizationRequestSchema: Schema = new Schema(
       city: { type: String, required: true },
       post_code: String,
     },
-
-    // Contact Information
     contactPhone: {
       type: String,
       required: true,
       trim: true,
       validate: {
-        validator: function (value: string) {
-          // Bangladeshi phone number regex pattern
-          const bdPhoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
-          return bdPhoneRegex.test(value);
-        },
-        message:
-          "Please provide a valid Bangladeshi phone number (e.g. 01712345678 or +8801712345678)",
+        validator: (value: string) => bdPhoneSchema.safeParse(value).success,
+        message: "Please provide a valid Bangladeshi phone number (e.g. 01712345678 or +8801712345678)",
       },
     },
-
-    // Owner Information
     ownerEmail: {
       type: String,
       required: true,
       trim: true,
       lowercase: true,
       validate: {
-        validator: function (value: string) {
-          return /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(value);
-        },
+        validator: (value: string) => emailSchema.safeParse(value).success,
         message: "Please provide a valid owner email address",
       },
     },
-
-    // Additional Request Fields
     requestNotes: {
       type: String,
       trim: true,
@@ -146,17 +132,12 @@ const OrganizationRequestSchema: Schema = new Schema(
     processingStartedAt: {
       type: Date,
     },
-
     orgContactPhone: {
       type: String,
       required: true,
       trim: true,
       validate: {
-        validator: function (value: string) {
-          // Bangladeshi phone number regex pattern
-          const bdPhoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
-          return bdPhoneRegex.test(value);
-        },
+        validator: (value: string) => bdPhoneSchema.safeParse(value).success,
         message: "Please provide a valid Bangladeshi phone number (e.g. 01712345678 or +8801712345678)",
       },
     },
@@ -166,20 +147,14 @@ const OrganizationRequestSchema: Schema = new Schema(
       trim: true,
       lowercase: true,
       validate: {
-        validator: function (value: string) {
-          return /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(value);
-        },
+        validator: (value: string) => emailSchema.safeParse(value).success,
         message: "Please provide a valid organization contact email address",
       },
     },
-
-    // Images (Cloudinary URLs)
     images: {
       type: [String],
       default: [],
     },
-
-    // Result data
     organizationId: {
       type: Schema.Types.ObjectId,
       ref: "Organization",
@@ -188,13 +163,14 @@ const OrganizationRequestSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-// Index for efficient lookups
+// Indexes for performance
 OrganizationRequestSchema.index({ status: 1, createdAt: -1 });
 OrganizationRequestSchema.index({ requesterId: 1 });
 OrganizationRequestSchema.index({ processingAdminId: 1 });
 OrganizationRequestSchema.index({ "location.coordinates": "2dsphere" });
 OrganizationRequestSchema.index({ ownerEmail: 1 });
 
+// Model
 const OrganizationRequest = mongoose.model<IOrganizationRequest>(
   "OrganizationRequest",
   OrganizationRequestSchema

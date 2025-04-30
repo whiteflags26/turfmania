@@ -1,16 +1,13 @@
 // src/utils/rateLimiter.ts
-import rateLimit from "express-rate-limit";
+import rateLimit from 'express-rate-limit';
 
-export const createRateLimiter = (
-  windowMinutes: number,
-  maxRequests: number
-) => {
+export const createRateLimiter = (windowMinutes: number, maxRequests: number) => {
   return rateLimit({
     windowMs: windowMinutes * 60 * 1000,
     max: maxRequests,
     standardHeaders: true,
     legacyHeaders: false,
-    message: "Too many requests, please try again later.",
+    message: 'Too many requests, please try again later.',
   });
 };
 

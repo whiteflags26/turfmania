@@ -1,12 +1,12 @@
-import mongoose, { Document, Schema, Types } from "mongoose";
+import mongoose, { Document, Schema, Types } from 'mongoose';
 
-export type BookingStatus =
-  | "created"
-  | "advance_payment_completed"
-  | "completed"
-  | "rejected";
+export type BookingStatus = 
+  | 'created' 
+  | 'advance_payment_completed' 
+  | 'completed' 
+  | 'rejected';
 
-export type PaymentMethod = "stripe" | "cash";
+export type PaymentMethod = 'stripe' | 'cash';
 
 export interface IBooking extends Document {
   userId: Types.ObjectId;
@@ -28,23 +28,21 @@ const BookingSchema: Schema = new Schema(
   {
     userId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
       index: true,
     },
     turf: {
       type: Schema.Types.ObjectId,
-      ref: "Turf",
+      ref: 'Turf',
       required: true,
       index: true,
     },
-    timeSlots: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "TimeSlot",
-        required: true,
-      },
-    ],
+    timeSlots: [{
+      type: Schema.Types.ObjectId,
+      ref: 'TimeSlot',
+      required: true,
+    }],
     totalAmount: {
       type: Number,
       required: true,
@@ -68,8 +66,8 @@ const BookingSchema: Schema = new Schema(
     },
     status: {
       type: String,
-      enum: ["created", "advance_payment_completed", "completed", "rejected"],
-      default: "created",
+      enum: ['created', 'advance_payment_completed', 'completed', 'rejected'],
+      default: 'created',
       index: true,
     },
     advancePaymentTransactionId: {
@@ -81,15 +79,15 @@ const BookingSchema: Schema = new Schema(
     },
     finalPaymentMethod: {
       type: String,
-      enum: ["stripe", "cash"],
+      enum: ['stripe', 'cash'],
     },
     isPaid: {
       type: Boolean,
       default: false,
       index: true,
-    },
+    }
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Index for common queries
@@ -97,4 +95,4 @@ BookingSchema.index({ userId: 1, status: 1 });
 BookingSchema.index({ turf: 1, status: 1 });
 BookingSchema.index({ createdAt: -1 });
 
-export const Booking = mongoose.model<IBooking>("Booking", BookingSchema);
+export const Booking = mongoose.model<IBooking>('Booking', BookingSchema);
