@@ -1,14 +1,21 @@
-"use client";
+'use client';
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useForm } from "react-hook-form";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
-import { useAuth } from "@/lib/contexts/authContext";
-import { ApiError } from "@/types/api-error";
-import { getUserOrganizations } from "@/lib/server-apis/organization-list/getUserOrganizations-api";
-import { FiMail, FiLock, FiArrowRight, FiCheckCircle, FiUser, FiInfo } from "react-icons/fi";
+import { useAuth } from '@/lib/contexts/authContext';
+import { getUserOrganizations } from '@/lib/server-apis/organization-list/getUserOrganizations-api';
+import { ApiError } from '@/types/api-error';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'react-hot-toast';
+import {
+  FiArrowRight,
+  FiCheckCircle,
+  FiInfo,
+  FiLock,
+  FiMail,
+  FiUser,
+} from 'react-icons/fi';
 
 interface SignInFormData {
   email: string;
@@ -44,12 +51,12 @@ export default function SignIn() {
         setOrganizations(orgResponse.data);
         setShowOrgModal(true);
       } else {
-        toast.error("No organizations found for this user");
+        toast.error('No organizations found for this user');
       }
       reset();
     } catch (err) {
       const error = err as ApiError;
-      toast.error(error.message ?? "Failed to sign in");
+      toast.error(error.message ?? 'Failed to sign in');
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +66,7 @@ export default function SignIn() {
     setSelectedOrg(orgId);
     setTimeout(() => {
       setShowOrgModal(false);
-      toast.success("Welcome back!");
+      toast.success('Welcome back!');
       router.push(`/organization/${orgId}`);
     }, 500);
   };
@@ -76,9 +83,7 @@ export default function SignIn() {
           <div className="inline-flex justify-center items-center w-16 h-16 rounded-full bg-slate-100 mb-4">
             <FiUser size={26} className="text-blue-600" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-800">
-            Welcome Back
-          </h2>
+          <h2 className="text-3xl font-bold text-gray-800">Welcome Back</h2>
           <p className="text-sm text-gray-500 mt-2">
             Sign in to access your TurfMania dashboard
           </p>
@@ -87,7 +92,10 @@ export default function SignIn() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Email Field */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Email Address
             </label>
             <div className="relative">
@@ -97,15 +105,15 @@ export default function SignIn() {
               <input
                 type="email"
                 id="email"
-                {...register("email", {
-                  required: "Email is required",
+                {...register('email', {
+                  required: 'Email is required',
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: "Invalid email address",
+                    message: 'Invalid email address',
                   },
                 })}
                 className={`block w-full rounded-lg border pl-10 px-4 py-3 shadow-sm transition duration-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none ${
-                  errors.email ? "border-red-300 bg-red-50" : "border-gray-300"
+                  errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
                 }`}
                 placeholder="your.email@example.com"
                 disabled={isLoading}
@@ -121,7 +129,10 @@ export default function SignIn() {
 
           {/* Password Field */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Password
             </label>
             <div className="relative">
@@ -131,9 +142,11 @@ export default function SignIn() {
               <input
                 type="password"
                 id="password"
-                {...register("password", { required: "Password is required" })}
+                {...register('password', { required: 'Password is required' })}
                 className={`block w-full rounded-lg border pl-10 px-4 py-3 shadow-sm transition duration-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none ${
-                  errors.password ? "border-red-300 bg-red-50" : "border-gray-300"
+                  errors.password
+                    ? 'border-red-300 bg-red-50'
+                    : 'border-gray-300'
                 }`}
                 placeholder="••••••••"
                 disabled={isLoading}
@@ -181,7 +194,7 @@ export default function SignIn() {
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl"
             >
               <div className="flex items-center mb-6">
@@ -189,20 +202,24 @@ export default function SignIn() {
                   <FiCheckCircle className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-800">Select Organization</h2>
-                  <p className="text-gray-500 text-sm">Choose an organization to continue</p>
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    Select Organization
+                  </h2>
+                  <p className="text-gray-500 text-sm">
+                    Choose an organization to continue
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-3 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
-                {organizations.map((org) => (
+                {organizations.map(org => (
                   <motion.button
                     key={org._id}
                     onClick={() => handleOrganizationSelect(org._id)}
                     className={`w-full text-left p-4 border rounded-xl transition-all flex items-center ${
                       selectedOrg === org._id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
                     }`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -222,22 +239,22 @@ export default function SignIn() {
                 ))}
               </div>
 
-              <style jsx>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                  width: 6px;
-                }background
-                .custom-scrollbar::-webkit-scrollbar-track {
-                  : #f1f1f1;
-                  border-radius: 10px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                  background: #c5c5c5;
-                  border-radius: 10px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                  background: #a3a3a3;
-                }
-              `}</style>
+              <style>{`
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c5c5c5;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a3a3a3;
+  }
+`}</style>
             </motion.div>
           </motion.div>
         )}
