@@ -1,41 +1,41 @@
-"use client";
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "react-hot-toast";
+'use client';
+import { generateBariKoiMapLink } from '@/lib/server-apis/BariKoi/generateBariKoiMapLink-api';
+import { fetchSports } from '@/lib/server-apis/view-turfs/fetchSports-api';
+import { fetchTeamSizes } from '@/lib/server-apis/view-turfs/fetchTeamSizes-api';
+import { fetchTurfById } from '@/lib/server-apis/view-turfs/fetchTurfbyId-api';
+import { updateTurf } from '@/lib/server-apis/view-turfs/updateTurfbyId-api';
+import { ITurf } from '@/types/turf';
+import { AnimatePresence, motion } from 'framer-motion';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import {
-  FiMapPin,
-  FiClock,
-  FiUsers,
   FiArrowLeft,
+  FiClock,
   FiDollarSign,
-  FiPhone,
-  FiMail,
-  FiStar,
-  FiHome,
   FiEdit2,
-  FiSave,
-  FiX,
-  FiPlus,
+  FiHome,
   FiImage,
-} from "react-icons/fi";
-import { fetchTurfById } from "@/lib/server-apis/view-turfs/fetchTurfbyId-api";
-import { updateTurf } from "@/lib/server-apis/view-turfs/updateTurfbyId-api";
-import { ITurf } from "@/types/turf";
-import { generateBariKoiMapLink } from "@/lib/server-apis/BariKoi/generateBariKoiMapLink-api";
-import { fetchSports } from "@/lib/server-apis/view-turfs/fetchSports-api";
-import { fetchTeamSizes } from "@/lib/server-apis/view-turfs/fetchTeamSizes-api";
+  FiMail,
+  FiMapPin,
+  FiPhone,
+  FiPlus,
+  FiSave,
+  FiStar,
+  FiUsers,
+  FiX,
+} from 'react-icons/fi';
 
 const DAYS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
 ];
 
 const DetailItem = ({
@@ -67,18 +67,18 @@ const OperatingHourItem = ({
   hours: { open: string; close: string };
   today: boolean;
   isEditing: boolean;
-  onChange?: (field: "open" | "close", value: string) => void;
+  onChange?: (field: 'open' | 'close', value: string) => void;
 }) => {
   return (
     <div
       className={`p-3 rounded-lg transition-all ${
         today
-          ? "bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-500"
-          : "bg-white hover:bg-gray-50 border border-gray-100"
+          ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-500'
+          : 'bg-white hover:bg-gray-50 border border-gray-100'
       }`}
     >
       <div className="flex justify-between items-center mb-2">
-        <span className={today ? "font-semibold text-blue-700" : "font-medium"}>
+        <span className={today ? 'font-semibold text-blue-700' : 'font-medium'}>
           {day}
         </span>
       </div>
@@ -86,26 +86,26 @@ const OperatingHourItem = ({
         <div className="flex items-center gap-2">
           <input
             type="time"
-            value={hours.open || ""}
-            onChange={(e) => onChange?.("open", e.target.value)}
+            value={hours.open || ''}
+            onChange={e => onChange?.('open', e.target.value)}
             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
           />
           <span className="text-gray-400">to</span>
           <input
             type="time"
-            value={hours.close || ""}
-            onChange={(e) => onChange?.("close", e.target.value)}
+            value={hours.close || ''}
+            onChange={e => onChange?.('close', e.target.value)}
             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
           />
         </div>
       ) : (
         <div className="flex items-center gap-2 text-sm">
           <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-            {hours.open || "Closed"}
+            {hours.open || 'Closed'}
           </span>
           <span className="text-gray-400">to</span>
           <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-            {hours.close || "Closed"}
+            {hours.close || 'Closed'}
           </span>
         </div>
       )}
@@ -139,8 +139,8 @@ export default function TurfDetailPage() {
         setLoading(true);
         if (turfId) {
           const turfData = await fetchTurfById(turfId as string);
-          if (!turfData || !turfData.organization) {
-            throw new Error("Invalid turf data received");
+          if (!turfData?.organization) {
+            throw new Error('Invalid turf data received');
           }
           setTurf(turfData);
           setEditedData({
@@ -151,8 +151,8 @@ export default function TurfDetailPage() {
           });
         }
       } catch (error) {
-        console.error("Error loading turf:", error);
-        toast.error("Failed to load turf details");
+        console.error('Error loading turf:', error);
+        toast.error('Failed to load turf details');
       } finally {
         setLoading(false);
       }
@@ -162,9 +162,7 @@ export default function TurfDetailPage() {
   }, [turfId]);
 
   useEffect(() => {
-    if (imagePreview.length > 0) {
-      setActiveImage(0);
-    } else if (turf && turf.images && turf.images.length > 0) {
+    if ((imagePreview?.length ?? 0) > 0 || (turf?.images?.length ?? 0) > 0) {
       setActiveImage(0);
     }
   }, [imagePreview, turf]);
@@ -180,8 +178,8 @@ export default function TurfDetailPage() {
           setAvailableSports(sportsData);
           setAvailableTeamSizes(teamSizesData);
         } catch (error) {
-          console.error("Error loading sports or team sizes:", error);
-          toast.error("Failed to load sports or team sizes");
+          console.error('Error loading sports or team sizes:', error);
+          toast.error('Failed to load sports or team sizes');
         }
       };
       loadSportsAndTeamSizes();
@@ -190,18 +188,18 @@ export default function TurfDetailPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setEditedData((prev) => ({ ...prev, [name]: value }));
+    setEditedData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSportToggle = (sportName: string) => {
     const currentSports = [...(editedData.sports || [])];
     if (currentSports.includes(sportName)) {
-      setEditedData((prev) => ({
+      setEditedData(prev => ({
         ...prev,
-        sports: (prev.sports || []).filter((s) => s !== sportName),
+        sports: (prev.sports || []).filter(s => s !== sportName),
       }));
     } else {
-      setEditedData((prev) => ({
+      setEditedData(prev => ({
         ...prev,
         sports: [...(prev.sports || []), sportName],
       }));
@@ -209,22 +207,22 @@ export default function TurfDetailPage() {
   };
 
   const handleTeamSizeChange = (size: number) => {
-    setEditedData((prev) => ({ ...prev, team_size: size }));
+    setEditedData(prev => ({ ...prev, team_size: size }));
   };
 
   const handleOperatingHourChange = (
     day: number,
-    field: "open" | "close",
-    value: string
+    field: 'open' | 'close',
+    value: string,
   ) => {
-    setEditedData((prev) => {
+    setEditedData(prev => {
       const updatedHours = [...(prev.operatingHours || [])];
-      const dayIndex = updatedHours.findIndex((h) => h.day === day);
+      const dayIndex = updatedHours.findIndex(h => h.day === day);
 
       if (dayIndex >= 0) {
         updatedHours[dayIndex] = { ...updatedHours[dayIndex], [field]: value };
       } else {
-        updatedHours.push({ day, open: "", close: "", [field]: value });
+        updatedHours.push({ day, open: '', close: '', [field]: value });
       }
 
       return { ...prev, operatingHours: updatedHours };
@@ -237,7 +235,7 @@ export default function TurfDetailPage() {
       setNewImages(filesArray);
 
       const previews: string[] = [];
-      filesArray.forEach((file) => {
+      filesArray.forEach(file => {
         const reader = new FileReader();
         reader.onload = () => {
           if (reader.result) {
@@ -256,37 +254,37 @@ export default function TurfDetailPage() {
       const formData = new FormData();
 
       if (editedData.basePrice !== undefined)
-        formData.append("basePrice", editedData.basePrice.toString());
+        formData.append('basePrice', editedData.basePrice.toString());
       if (editedData.sports)
-        formData.append("sports", JSON.stringify(editedData.sports));
+        formData.append('sports', JSON.stringify(editedData.sports));
       if (editedData.team_size !== undefined)
-        formData.append("team_size", editedData.team_size.toString());
+        formData.append('team_size', editedData.team_size.toString());
       if (editedData.operatingHours)
         formData.append(
-          "operatingHours",
-          JSON.stringify(editedData.operatingHours)
+          'operatingHours',
+          JSON.stringify(editedData.operatingHours),
         );
 
       if (newImages.length > 0) {
-        newImages.forEach((image) => {
-          formData.append("images", image);
+        newImages.forEach(image => {
+          formData.append('images', image);
         });
       }
 
       const updatedTurf = await updateTurf(turfId as string, formData);
-      
-      if (!updatedTurf || !updatedTurf.organization) {
-        throw new Error("Invalid data received after update");
+
+      if (!updatedTurf?.organization) {
+        throw new Error('Invalid data received after update');
       }
-      
+
       setTurf(updatedTurf);
       setIsEditing(false);
       setImagePreview([]);
       setNewImages([]);
-      toast.success("Turf updated successfully!");
+      toast.success('Turf updated successfully!');
     } catch (error) {
-      console.error("Error updating turf:", error);
-      toast.error("Failed to update turf");
+      console.error('Error updating turf:', error);
+      toast.error('Failed to update turf');
     } finally {
       setLoading(false);
     }
@@ -299,7 +297,7 @@ export default function TurfDetailPage() {
       const validIndex = Math.min(activeImage, turf.images.length - 1);
       return turf.images[validIndex];
     }
-    return "/placeholder-turf.jpg";
+    return '/placeholder-turf.jpg';
   };
 
   if (loading && !turf) {
@@ -324,7 +322,7 @@ export default function TurfDetailPage() {
     );
   }
 
-  const hasOrgData = turf.organization && turf.organization.location;
+  const hasOrgData = turf.organization?.location;
 
   return (
     <motion.div
@@ -379,7 +377,7 @@ export default function TurfDetailPage() {
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-50"
             >
               <FiSave />
-              <span>{loading ? "Saving..." : "Save Changes"}</span>
+              <span>{loading ? 'Saving...' : 'Save Changes'}</span>
             </button>
           </div>
         ) : (
@@ -428,12 +426,12 @@ export default function TurfDetailPage() {
                 {imagePreview.length > 0
                   ? imagePreview.map((img, idx) => (
                       <button
-                        key={`preview-${idx}`}
+                        key={img}
                         onClick={() => setActiveImage(idx)}
                         className={`relative h-20 w-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
                           activeImage === idx
-                            ? "border-blue-500 ring-2 ring-blue-200"
-                            : "border-gray-200 hover:border-gray-300"
+                            ? 'border-blue-500 ring-2 ring-blue-200'
+                            : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
                         <Image
@@ -447,12 +445,12 @@ export default function TurfDetailPage() {
                     ))
                   : turf.images?.map((img, idx) => (
                       <button
-                        key={idx}
+                        key={img}
                         onClick={() => setActiveImage(idx)}
                         className={`relative h-20 w-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
                           activeImage === idx
-                            ? "border-blue-500 ring-2 ring-blue-200"
-                            : "border-gray-200 hover:border-gray-300"
+                            ? 'border-blue-500 ring-2 ring-blue-200'
+                            : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
                         <Image
@@ -464,7 +462,7 @@ export default function TurfDetailPage() {
                         />
                       </button>
                     ))}
-                
+
                 {isEditing && (
                   <label className="relative h-20 w-20 flex-shrink-0 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-500 transition-colors flex items-center justify-center cursor-pointer">
                     <input
@@ -497,8 +495,10 @@ export default function TurfDetailPage() {
                 <FiMapPin className="mt-1 mr-3 text-blue-600 flex-shrink-0" />
                 <p className="text-gray-800">
                   {turf.organization.location.address}
-                  {turf.organization.location.area && `, ${turf.organization.location.area}`}
-                  {turf.organization.location.city && `, ${turf.organization.location.city}`}
+                  {turf.organization.location.area &&
+                    `, ${turf.organization.location.area}`}
+                  {turf.organization.location.city &&
+                    `, ${turf.organization.location.city}`}
                 </p>
               </div>
             )}
@@ -514,19 +514,23 @@ export default function TurfDetailPage() {
                     Operating Hours
                   </h3>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {DAYS.map((dayName, dayIndex) => {
                     const hours = isEditing
-                      ? editedData.operatingHours?.find((h) => h.day === dayIndex) ||
-                        (turf.operatingHours || []).find((h) => h.day === dayIndex) || 
-                        { day: dayIndex, open: "", close: "" }
-                      : (turf.operatingHours || []).find((h) => h.day === dayIndex) || 
-                        { day: dayIndex, open: "Closed", close: "Closed" };
+                      ? editedData.operatingHours?.find(
+                          h => h.day === dayIndex,
+                        ) ||
+                        (turf.operatingHours || []).find(
+                          h => h.day === dayIndex,
+                        ) || { day: dayIndex, open: '', close: '' }
+                      : (turf.operatingHours || []).find(
+                          h => h.day === dayIndex,
+                        ) || { day: dayIndex, open: 'Closed', close: 'Closed' };
 
                     return (
                       <OperatingHourItem
-                        key={dayIndex}
+                        key={dayName}
                         day={dayName}
                         hours={hours}
                         today={dayIndex === today}
@@ -559,7 +563,7 @@ export default function TurfDetailPage() {
                           <input
                             type="number"
                             name="basePrice"
-                            value={editedData.basePrice || turf.basePrice}
+                            value={editedData.basePrice ?? turf.basePrice}
                             onChange={handleInputChange}
                             className="w-full pl-8 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
                           />
@@ -586,15 +590,15 @@ export default function TurfDetailPage() {
                           Team Size
                         </h4>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {availableTeamSizes.map((size) => (
+                          {availableTeamSizes.map(size => (
                             <button
                               key={size._id}
                               type="button"
                               onClick={() => handleTeamSizeChange(size.name)}
                               className={`px-3 py-1 rounded-full text-sm font-medium transition ${
                                 editedData.team_size === size.name
-                                  ? "bg-blue-600 text-white shadow-md"
-                                  : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                                  ? 'bg-blue-600 text-white shadow-md'
+                                  : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
                               }`}
                             >
                               {size.name} players
@@ -623,18 +627,18 @@ export default function TurfDetailPage() {
                     Sports Available
                   </h3>
                 </div>
-                
+
                 {isEditing ? (
                   <div className="flex flex-wrap gap-2">
-                    {availableSports.map((sport) => (
+                    {availableSports.map(sport => (
                       <button
                         key={sport._id}
                         type="button"
                         onClick={() => handleSportToggle(sport.name)}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition ${
                           editedData.sports?.includes(sport.name)
-                            ? "bg-blue-600 text-white shadow-md"
-                            : "bg-gray-100 hover:bg-gray-200 text-gray-800"
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
                         }`}
                       >
                         {sport.name}
@@ -643,9 +647,9 @@ export default function TurfDetailPage() {
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {(turf.sports || []).map((sport, idx) => (
+                    {(turf.sports || []).map(sport => (
                       <span
-                        key={idx}
+                        key={sport}
                         className="px-4 py-2 bg-blue-100 text-blue-800 font-medium rounded-lg"
                       >
                         {sport}
@@ -656,28 +660,30 @@ export default function TurfDetailPage() {
               </div>
 
               {/* Facilities */}
-              {hasOrgData && turf.organization.facilities && turf.organization.facilities.length > 0 && (
-                <div className="space-y-3 pt-2">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded-full text-blue-600">
-                      <FiPlus />
+              {hasOrgData &&
+                turf.organization.facilities &&
+                turf.organization.facilities.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-50 rounded-full text-blue-600">
+                        <FiPlus />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Available Facilities
+                      </h3>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Available Facilities
-                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {(turf.sports || []).map(sport => (
+                        <span
+                          key={sport}
+                          className="px-4 py-2 bg-blue-100 text-blue-800 font-medium rounded-lg"
+                        >
+                          {sport}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {turf.organization.facilities.map((facility, idx) => (
-                      <span
-                        key={idx}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-800 text-sm rounded-lg"
-                      >
-                        {facility}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
         </div>
@@ -686,7 +692,7 @@ export default function TurfDetailPage() {
         <div className="space-y-6">
           {/* Contact info */}
           {hasOrgData && (
-            <motion.div 
+            <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.1 }}
@@ -735,14 +741,18 @@ export default function TurfDetailPage() {
                     <FiMapPin />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 font-medium">Location</p>
+                    <p className="text-sm text-gray-500 font-medium">
+                      Location
+                    </p>
                     <p className="text-gray-900">
                       {turf.organization.location.address}
                     </p>
-                    {(turf.organization.location.city || turf.organization.location.post_code) && (
+                    {(turf.organization.location.city ||
+                      turf.organization.location.post_code) && (
                       <p className="text-gray-900">
                         {turf.organization.location.city}
-                        {turf.organization.location.post_code && `, ${turf.organization.location.post_code}`}
+                        {turf.organization.location.post_code &&
+                          `, ${turf.organization.location.post_code}`}
                       </p>
                     )}
 
@@ -750,7 +760,7 @@ export default function TurfDetailPage() {
                       <a
                         href={generateBariKoiMapLink(
                           turf.organization.location.coordinates.coordinates[1],
-                          turf.organization.location.coordinates.coordinates[0]
+                          turf.organization.location.coordinates.coordinates[0],
                         )}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -788,7 +798,9 @@ export default function TurfDetailPage() {
               </p>
             ) : (
               <div className="text-center py-4">
-                <p className="text-gray-500 mb-3">No reviews yet for this turf.</p>
+                <p className="text-gray-500 mb-3">
+                  No reviews yet for this turf.
+                </p>
                 <button className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium">
                   Be the first to review
                 </button>
