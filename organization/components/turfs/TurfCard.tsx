@@ -1,9 +1,9 @@
-import React from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { FiMapPin, FiClock, FiUsers } from "react-icons/fi";
-import { motion } from "framer-motion";
-import { ITurf } from "@/types/turf";
+import { ITurf } from '@/types/turf';
+import { motion } from 'framer-motion';
+import Image from 'next/image';
+import Link from 'next/link';
+import React from 'react';
+import { FiClock, FiMapPin, FiUsers } from 'react-icons/fi';
 
 interface TurfCardProps {
   turf: ITurf;
@@ -12,10 +12,10 @@ interface TurfCardProps {
 const TurfCard: React.FC<TurfCardProps> = ({ turf }) => {
   // Get today's operating hours
   const today = new Date().getDay(); // 0 = Sunday, 6 = Saturday
-  const todayHours = turf.operatingHours.find((hours) => hours.day === today);
+  const todayHours = turf.operatingHours.find(hours => hours.day === today);
 
   // Default image if none provided
-  const defaultImage = "/placeholder-turf.jpg";
+  const defaultImage = '/placeholder-turf.jpg';
   const imageUrl =
     turf.images && turf.images.length > 0 ? turf.images[0] : defaultImage;
 
@@ -27,7 +27,10 @@ const TurfCard: React.FC<TurfCardProps> = ({ turf }) => {
       transition={{ duration: 0.3 }}
       className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col"
     >
-      <Link href={`/organization/${turf.organization._id}/view-turfs/${turf._id}`} className="block h-full">
+      <Link
+        href={`/organization/${turf.organization._id}/view-turfs/${turf._id}`}
+        className="block h-full"
+      >
         <div className="relative h-48 w-full">
           <Image
             src={imageUrl}
@@ -48,7 +51,7 @@ const TurfCard: React.FC<TurfCardProps> = ({ turf }) => {
             <div className="flex items-center text-gray-700">
               <FiMapPin className="mr-2 text-blue-600 flex-shrink-0" />
               <p className="text-sm truncate">
-                {turf.organization.location.address},{" "}
+                {turf.organization.location.address},{' '}
                 {turf.organization.location.city}
               </p>
             </div>
@@ -58,7 +61,7 @@ const TurfCard: React.FC<TurfCardProps> = ({ turf }) => {
               <p className="text-sm">
                 {todayHours
                   ? `Today: ${todayHours.open} - ${todayHours.close}`
-                  : "Closed today"}
+                  : 'Closed today'}
               </p>
             </div>
 
@@ -68,9 +71,9 @@ const TurfCard: React.FC<TurfCardProps> = ({ turf }) => {
             </div>
 
             <div className="flex flex-wrap gap-2 mt-2">
-              {turf.sports.map((sport, index) => (
+              {turf.sports.map(sport => (
                 <span
-                  key={index}
+                  key={sport}
                   className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full"
                 >
                   {sport}

@@ -58,7 +58,7 @@ export default function BookingModal({
     if (selectedSlots.length > 0) {
       const total = selectedSlots.reduce((sum, slot) => {
         // Use price_override if available, otherwise use a default price
-        const slotPrice = slot.price_override || 0;
+        const slotPrice = slot.price_override ?? 0;
         return sum + slotPrice;
       }, 0);
 
@@ -81,7 +81,7 @@ export default function BookingModal({
       } else {
         toast({
           title: "Error",
-          description: response.message || "Failed to fetch time slots",
+          description: response.message ?? "Failed to fetch time slots",
           variant: "destructive",
         });
       }

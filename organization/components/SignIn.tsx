@@ -225,9 +225,9 @@ export default function SignIn() {
               <style jsx>{`
                 .custom-scrollbar::-webkit-scrollbar {
                   width: 6px;
-                }
+                }background
                 .custom-scrollbar::-webkit-scrollbar-track {
-                  background: #f1f1f1;
+                  : #f1f1f1;
                   border-radius: 10px;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb {
