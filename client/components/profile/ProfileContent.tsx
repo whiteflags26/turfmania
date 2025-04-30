@@ -16,6 +16,7 @@ import ProfileHeader from '@/components/profile/ProfileHeader';
 import UpdateProfileForm from '@/components/profile/UpdateProfileForm';
 import ChangePasswordForm from '@/components/profile/ChangePasswordForm';
 import ReviewsSection from '@/components/profile/ReviewsSection';
+import BookingsSection from '@/components/profile/BookingsSection';
 import OrganizationRequestsSection from '@/components/profile/OrganizationRequestsSection';
 
 import {
@@ -24,6 +25,7 @@ import {
   StarIcon,
   BuildingOfficeIcon,
   PencilSquareIcon,
+  CalendarIcon,
 } from '@heroicons/react/24/outline';
 
 function classNames(...classes: string[]) {
@@ -50,6 +52,10 @@ function PasswordTab(): JSX.Element {
 
 function ReviewsTab(): JSX.Element {
   return <ReviewsSection />;
+}
+
+function BookingsTab(): JSX.Element {
+  return <BookingsSection />;
 }
 
 function OrganizationsTab(): JSX.Element {
@@ -90,6 +96,11 @@ export default function ProfileContent({
       name: 'Password',
       icon: LockClosedIcon,
       component: <PasswordTab />,
+    },
+    {
+      name: 'Bookings',
+      icon: CalendarIcon,
+      component: <BookingsTab />,
     },
     {
       name: 'Reviews',

@@ -12,7 +12,6 @@ import organizationRouter from '../modules/organization/organization.route';
 import permissionRoutes from '../modules/permission/permission.routes';
 import roleRouter from '../modules/role/role.routes';
 import userRoleAssignmentRoutes from '../modules/role_assignment/userRoleAssignment.routes';
-import searchRouter from '../modules/search/search.route';
 import sportsRouter from '../modules/sports/sports.route';
 import teamSizeRouter from '../modules/team_size/team_size.route';
 import timeslotRoutes from '../modules/timeslot/timeslot.route';
@@ -40,7 +39,7 @@ router.use('/api/v1/organization-requests', organizationRequestRouter);
 router.use('/api/v1/team-sizes', teamSizeRouter);
 router.use('/api/v1/sports', sportsRouter);
 router.use('/api/v1/facilities', facilityRouter);
-router.use('/api/v1/search', searchRouter);
+
 router.use('/api/v1/bookings', bookingRouter);
 
 // Health and metrics routes (add these lines)

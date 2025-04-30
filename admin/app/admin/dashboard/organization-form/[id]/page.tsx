@@ -1,3 +1,4 @@
+// app/admin/dashboard/organization-form/[id]/page.tsx
 'use client';
 
 import OrganizationForm, {
@@ -11,40 +12,32 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
-export default function CreateOrganizationFromRequestPage({
-  params,
-}: {
- readonly params: { readonly id: string };
-}) {
-  const [organization, setOrganization] = useState<OrganizationFormData | null>(
-    null,
-  );
+interface ClientPageProps {
+  params: Promise<{ id: string }>;      // params must be a Promise :contentReference[oaicite:9]{index=9}
+}
+
+export default function Page({ params }: ClientPageProps) {
+  // resolve the route param before using it :contentReference[oaicite:10]{index=10}
+  const [organization, setOrganization] = useState<OrganizationFormData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchOrganizationRequest = async () => {
+    const fetchOrg = async () => {
       try {
         setLoading(true);
+        const { id } = await params;     // await the Promise :contentReference[oaicite:11]{index=11}
 
-        // Make sure we have an ID
-        if (!params.id) {
-          setError('Missing organization request ID');
-          setLoading(false);
+        const resp = await getSingleOrganizationRequest(id);
+        if (!resp.success || !resp.data) {
+          setError('Failed to load organization request');
+          toast.error('Failed to load organization request data');
           return;
         }
 
-        const response = await getSingleOrganizationRequest(params.id);
-
-        if (!response.success || !response.data) {
-          setError('Failed to load organization request data');
-          return;
-        }
-
-        // Map API data to form data structure
-        const org = response.data;
-        const formData: OrganizationFormData = {
+        const org = resp.data;
+        setOrganization({
           _id: org._id,
           name: org.name,
           address: org.location?.address ?? '',
@@ -62,11 +55,9 @@ export default function CreateOrganizationFromRequestPage({
           adminNotes: org.adminNotes ?? '',
           contactPhone: org.contactPhone ?? '',
           ownerEmail: org.ownerEmail ?? '',
-        };
-
-        setOrganization(formData);
+        });
       } catch (err: any) {
-        console.error('Error fetching organization request:', err);
+        console.error(err);
         setError(err.message ?? 'Failed to load organization request');
         toast.error('Failed to load organization request data');
       } finally {
@@ -74,49 +65,30 @@ export default function CreateOrganizationFromRequestPage({
       }
     };
 
-    fetchOrganizationRequest();
-  }, [params.id]);
+    fetchOrg();
+  }, [params]);
 
   const handleSubmit = async (formData: FormData) => {
+    const { id } = await params;
     try {
-      // Create organization from the request
-      const result = await createOrganization(params.id, formData);
-
-      if (!result.success) {
-        throw new Error('Failed to create organization');
-      }
-
+      const result = await createOrganization(id, formData);
+      if (!result.success) throw new Error('Failed to create organization');
       toast.success('Organization created successfully!');
-
-      // Redirect to organizations list after success
       router.push('/admin/dashboard/organizations');
-    } catch (error: any) {
-      console.error('Error creating organization:', error);
-      throw error; // Re-throw to let the form component handle the error display
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message ?? 'Failed to create organization');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 text-center">
-        Loading organization request data...
-      </div>
-    );
-  }
-
-  // For the error message display, ensure we're safely rendering text:
+  if (loading) return <div className="p-6 text-center">Loading…</div>;
   if (error || !organization) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          {/* Use proper text escaping for error messages */}
-          <p className="text-red-700">
-            {error ?? 'Failed to load organization request'}
-          </p>
+        <div className="bg-red-50 border-red-200 rounded-lg p-4">
+          <p className="text-red-700">{error ?? 'Unknown error'}</p>
           <button
-            onClick={() =>
-              router.push('/admin/dashboard/organization-requests')
-            }
+            onClick={() => router.push('/admin/dashboard/organization-requests')}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md"
           >
             Back to Requests
