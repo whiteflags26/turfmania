@@ -1,9 +1,8 @@
 import api from '@/lib/axios';
 import { ApiResponse } from '@/types/api';
 import {
-  OrganizationRequest,
+  
   OrganizationRequestsResponse,
-  SingleOrganizationRequestResponse,
 } from '@/types/organization';
 
 export interface RequestFilters {
@@ -34,21 +33,63 @@ export async function getOrganizationRequests(
   }
 }
 
+export interface OrganizationRequest {
+  _id: string;
+  name: string;
+  location?: {
+    address?: string;
+    place_id?: string;
+    city?: string;
+    area?: string;
+    sub_area?: string;
+    post_code?: string;
+    coordinates?: {
+      type: string;
+      coordinates: number[];
+    };
+  };
+  facilities?: string[];
+  images?: string[];
+  orgContactPhone?: string;
+  orgContactEmail?: string;
+  adminNotes?: string;
+  contactPhone?: string;
+  ownerEmail: string;
+  status: string;
+}
+
 export async function getSingleOrganizationRequest(
   requestId: string,
-): Promise<OrganizationRequest> {
+): Promise<{ success: boolean; data: OrganizationRequest | null }> {
   try {
-    const response = await api.get<ApiResponse<OrganizationRequest>>(
-      `/api/v1/organization-requests/admin/${requestId}`,
+    if (!requestId) {
+      throw new Error('Request ID is required');
+    }
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/organization-requests/admin/${requestId}`,
       {
-        withCredentials: true,
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       },
     );
-    return response.data.data;
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message ?? 'Failed to fetch organization request');
+    }
+
+    return {
+      success: true,
+      data: data.data,
+    };
   } catch (error: any) {
-    throw new Error(
-      error.response?.data?.message ?? 'Failed to fetch organization request',
-    );
+    console.error('Error fetching organization request:', error);
+    throw new Error('Failed to fetch organization request');
   }
 }
 
@@ -102,23 +143,46 @@ export async function rejectOrganizationRequest(
 }
 
 export async function createOrganization(
-  payload: any,
-): Promise<SingleOrganizationRequestResponse> {
+  requestIdOrPayload: string | FormData,
+  formData?: FormData,
+): Promise<{ success: boolean; data: any }> {
   try {
-    const response = await api.post('/api/v1/organizations', payload, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      withCredentials: true,
-    });
-    console.log(response.data);
+    let endpoint = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/organizations`;
+    let payload: FormData;
+    let method = 'POST';
 
-    return response.data;
+    // Case 1: Creating org from request - first param is requestId, second is form data
+    if (typeof requestIdOrPayload === 'string' && formData) {
+      payload = formData;
+      payload.append('organizationRequestId', requestIdOrPayload);
+      // Admin ID will be determined from the session cookie
+    }
+    // Case 2: Direct organization creation - first param is form data
+    else if (requestIdOrPayload instanceof FormData) {
+      payload = requestIdOrPayload;
+    } else {
+      throw new Error('Invalid parameters for createOrganization');
+    }
+
+    const response = await fetch(endpoint, {
+      method,
+      body: payload,
+      credentials: 'include',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message ?? 'Failed to create organization');
+    }
+
+    return {
+      success: true,
+      data: data.data,
+    };
   } catch (error: any) {
-    console.error('Create organization error:', error.response?.data);
-    throw new Error(
-      error.response?.data?.message ?? 'Failed to create organization',
-    );
+    console.error('Create organization error:', error);
+    throw new Error(error.message ?? 'Failed to create organization');
   }
 }
 
