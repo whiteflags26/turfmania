@@ -1,13 +1,15 @@
 import { Router } from 'express';
 
 import TimeSlotController from './timeslot.controller';
+import { standardApiLimiter } from '../../utils/rateLimiter';
+import { protect } from '../auth/auth.middleware';
 
 const router = Router();
 
 const timeslotController = new TimeSlotController();
-router.post('/generate', timeslotController.generateTimeSlot);
-router.get('/', timeslotController.getTimeSlot);
-router.get('/available/:turfId', timeslotController.getAvailableTimeSlot);
-router.put('/:id',timeslotController.updateTimeSlot)
+router.post('/generate',standardApiLimiter,protect, timeslotController.generateTimeSlot);
+router.get('/',standardApiLimiter, timeslotController.getTimeSlot);
+router.get('/available/:turfId',standardApiLimiter, timeslotController.getAvailableTimeSlot);
+router.put('/:id',standardApiLimiter,protect,timeslotController.updateTimeSlot)
 
 export default router;

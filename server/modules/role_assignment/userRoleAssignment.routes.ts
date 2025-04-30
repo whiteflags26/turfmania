@@ -4,6 +4,7 @@ import {
   assignGlobalRole,
   assignOrganizationRole,
 } from './userRoleAssignmentController';
+import { standardApiLimiter } from '../../utils/rateLimiter';
 
 const router = express.Router();
 
@@ -13,6 +14,7 @@ router.use(protect);
 // Global role assignment
 router.post(
   '/users/:userId/assignments/global',
+  standardApiLimiter,
   checkPermission('manage_user_global_roles'),
   assignGlobalRole,
 );
@@ -20,6 +22,7 @@ router.post(
 // Organization role assignment
 router.post(
   '/organizations/:organizationId/users/:userId/assignments',
+  standardApiLimiter,
   checkPermission('manage_organization_roles'),
   assignOrganizationRole,
 );

@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
+import validator from "validator";
 
 interface ILocation {
   place_id: string; // Unique identifier from Barikoi
@@ -13,29 +14,26 @@ interface ILocation {
   post_code?: string;
 }
 
+
 export interface IOrganization extends Document {
   name: string;
   facilities: string[];
-  owner:mongoose.Types.ObjectId;
 
   images: string[];
   turfs: mongoose.Types.ObjectId[];
   location: ILocation;
+
+  orgContactPhone: string; // Mandatory
+  orgContactEmail: string; // Mandatory
 }
 
 const OrganizationSchema: Schema = new Schema(
   {
-    name: { type: String, required: true },
+    name: { type: String, required: true, unique: true, trim: true },
     facilities: { type: [String], default: [] },
     images: { type: [String], default: [] },
     turfs: [{ type: Schema.Types.ObjectId, ref: "Turf" }],
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      unique:true
-    },
 
-  
     location: {
       place_id: { type: String, required: true },
       address: { type: String, required: true },
@@ -60,11 +58,56 @@ const OrganizationSchema: Schema = new Schema(
       city: { type: String, required: true },
       post_code: String,
     },
+    orgContactPhone: {
+      type: String,
+      required: true,
+      trim: true,
+      validate: {
+        validator: function (value: string) {
+          // Bangladeshi phone number regex pattern
+          const bdPhoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
+          return bdPhoneRegex.test(value);
+        },
+        message: "Please provide a valid Bangladeshi phone number",
+      },
+    },
+    orgContactEmail: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      validate: {
+        validator: function (value: string) {
+          return validator.isEmail(value);
+        },
+        message: "Please provide a valid email address",
+      },
+    },
   },
   { timestamps: true }
 );
 
 OrganizationSchema.index({ "location.coordinates": "2dsphere" });
+
+OrganizationSchema.index(
+  {
+    name: "text",
+    "location.address": "text",
+    "location.area": "text",
+    "location.sub_area": "text",
+    "location.city": "text",
+  },
+  {
+    weights: {
+      name: 10,
+      "location.city": 5,
+      "location.area": 3,
+      "location.sub_area": 2,
+      "location.address": 1,
+    },
+    name: "org_text_search",
+  }
+);
 
 const Organization = mongoose.model<IOrganization>(
   "Organization",

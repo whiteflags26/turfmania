@@ -1,29 +1,38 @@
 import express from 'express';
 import {
+  adminLogin,
   forgotPassword,
   getMe,
   login,
   logout,
   register,
   resetPassword,
-  verifyEmail
-} from "./auth.controller";
-import { protect } from "./auth.middleware";
+  verifyEmail,
+  resendVerificationEmail
+} from './auth.controller';
+import { protect } from './auth.middleware';
+import { authLimiter} from '../../utils/rateLimiter';
+
+
+
 
 const router = express.Router();
 
-router.post('/register', register);
+router.post('/register',authLimiter, register);
 
-router.post('/login', login);
+router.post('/login',authLimiter, login);
 
 router.post('/logout', logout);
 
 router.get('/me', protect, getMe);
 
-router.post('/forgot-password', forgotPassword);
+router.post('/forgot-password',authLimiter, forgotPassword);
 
-router.post("/reset-password", resetPassword);
+router.post('/reset-password',authLimiter, resetPassword);
 
-router.get("/verify-email", verifyEmail);
+router.get('/verify-email',authLimiter, verifyEmail);
 
+router.post('/admin/login',authLimiter,adminLogin)
+
+router.post('/resend-verification',authLimiter, resendVerificationEmail);
 export default router;

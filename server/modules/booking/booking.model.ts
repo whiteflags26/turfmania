@@ -1,67 +1,104 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema, Types } from 'mongoose';
+
+export type BookingStatus = 
+  | 'created' 
+  | 'advance_payment_completed' 
+  | 'completed' 
+  | 'rejected';
+
+export type PaymentMethod = 'stripe' | 'cash';
 
 export interface IBooking extends Document {
-  user: mongoose.Types.ObjectId;
-  turf: mongoose.Types.ObjectId;
-  timeSlot: mongoose.Types.ObjectId;
-  bookingDate: Date;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
-  paymentStatus: 'pending' | 'paid' | 'refunded';
-  paymentAmount: number;
-  transactionId?: string;
+  userId: Types.ObjectId;
+  turf: Types.ObjectId;
+  timeSlots: Types.ObjectId[];
+  totalAmount: number;
+  advanceAmount: number;
+  finalAmount: number;
+  status: BookingStatus;
+  advancePaymentTransactionId: string;
+  finalPaymentTransactionId?: string;
+  finalPaymentMethod?: PaymentMethod;
+  isPaid: boolean;
+  isReminderSent: boolean; 
   createdAt: Date;
   updatedAt: Date;
 }
 
 const BookingSchema: Schema = new Schema(
   {
-    user: {
+    userId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
-      index: true
+      index: true,
     },
     turf: {
       type: Schema.Types.ObjectId,
-      ref: "Turf",
+      ref: 'Turf',
       required: true,
-      index: true
+      index: true,
     },
-    timeSlot: {
+    timeSlots: [{
       type: Schema.Types.ObjectId,
-      ref: "TimeSlot",
+      ref: 'TimeSlot',
       required: true,
-      index: true
-    },
-    bookingDate: {
-      type: Date,
-      required: true,
-      default: Date.now,
-      index: true
-    },
-    status: {
-      type: String,
-      enum: ['pending', 'confirmed', 'cancelled', 'completed'],
-      default: 'pending',
-      index: true
-    },
-    paymentStatus: {
-      type: String,
-      enum: ['pending', 'paid', 'refunded'],
-      default: 'pending'
-    },
-    paymentAmount: {
+    }],
+    totalAmount: {
       type: Number,
       required: true,
       min: 0,
       get: (v: number) => parseFloat(v.toFixed(2)),
-      set: (v: number) => parseFloat(v.toFixed(2))
+      set: (v: number) => parseFloat(v.toFixed(2)),
     },
-    transactionId: {
-      type: String
+    advanceAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+      get: (v: number) => parseFloat(v.toFixed(2)),
+      set: (v: number) => parseFloat(v.toFixed(2)),
+    },
+    finalAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+      get: (v: number) => parseFloat(v.toFixed(2)),
+      set: (v: number) => parseFloat(v.toFixed(2)),
+    },
+    status: {
+      type: String,
+      enum: ['created', 'advance_payment_completed', 'completed', 'rejected'],
+      default: 'created',
+      index: true,
+    },
+    advancePaymentTransactionId: {
+      type: String,
+      required: true,
+    },
+    finalPaymentTransactionId: {
+      type: String,
+    },
+    finalPaymentMethod: {
+      type: String,
+      enum: ['stripe', 'cash'],
+    },
+    isPaid: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    isReminderSent: {  
+      type: Boolean,
+      default: false,
+      index: true,
     }
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-export const Booking = mongoose.model<IBooking>("Booking", BookingSchema);
+// Index for common queries
+BookingSchema.index({ userId: 1, status: 1 });
+BookingSchema.index({ turf: 1, status: 1 });
+BookingSchema.index({ createdAt: -1 });
+
+export const Booking = mongoose.model<IBooking>('Booking', BookingSchema);

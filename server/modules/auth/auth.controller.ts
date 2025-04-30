@@ -1,10 +1,53 @@
 import { NextFunction, Request, Response } from 'express';
+import { Types } from 'mongoose';
 import validator from 'validator';
+import { z } from 'zod';
 import asyncHandler from '../../shared/middleware/async';
 import ErrorResponse from '../../utils/errorResponse';
 import Token from '../token/token.model';
 import User, { UserDocument } from '../user/user.model';
 import authService, { resetUserPassword } from './auth.service';
+
+const emailSchema = z.string().email('Invalid email format');
+const passwordSchema = z
+  .string()
+  .min(6, 'Password must be at least 6 characters');
+
+const registerSchema = z.object({
+  first_name: z.string().min(1, 'First name is required'),
+  last_name: z.string().min(1, 'Last name is required'),
+  email: emailSchema,
+  password: passwordSchema,
+  role: z.string().optional(),
+});
+
+const loginSchema = z.object({
+  email: emailSchema,
+  password: passwordSchema,
+});
+
+const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+const resetPasswordSchema = z.object({
+  query: z.object({
+    token: z.string().min(1, 'Token is required'),
+    id: z
+      .string()
+      .min(1, 'ID is required')
+      .refine(val => Types.ObjectId.isValid(val), {
+        message: 'Invalid ID format',
+      }),
+  }),
+  body: z.object({
+    password: passwordSchema,
+  }),
+});
+
+const resendVerificationSchema = z.object({
+  email: emailSchema,
+});
 
 interface RegisterBody {
   first_name: string;
@@ -30,27 +73,14 @@ interface AuthenticatedRequest extends Request {
  */
 
 export const register = asyncHandler(
-  async (
-    req: Request<{}, {}, RegisterBody>,
-    res: Response,
-    next: NextFunction,
-  ) => {
-    let { first_name, last_name, email, password, role } = req.body;
-    // Trim and sanitize inputs
-    first_name = validator.trim(first_name ?? '');
-    last_name = validator.trim(last_name ?? '');
-    email = validator.trim(email ?? '').toLowerCase();
-    password = validator.trim(password ?? '');
-
-    // Input validation
-    if (!first_name || !last_name || !email || !password) {
-      return next(new ErrorResponse('All fields are required', 400));
+  async (req: Request, res: Response, next: NextFunction) => {
+    // Validate request body
+    const parseResult = registerSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return next(new ErrorResponse(parseResult.error.message, 400));
     }
 
-    // Validate email format
-    if (!validator.isEmail(email)) {
-      return next(new ErrorResponse('Invalid email format', 400));
-    }
+    const { first_name, last_name, email, password, role } = parseResult.data;
 
     // Check if user already exists (case insensitive)
     const existingUser = await User.findOne({ email }).collation({
@@ -62,12 +92,12 @@ export const register = asyncHandler(
       return next(new ErrorResponse('Email already registered', 400));
     }
 
-    // Create user with sanitized inputs
+    // Create user with validated data
     const user: UserDocument = await User.create({
       first_name,
       last_name,
       email,
-      password, // Password will be hashed by the model's pre-save hook
+      password,
       role: role ?? 'user',
     });
 
@@ -93,6 +123,61 @@ export const register = asyncHandler(
  * @access  Public
  */
 export const login = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    // Validate request body
+    const parseResult = loginSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return next(new ErrorResponse(parseResult.error.message, 400));
+    }
+
+    const { email, password } = parseResult.data;
+
+    // Find user with case-insensitive email match
+    const user = await User.findOne({ email })
+      .collation({ locale: 'en', strength: 2 })
+      .select('+password');
+
+    if (!user) {
+      // Use consistent error message for security
+      return next(new ErrorResponse('Invalid credentials', 401));
+    }
+
+    // Check password
+    const isMatched = await authService.matchPassword(password, user);
+
+    if (!isMatched) {
+      // Use consistent error message for security
+      return next(new ErrorResponse('Invalid credentials', 401));
+    }
+
+    // Generate token
+    const token = authService.generateToken(user);
+
+    // Remove sensitive data from response
+    const userWithoutPassword = user.toObject();
+    delete userWithoutPassword.password;
+
+    // Set token in cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      //secure: process.env.NODE_ENV === "production",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      sameSite: 'lax',
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { user: userWithoutPassword, token },
+    });
+  },
+);
+
+/**
+ * @route   POST /api/v1/auth/admin/login
+ * @desc    Admin Login with dashboard access check
+ * @access  Public
+ */
+export const adminLogin = asyncHandler(
   async (
     req: Request<{}, {}, LoginBody>,
     res: Response,
@@ -121,7 +206,6 @@ export const login = asyncHandler(
       .select('+password');
 
     if (!user) {
-      // Use consistent error message for security
       return next(new ErrorResponse('Invalid credentials', 401));
     }
 
@@ -129,29 +213,50 @@ export const login = asyncHandler(
     const isMatched = await authService.matchPassword(password, user);
 
     if (!isMatched) {
-      // Use consistent error message for security
       return next(new ErrorResponse('Invalid credentials', 401));
+    }
+
+    // Check for admin dashboard access permission
+    try {
+      const hasAdminAccess = await authService.checkAdminAccess(user._id);
+      if (!hasAdminAccess) {
+        return next(
+          new ErrorResponse('Unauthorized access to admin dashboard', 403),
+        );
+      }
+    } catch (error) {
+      console.error('Admin access verification error:', error);
+      return next(new ErrorResponse('Admin access verification failed', 500));
     }
 
     // Generate token
     const token = authService.generateToken(user);
-    console.log(token);
 
     // Remove sensitive data from response
     const userWithoutPassword = user.toObject();
     delete userWithoutPassword.password;
 
-    // Set token in cookie
+    // Set admin token cookie
+    res.cookie('admin_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
+    // Set regular token cookie
     res.cookie('token', token, {
       httpOnly: true,
-      //secure: process.env.NODE_ENV === "production",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
     res.status(200).json({
       success: true,
-      data: { user: userWithoutPassword, token },
+      data: { user: userWithoutPassword },
     });
   },
 );
@@ -165,6 +270,18 @@ export const login = asyncHandler(
 export const logout = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     res.cookie('token', '', {
+      httpOnly: true,
+      expires: new Date(0), // set the cookie to expire immediately
+      //secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+    res.cookie('admin_token', '', {
+      httpOnly: true,
+      expires: new Date(0), // set the cookie to expire immediately
+      //secure: process.env.NODE_ENV === 'production', // Uncomment for production
+      sameSite: 'lax',
+    });
+    res.cookie('org_token', '', {
       httpOnly: true,
       expires: new Date(0), // set the cookie to expire immediately
       //secure: process.env.NODE_ENV === 'production',
@@ -185,15 +302,44 @@ export const logout = asyncHandler(
  */
 export const getMe = asyncHandler(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    console.log('in me controller');
-    if (!req.user) {
+    if (!req.user?.id) {
       return next(new ErrorResponse('User not authenticated', 401));
     }
-    console.log('user', req.user.id);
-    const user = await User.findById(req.user.id).select('-password');
+
+    const user = await User.findById(req.user.id).select(
+      '-password -verificationToken -verificationTokenExpires',
+    );
 
     if (!user) {
       return next(new ErrorResponse('User not found', 404));
+    }
+
+    // If it's an admin request, check admin access
+    if (req.cookies.admin_token) {
+      try {
+        const hasAdminAccess = await authService.checkAdminAccess(user._id);
+        if (!hasAdminAccess) {
+          return next(new ErrorResponse('Not authorized as admin', 403));
+        }
+      } catch (error) {
+        console.error('Admin access verification error:', error);
+        return next(new ErrorResponse('Admin access verification failed', 500));
+      }
+    }
+
+    // If it's an organization/turf owner request, check organization access
+    if (req.cookies.org_token && req.params.organizationId) {
+      
+        const hasOrgAccess = await authService.checkUserRoleInOrganization(
+          user._id,
+          req.params.organizationId,
+        );
+        if (!hasOrgAccess) {
+          return next(
+            new ErrorResponse('Not authorized as organization owner', 403),
+          );
+        }
+     
     }
 
     res.status(200).json({
@@ -211,11 +357,13 @@ export const getMe = asyncHandler(
 
 export const forgotPassword = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { email } = req.body;
-
-    if (!email) {
-      return next(new ErrorResponse('Please provide an email', 400));
+    // Validate request body
+    const parseResult = forgotPasswordSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return next(new ErrorResponse(parseResult.error.message, 400));
     }
+
+    const { email } = parseResult.data;
 
     const user = await User.findOne({ email });
 
@@ -264,28 +412,23 @@ export const forgotPassword = asyncHandler(
 
 export const resetPassword = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { token, id } = req.query;
-      const { password } = req.body;
+    // Validate both query params and body
+    const parseResult = resetPasswordSchema.safeParse({
+      query: req.query,
+      body: req.body,
+    });
 
-      if (!token || !id || !password) {
-        return next(
-          new ErrorResponse('Invalid request. Missing parameters.', 400),
-        );
-      }
-
-      // Call the modular service function
-      const response = await resetUserPassword(
-        id as string,
-        token as string,
-        password,
-      );
-
-      res.status(200).json(response);
-    } catch (error) {
-      console.error(error);
-      return next(error);
+    if (!parseResult.success) {
+      return next(new ErrorResponse(parseResult.error.message, 400));
     }
+
+    const { token, id } = parseResult.data.query;
+    const { password } = parseResult.data.body;
+
+    // Call the modular service function
+    const response = await resetUserPassword(id, token, password);
+
+    res.status(200).json(response);
   },
 );
 
@@ -296,15 +439,29 @@ export const resetPassword = asyncHandler(
  */
 export const verifyEmail = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { token, id } = req.query;
+    // Define Zod schema for query parameters validation
+    const verifyEmailSchema = z.object({
+      token: z.string().min(1, 'Token is required'),
+      id: z
+        .string()
+        .min(1, 'ID is required')
+        .refine(val => Types.ObjectId.isValid(val), {
+          message: 'Invalid ID format',
+        }),
+    });
 
-    // Check if token and ID are provided
-    if (!token || !id) {
-      return next(new ErrorResponse('Invalid verification link', 400));
+    // Validate and parse query parameters
+    const parseResult = verifyEmailSchema.safeParse(req.query);
+
+    if (!parseResult.success) {
+      return next(new ErrorResponse('Invalid verification parameters', 400));
     }
 
-    // Find the user by ID
+    const { token, id } = parseResult.data;
+
+    // Find the user by validated ID
     const user = await User.findById(id);
+
     if (!user) {
       return next(new ErrorResponse('User not found', 404));
     }
@@ -326,6 +483,45 @@ export const verifyEmail = asyncHandler(
     res.status(200).json({
       success: true,
       message: 'Email verified successfully!',
+    });
+  },
+);
+
+/**
+ * @route   POST /api/v1/auth/resend-verification
+ * @desc    Resend verification email to user
+ * @access  Public
+ */
+export const resendVerificationEmail = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    // Validate request body
+    const parseResult = resendVerificationSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return next(new ErrorResponse(parseResult.error.message, 400));
+    }
+
+    const { email } = parseResult.data;
+
+    const user = await User.findOne({ email }).collation({
+      locale: 'en',
+      strength: 2,
+    });
+
+    if (!user) {
+      return next(new ErrorResponse('User with this email not found', 404));
+    }
+
+    // Check if user is already verified
+    if (user.isVerified) {
+      return next(new ErrorResponse('Email is already verified', 400));
+    }
+
+    // Send verification email
+    await authService.sendVerificationEmail(user);
+
+    res.status(200).json({
+      success: true,
+      message: 'Verification email has been sent. Please check your inbox.',
     });
   },
 );

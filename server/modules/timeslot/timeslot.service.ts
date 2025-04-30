@@ -9,26 +9,38 @@ export default class TimeSlotService {
     endDate: Date,
     slotDuration: number = 60,
   ): Promise<ITimeSlot[]> {
-    console.log('generating slots..');
+    console.log('Checking for existing slots...');
     const turf = await Turf.findById(turfId);
-    console.log(turf);
     if (!turf) throw new Error('Turf not found');
 
-    const slots = [];
-    const currentDate = new Date(startDate);
-    console.log(currentDate);
-    currentDate.setHours(0, 0, 0, 0);
+    // Format dates properly
+    const startDateTime = new Date(startDate);
+    startDateTime.setHours(0, 0, 0, 0);
 
     const endDateTime = new Date(endDate);
     endDateTime.setHours(23, 59, 59, 999);
 
+    // Check if any slots already exist in the specified date range
+    const existingSlots = await TimeSlot.find({
+      turf: turfId,
+      start_time: { $gte: startDateTime },
+      end_time: { $lte: endDateTime }
+    });
+
+    // If any slots exist in this range, throw an error
+    if (existingSlots.length > 0) {
+      throw new Error(`Timeslots already exist for this turf between ${startDate} and ${endDate}`);
+    }
+
+    // Proceed with slot generation since no existing slots were found
+    const slots = [];
+    const currentDate = new Date(startDateTime);
+
     while (currentDate <= endDateTime) {
       const dayOfWeek = currentDate.getDay();
-      console.log(dayOfWeek);
       const operatingHours = turf.operatingHours.find(
         hours => Number(hours.day) === dayOfWeek,
       );
-      console.log(operatingHours);
 
       if (operatingHours) {
         let [openHour, openMinute] = operatingHours.open.split(':').map(Number);
@@ -64,19 +76,25 @@ export default class TimeSlotService {
       currentDate.setHours(0, 0, 0, 0);
     }
 
-    // Use bulk operations for better performance
+    // Create all slots at once 
     if (slots.length > 0) {
       await TimeSlot.insertMany(slots);
+      console.log(`Successfully created ${slots.length} time slots`);
+    } else {
+      console.log('No slots to create');
     }
 
     return await this.getTimeSlots({
       turf: turfId,
-      start_time: { $gte: startDate, $lte: endDateTime },
+      start_time: { $gte: startDateTime },
+      end_time: { $lte: endDateTime },
     });
   }
+  
   async getTimeSlots(filters = {}): Promise<ITimeSlot[]> {
-    return await TimeSlot.find(filters).sort('start_time').populate('turf');
+    return await TimeSlot.find(filters).sort('start_time');
   }
+  
   async getAvailableTimeSlots(
     turfId: string,
     date: Date,

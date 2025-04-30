@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import mongoose from 'mongoose';
+import validator from 'validator';
 import asyncHandler from '../../shared/middleware/async';
 import ErrorResponse from '../../utils/errorResponse';
 import { AuthRequest } from '../auth/auth.middleware';
@@ -9,6 +10,10 @@ import { organizationService } from './organization.service';
 interface CreateOrganizationBody {
   name: string;
   facilities: string[];
+  requestId?: string;
+  wasEdited?: boolean;
+  orgContactPhone: string;
+  orgContactEmail: string;
   location: {
     place_id: string;
     address: string;
@@ -31,6 +36,8 @@ interface UpdateOrganizationBody
   extends Omit<Partial<CreateOrganizationBody>, 'facilities'> {
   facilities?: string | string[];
   imagesToKeep?: string[];
+  orgContactPhone?: string;
+  orgContactEmail?: string;
 }
 
 // Interface for Create Role Body
@@ -51,122 +58,198 @@ interface AssignRoleBody {
  */
 export const createOrganization = asyncHandler(
   async (
-    req: AuthRequest & { body: CreateOrganizationBody },
+    req: AuthRequest & {
+      body: CreateOrganizationBody & {
+        requestId?: string;
+        adminNotes?: string;
+      };
+    },
     res: Response,
     next: NextFunction,
   ) => {
-    const { name, facilities } = req.body;
-
-    // Validate user authentication first
-    if (!req.user) {
-      return next(new ErrorResponse('User not authenticated', 401));
-    }
-
-    // Input validation
-    if (!name) {
-      return next(new ErrorResponse('Name is required', 400));
-    }
-
-    let parsedFacilities: IOrganization['facilities'];
-    let location: IOrganization['location'];
-
-    // Parse facilities
     try {
-      // First validate if facilities exists
-      if (!facilities) {
-        return next(new ErrorResponse('Facilities are required', 400));
+      const userId = ensureAuthenticated(req.user);
+      const {
+        name,
+        facilities,
+        location: rawLocation,
+        orgContactEmail,
+        orgContactPhone,
+        requestId,
+        adminNotes,
+      } = ensureRequiredFields(req.body);
+
+      const sanitizedName = sanitizeName(name);
+      const parsedFacilities = parseAndValidateFacilities(facilities);
+      const parsedLocation = parseAndValidateLocation(rawLocation);
+
+      validateContactInfo(orgContactEmail, orgContactPhone);
+
+      const images = req.files as Express.Multer.File[];
+
+      const organization = await organizationService.createOrganization({
+        name: sanitizedName,
+        facilities: parsedFacilities,
+        location: parsedLocation,
+        orgContact: {
+          phone: orgContactPhone,
+          email: orgContactEmail,
+        },
+        images,
+        requestId,
+        adminId: userId,
+        adminNotes,
+      });
+
+      if (!organization) {
+        throw new ErrorResponse('Failed to create organization', 500);
       }
 
-      // Parse facilities if it's a string, otherwise validate array
-      parsedFacilities =
-        typeof facilities === 'string' ? JSON.parse(facilities) : facilities;
-
-      // Validate that parsed result is an array
-      if (!Array.isArray(parsedFacilities)) {
-        return next(new ErrorResponse('Facilities must be an array', 400));
-      }
-
-      // Validate array is not empty
-      if (parsedFacilities.length === 0) {
-        return next(
-          new ErrorResponse('At least one facility is required', 400),
-        );
-      }
-
-      // Validate array elements are strings
-      if (!parsedFacilities.every(facility => typeof facility === 'string')) {
-        return next(new ErrorResponse('All facilities must be strings', 400));
-      }
-    } catch (error) {
-      console.error('Facilities parsing error:', error);
-      return next(
-        new ErrorResponse(
-          `Invalid facilities format: ${(error as Error).message}`,
-          400,
-        ),
-      );
+      return sendSuccessResponse(res, organization, requestId);
+    } catch (err) {
+      return next(err);
     }
-
-    // Parse and validate location
-    try {
-      const parsedLocation =
-        typeof req.body.location === 'string'
-          ? JSON.parse(req.body.location)
-          : req.body.location;
-
-      // Validate required location fields
-      if (!parsedLocation) {
-        return next(new ErrorResponse('Location is required', 400));
-      }
-
-      const requiredFields = ['place_id', 'address', 'coordinates', 'city'];
-      const missingFields = requiredFields.filter(
-        field => !parsedLocation[field],
-      );
-
-      if (missingFields.length > 0) {
-        return next(
-          new ErrorResponse(
-            `Missing required location fields: ${missingFields.join(', ')}`,
-            400,
-          ),
-        );
-      }
-
-      if (
-        !parsedLocation.coordinates.type ||
-        !parsedLocation.coordinates.coordinates
-      ) {
-        return next(new ErrorResponse('Invalid coordinates format', 400));
-      }
-
-      location = parsedLocation;
-    } catch (error) {
-      return next(
-        new ErrorResponse(
-          `Invalid location format: ${(error as Error).message}`,
-          400,
-        ),
-      );
-    }
-
-    const images = req.files as Express.Multer.File[];
-
-    // Create organization
-    const organization = await organizationService.createOrganization(
-      name,
-      parsedFacilities,
-      location,
-      images,
-    );
-
-    res.status(201).json({
-      success: true,
-      data: organization,
-      message: 'Organization created successfully',
-    });
   },
 );
+
+/** Helper Functions */
+function ensureAuthenticated(user: { id: string } | undefined): string {
+  if (!user) {
+    throw new ErrorResponse('User not authenticated', 401);
+  }
+  return user.id;
+}
+
+function ensureRequiredFields(body: any) {
+  const {
+    name,
+    facilities,
+    location,
+    orgContactEmail,
+    orgContactPhone,
+    requestId,
+    adminNotes,
+  } = body;
+
+  if (!name) throw new ErrorResponse('Name is required', 400);
+  if (!facilities) throw new ErrorResponse('Facilities are required', 400);
+  if (!orgContactEmail)
+    throw new ErrorResponse('Contact email is required', 400);
+  if (!orgContactPhone)
+    throw new ErrorResponse('Contact phone is required', 400);
+
+  return {
+    name,
+    facilities,
+    location,
+    orgContactEmail,
+    orgContactPhone,
+    requestId,
+    adminNotes,
+  };
+}
+
+function sanitizeName(name: string): string {
+  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+}
+
+function parseAndValidateFacilities(facilities: string | any[]): string[] {
+  let parsedFacilities: string[];
+
+  try {
+    parsedFacilities =
+      typeof facilities === 'string' ? JSON.parse(facilities) : facilities;
+
+    if (!Array.isArray(parsedFacilities)) {
+      throw new ErrorResponse('Facilities must be an array', 400);
+    }
+
+    if (parsedFacilities.length === 0) {
+      throw new ErrorResponse('At least one facility is required', 400);
+    }
+
+    if (!parsedFacilities.every(facility => typeof facility === 'string')) {
+      throw new ErrorResponse('All facilities must be strings', 400);
+    }
+
+    return parsedFacilities.map(
+      facility =>
+        facility.charAt(0).toUpperCase() + facility.slice(1).toLowerCase(),
+    );
+  } catch (error) {
+    if (error instanceof ErrorResponse) throw error;
+    throw new ErrorResponse(
+      `Invalid facilities format: ${(error as Error).message}`,
+      400,
+    );
+  }
+}
+
+function parseAndValidateLocation(location: any): IOrganization['location'] {
+  try {
+    const parsedLocation =
+      typeof location === 'string' ? JSON.parse(location) : location;
+
+    if (!parsedLocation) {
+      throw new ErrorResponse('Location is required', 400);
+    }
+
+    const requiredFields = ['place_id', 'address', 'coordinates', 'city'];
+    const missingFields = requiredFields.filter(
+      field => !parsedLocation[field],
+    );
+
+    if (missingFields.length > 0) {
+      throw new ErrorResponse(
+        `Missing required location fields: ${missingFields.join(', ')}`,
+        400,
+      );
+    }
+
+    if (
+      !parsedLocation.coordinates.type ||
+      !parsedLocation.coordinates.coordinates
+    ) {
+      throw new ErrorResponse('Invalid coordinates format', 400);
+    }
+
+    return parsedLocation;
+  } catch (error) {
+    if (error instanceof ErrorResponse) throw error;
+    throw new ErrorResponse(
+      `Invalid location format: ${(error as Error).message}`,
+      400,
+    );
+  }
+}
+
+function validateContactInfo(email: string, phone: string): void {
+  if (!validator.isEmail(email)) {
+    throw new ErrorResponse('Invalid contact email format', 400);
+  }
+
+  // Phone validation can be expanded here if needed
+}
+
+function sendSuccessResponse(
+  res: Response,
+  organization: IOrganization | null,
+  requestId?: string,
+): Response {
+  if (!organization) {
+    throw new ErrorResponse('Failed to create organization', 500);
+  }
+
+  const message = requestId
+    ? 'Organization created and request approved successfully'
+    : 'Organization created successfully';
+
+  return res.status(201).json({
+    success: true,
+    data: organization,
+    message,
+  });
+}
 
 /**
  * @route   POST /api/v1/organizations/:id/assign-owner
@@ -226,13 +309,35 @@ export const updateOrganization = asyncHandler(
 
     const newImages = req.files as Express.Multer.File[];
 
-    const updateData: Partial<IOrganization> = {
-      ...(name && { name }),
-      ...(facilities && {
-        facilities:
-          typeof facilities === 'string' ? JSON.parse(facilities) : facilities,
-      }),
-    };
+    const updateData: Partial<IOrganization> = {};
+
+    // Sanitize and add name if provided
+    if (name) {
+      updateData.name =
+        name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    }
+
+    // Sanitize and add facilities if provided
+    if (facilities) {
+      let parsedFacilities =
+        typeof facilities === 'string' ? JSON.parse(facilities) : facilities;
+
+      // Validate array elements are strings
+      if (
+        !Array.isArray(parsedFacilities) ||
+        !parsedFacilities.every(facility => typeof facility === 'string')
+      ) {
+        return next(
+          new ErrorResponse('Facilities must be an array of strings', 400),
+        );
+      }
+
+      // Sanitize facility names
+      updateData.facilities = parsedFacilities.map(
+        facility =>
+          facility.charAt(0).toUpperCase() + facility.slice(1).toLowerCase(),
+      );
+    }
 
     if (location) {
       updateData.location =
@@ -328,3 +433,42 @@ export const createOrganizationRole = asyncHandler(
   },
 );
 
+/**
+ * @route   GET /api/organizations/:organizationId/other-turfs/:turfId
+ * @desc    Fetch other turfs from the same organization excluding the current turf
+ * @access  Public
+ */
+export const fetchOtherTurfs = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { organizationId, turfId } = req.params;
+    const turfs = await organizationService.getOtherTurfsByOrganization(
+      organizationId,
+      turfId,
+    );
+    res.status(200).json({ success: true, data: turfs });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @route   GET /api/v1/organizations/:id
+ * @desc    Get organization by ID
+ * @access  Public
+ */
+export const getOrganization = asyncHandler(
+  async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    const organization = await organizationService.getOrganizationById(id);
+
+    res.status(200).json({
+      success: true,
+      data: organization,
+    });
+  },
+);
