@@ -226,7 +226,7 @@ export default function DashboardLayout({
             </div>
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
               <span className="font-semibold text-blue-700">
-                {user?.email?.charAt(0).toUpperCase() || 'U'}
+                {user?.email?.charAt(0).toUpperCase() ?? 'U'}
               </span>
             </div>
           </div>
@@ -269,12 +269,12 @@ export default function DashboardLayout({
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                         <span className="font-semibold text-blue-700">
-                          {user?.email?.charAt(0).toUpperCase() || 'U'}
+                          {user?.email?.charAt(0).toUpperCase() ?? 'U'}
                         </span>
                       </div>
                       <div className="flex-grow overflow-hidden">
                         <p className="font-medium text-gray-800 truncate">
-                          {user?.email || 'User'}
+                          {user?.email ?? 'User'}
                         </p>
                         <p className="text-xs text-gray-500">
                           Organization Owner
