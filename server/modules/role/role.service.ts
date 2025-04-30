@@ -16,7 +16,7 @@ interface RoleData {
   isDefault?: boolean;
 }
 
-class RoleService {
+export default class RoleService {
   /**
    * Get all roles for an organization
    * @param organizationId - The ID of the organization
