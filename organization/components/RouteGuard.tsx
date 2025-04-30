@@ -7,7 +7,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { hasOrgAccess } from "@/service/auth";
 
 interface RouteGuardProps {
-  children: ReactNode;
+  readonly children: ReactNode;
 }
 
 export default function RouteGuard({ children }: RouteGuardProps) {
@@ -42,7 +42,7 @@ export default function RouteGuard({ children }: RouteGuardProps) {
             }
           } catch (error) {
             console.error("Error checking organization access:", error);
-            // router.push("/error");
+            
             return;
           }
         }

@@ -87,7 +87,7 @@ export default function BookingModal({
       } else {
         toast({
           title: "Error",
-          description: response.message || "Failed to fetch time slots",
+          description: response.message ?? "Failed to fetch time slots",
           variant: "destructive",
         });
       }

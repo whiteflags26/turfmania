@@ -20,7 +20,14 @@ router.put(
     '/:id/complete-stripe',
     standardApiLimiter,
     protect,
-    bookingController.completeBooking
+    bookingController.completeStripeBooking
+);
+
+router.put(
+    '/:id/complete-cash',
+    standardApiLimiter,
+    protect,
+    bookingController.completeCashBooking
 );
 
 router.get(

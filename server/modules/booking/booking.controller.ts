@@ -35,7 +35,7 @@ export default class BookingController {
       if (!Array.isArray(timeSlotIds) || timeSlotIds.length === 0) {
         throw new ErrorResponse('Time slots must be a non-empty array', 400);
       }
-      
+
       // Create booking
       const booking = await this.bookingService.createBooking(req.user.id, {
         turfId: validator.trim(turfId),
@@ -52,45 +52,61 @@ export default class BookingController {
   );
 
   /**
-   * @route   PUT /api/v1/bookings/:id/complete
-   * @desc    Complete a booking with final payment
-   * @access  Private
-   */
-  public completeBooking = asyncHandler(
+ * @route   PUT /api/v1/bookings/:id/complete-stripe
+ * @desc    Complete a booking with Stripe payment
+ * @access  Private
+ */
+  public completeStripeBooking = asyncHandler(
     async (req: AuthRequest, res: Response) => {
       if (!req.user) {
         throw new ErrorResponse('User not authenticated', 401);
       }
 
       const { id } = req.params;
-      const { finalPaymentMethod, finalPaymentTransactionId } = req.body;
+      const { finalPaymentTransactionId } = req.body;
 
       // Validate required fields
-      if (!finalPaymentMethod) {
-        throw new ErrorResponse('Payment method is required', 400);
+      if (!finalPaymentTransactionId) {
+        throw new ErrorResponse('Transaction ID is required for Stripe payments', 400);
       }
 
-      // Validate payment method
-      if (!['stripe', 'cash'].includes(finalPaymentMethod)) {
-        throw new ErrorResponse('Invalid payment method', 400);
-      }
-
-      // Complete booking
-      const booking = await this.bookingService.completeBooking(id, {
-        finalPaymentMethod: finalPaymentMethod as PaymentMethod,
-        finalPaymentTransactionId: finalPaymentTransactionId
-          ? validator.trim(finalPaymentTransactionId)
-          : undefined
-      });
+      // Complete booking with Stripe
+      const booking = await this.bookingService.completeBookingWithStripe(
+        id,
+        validator.trim(finalPaymentTransactionId)
+      );
 
       res.status(200).json({
         success: true,
         data: booking,
-        message: 'Booking completed successfully'
+        message: 'Booking completed successfully with Stripe payment'
       });
     }
   );
 
+  /**
+   * @route   PUT /api/v1/bookings/:id/complete-cash
+   * @desc    Complete a booking with cash payment
+   * @access  Private
+   */
+  public completeCashBooking = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      if (!req.user) {
+        throw new ErrorResponse('User not authenticated', 401);
+      }
+
+      const { id } = req.params;
+
+      // Complete booking with cash
+      const booking = await this.bookingService.completeBookingWithCash(id);
+
+      res.status(200).json({
+        success: true,
+        data: booking,
+        message: 'Booking completed successfully with cash payment'
+      });
+    }
+  );
   /**
    * @route   GET /api/v1/bookings/:id
    * @desc    Get booking by ID

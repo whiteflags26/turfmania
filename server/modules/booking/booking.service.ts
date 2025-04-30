@@ -134,9 +134,9 @@ export default class BookingService {
   }
 
   /**
-   * Complete a booking with final payment
-   */
-  async completeBooking(bookingId: string, paymentData: CompleteBookingDto): Promise<IBooking> {
+ * Complete a booking with Stripe payment
+ */
+  async completeBookingWithStripe(bookingId: string, transactionId: string): Promise<IBooking> {
     try {
       const validBookingId = validateId(bookingId);
 
@@ -149,13 +149,8 @@ export default class BookingService {
         throw new ErrorResponse('This booking cannot be completed due to its current status', 400);
       }
 
-      // For cash payment, finalPaymentTransactionId is optional
-      if (paymentData.finalPaymentMethod === 'stripe' && !paymentData.finalPaymentTransactionId) {
-        throw new ErrorResponse('Transaction ID is required for Stripe payments', 400);
-      }
-
-      booking.finalPaymentMethod = paymentData.finalPaymentMethod;
-      booking.finalPaymentTransactionId = paymentData.finalPaymentTransactionId;
+      booking.finalPaymentMethod = 'stripe';
+      booking.finalPaymentTransactionId = transactionId;
       booking.status = 'completed';
       booking.isPaid = true;
 
@@ -173,6 +168,42 @@ export default class BookingService {
       throw error;
     }
   }
+
+  /**
+   * Complete a booking with cash payment
+   */
+  async completeBookingWithCash(bookingId: string): Promise<IBooking> {
+    try {
+      const validBookingId = validateId(bookingId);
+
+      const booking = await Booking.findById(validBookingId);
+      if (!booking) {
+        throw new ErrorResponse('Booking not found', 404);
+      }
+
+      if (booking.status !== 'advance_payment_completed') {
+        throw new ErrorResponse('This booking cannot be completed due to its current status', 400);
+      }
+
+      booking.finalPaymentMethod = 'cash';
+      booking.status = 'completed';
+      booking.isPaid = true;
+
+      await booking.save();
+
+      // send email
+      await this.sendBookingCompletionEmail(booking);
+
+      return booking;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new ErrorResponse('Invalid booking ID format', 400);
+      }
+
+      throw error;
+    }
+  }
+
 
   /**
    * Get booking by ID with relations
