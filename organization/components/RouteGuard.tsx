@@ -3,7 +3,7 @@
 import { useEffect, useState, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/contexts/authContext";
-import LoadingScreen from "@/components/LoadingScreen"; // You'll need to create this
+import LoadingScreen from "@/components/LoadingScreen";
 import { hasOrgAccess } from "@/service/auth";
 
 interface RouteGuardProps {
@@ -21,38 +21,33 @@ export default function RouteGuard({ children }: RouteGuardProps) {
     // Authentication check function
     const checkAuth = async () => {
       setCheckingAccess(true);
-      
+
       // If not authenticated and not on auth pages, redirect to login
       if (!user && !isLoading) {
-        router.push("/sign-in");
+        router.push("/");
         return;
       }
-
       // If authenticated, check if route requires org access
-      if (user && pathname.startsWith("/dashboard/")) {
-        // Extract org ID from URL (assumes format /dashboard/{orgId}/...)
+      if (user && pathname.startsWith("/organization/")) {
+        // Extract org ID from URL (/dashboard/{orgId}/...)
         const orgId = pathname.split("/")[2];
-        
+
         if (orgId) {
           try {
-            // Get the auth token (you might need to adjust this based on your auth setup)
-             // Update based on how you store tokens
-            
-            // Check if user has access to this organization
-            const { hasAccess } = await hasOrgAccess(orgId);
-            
-            if (!hasAccess) {
-              router.push("/unauthorized");
+            const data= await hasOrgAccess(orgId);
+
+            if (!data) {
+              router.push("/");
               return;
             }
           } catch (error) {
             console.error("Error checking organization access:", error);
-            router.push("/error");
+            // router.push("/error");
             return;
           }
         }
       }
-      
+
       setAuthorized(true);
       setCheckingAccess(false);
     };
@@ -66,5 +61,5 @@ export default function RouteGuard({ children }: RouteGuardProps) {
   }
 
   // If authorized, show the page
-  return authorized ? <>{children}</> : null;
+  return authorized ? <>{children}</> : null;
 }

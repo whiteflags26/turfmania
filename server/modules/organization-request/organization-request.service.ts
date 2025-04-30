@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import validator from 'validator';
 
+import { z } from 'zod';
 import { uploadImage } from '../../utils/cloudinary';
 import { sendEmail } from '../../utils/email';
 import ErrorResponse from '../../utils/errorResponse';
@@ -11,7 +12,6 @@ import OrganizationRequest, {
   IOrganizationRequest,
   RequestStatus,
 } from './organization-request.model';
-import { z } from 'zod';
 
 interface CreateRequestDto {
   organizationName: string;
@@ -75,6 +75,7 @@ export default class OrganizationRequestService {
     const user = await User.findOne({
       email: email.toLowerCase().trim(),
     }).collation({ locale: 'en', strength: 2 });
+    console.log('User found:', user);
 
     return !!user;
   }
@@ -85,49 +86,48 @@ export default class OrganizationRequestService {
     requestData: CreateRequestDto,
     images?: Express.Multer.File[],
   ): Promise<IOrganizationRequest> {
-    
-      // Validate owner email exists in database
-      const existingRequest = await OrganizationRequest.findOne({
-        organizationName: {
-          $regex: new RegExp(`^${requestData.organizationName}$`, 'i')
-        }
-      });
+    // Validate owner email exists in database
+    const existingRequest = await OrganizationRequest.findOne({
+      organizationName: {
+        $regex: new RegExp(`^${requestData.organizationName}$`, 'i'),
+      },
+    });
 
-      if (existingRequest) {
-        throw new ErrorResponse(
-          'An organization request with this name already exists',
-          400
-        );
-      }
-      const ownerExists = await this.validateOwnerEmail(requestData.ownerEmail);
-      if (!ownerExists) {
-        throw new ErrorResponse(
-          'Owner email does not exist in the user database',
-          400,
-        );
-      }
+    if (existingRequest) {
+      throw new ErrorResponse(
+        'An organization request with this name already exists',
+        400,
+      );
+    }
+    const ownerExists = await this.validateOwnerEmail(requestData.ownerEmail);
+    console.log('Owner email exists:', requestData.ownerEmail);
+    if (!ownerExists) {
+      throw new ErrorResponse(
+        'Owner email does not exist in the user database',
+        400,
+      );
+    }
 
-      // Validate facilities
-      await this.facilityService.validateFacilities(requestData.facilities);
+    // Validate facilities
+    await this.facilityService.validateFacilities(requestData.facilities);
 
-      // Upload images directly to Cloudinary
-      const imageUrls: string[] = [];
-      if (images && images.length > 0) {
-        const uploadPromises = images.map(image => uploadImage(image));
-        const uploadResults = await Promise.all(uploadPromises);
-        imageUrls.push(...uploadResults.map(result => result.url));
-      }
+    // Upload images directly to Cloudinary
+    const imageUrls: string[] = [];
+    if (images && images.length > 0) {
+      const uploadPromises = images.map(image => uploadImage(image));
+      const uploadResults = await Promise.all(uploadPromises);
+      imageUrls.push(...uploadResults.map(result => result.url));
+    }
 
-      // Create request
-      const request = await OrganizationRequest.create({
-        requesterId,
-        status: 'pending',
-        ...requestData,
-        images: imageUrls, // Store Cloudinary URLs directly
-      });
+    // Create request
+    const request = await OrganizationRequest.create({
+      requesterId,
+      status: 'pending',
+      ...requestData,
+      images: imageUrls, // Store Cloudinary URLs directly
+    });
 
-      return request;
-   
+    return request;
   }
 
   public async getRequestById(
@@ -223,7 +223,7 @@ export default class OrganizationRequestService {
     try {
       // Validate all IDs
       const validatedRequestId = validateId(requestId);
-     
+
       const validatedOrgId = validateId(organizationId);
 
       const options = session ? { session } : {};
@@ -265,10 +265,7 @@ export default class OrganizationRequestService {
         throw new ErrorResponse('Invalid ID format', 400);
       }
       console.error('Error approving request:', error);
-      throw new ErrorResponse(
-        'Failed to approve organization request',
-         500,
-      );
+      throw new ErrorResponse('Failed to approve organization request', 500);
     }
   }
 
@@ -343,7 +340,9 @@ export default class OrganizationRequestService {
       }
 
       const isOwner = user.email === request.ownerEmail;
-      const subject = this.getEmailSubject(approved);
+      const subject = approved
+        ? this.getApprovalEmailSubject()
+        : this.getRejectionEmailSubject();
       const recipientName = this.getRecipientName(user, isOwner);
 
       // Build main message
@@ -372,10 +371,12 @@ export default class OrganizationRequestService {
 
   // Helper functions
 
-  private getEmailSubject(approved: boolean): string {
-    return approved
-      ? 'Organization Request Approved - TurfMania'
-      : 'Organization Request Rejected - TurfMania';
+  private getApprovalEmailSubject(): string {
+    return 'Organization Request Approved - TurfMania';
+  }
+
+  private getRejectionEmailSubject(): string {
+    return 'Organization Request Rejected - TurfMania';
   }
 
   private getRecipientName(user: any, isOwner: boolean): string {
@@ -458,8 +459,10 @@ export default class OrganizationRequestService {
     isOwner: boolean,
   ): Promise<void> {
     if (isOwner) {
+      console.log("email sent to ",user.email+subject+message);
       // Send owner-specific message
       await sendEmail(user.email, subject, message);
+      console.log("email sent to ",user.email+subject+message);
     } else {
       // Send standard message to requester
       await sendEmail(user.email, subject, message);
@@ -481,17 +484,16 @@ export default class OrganizationRequestService {
     approved: boolean,
     wasEdited: boolean,
   ): string {
+    let statusText: string;
+    if (approved) {
+      statusText = wasEdited ? 'approved with some modifications' : 'approved';
+    } else {
+      statusText = 'rejected';
+    }
+
     return (
       `Dear ${request.ownerEmail.split('@')[0]},\n\n` +
-      `You had been designated as the owner of organization "${
-        request.organizationName
-      }" which was just ${
-        approved
-          ? wasEdited
-            ? 'approved with some modifications'
-            : 'approved'
-          : 'rejected'
-      } on TurfMania.\n\n` +
+      `You had been designated as the owner of organization "${request.organizationName}" which was just ${statusText} on TurfMania.\n\n` +
       (approved
         ? `As the owner, you have full administrative access to manage the organization.\n\n`
         : '') +

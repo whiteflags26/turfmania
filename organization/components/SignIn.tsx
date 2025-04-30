@@ -2,7 +2,6 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
-import { Button } from "@/components/Button";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
@@ -21,7 +20,7 @@ interface Organization {
   name: string;
 }
 
-export default function SignInPage() {
+export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -66,112 +65,108 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col relative overflow-hidden">
-      <div className="flex-grow flex items-center justify-center px-4 sm:px-6 lg:px-8 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl backdrop-blur-sm bg-opacity-95"
-        >
-          <div className="text-center mb-8">
-            <div className="inline-flex justify-center items-center w-16 h-16 rounded-full bg-slate-100 mb-4">
-              <FiUser size={26} className="text-blue-600" />
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.6 }}
+        className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl backdrop-blur-sm bg-opacity-95"
+      >
+        <div className="text-center mb-8">
+          <div className="inline-flex justify-center items-center w-16 h-16 rounded-full bg-slate-100 mb-4">
+            <FiUser size={26} className="text-blue-600" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-800">
+            Welcome Back
+          </h2>
+          <p className="text-sm text-gray-500 mt-2">
+            Sign in to access your TurfMania dashboard
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Email Field */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FiMail className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="email"
+                id="email"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Invalid email address",
+                  },
+                })}
+                className={`block w-full rounded-lg border pl-10 px-4 py-3 shadow-sm transition duration-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none ${
+                  errors.email ? "border-red-300 bg-red-50" : "border-gray-300"
+                }`}
+                placeholder="your.email@example.com"
+                disabled={isLoading}
+              />
             </div>
-            <h2 className="text-3xl font-bold text-gray-800">
-              Welcome Back
-            </h2>
-            <p className="text-sm text-gray-500 mt-2">
-              Sign in to access your TurfMania dashboard
-            </p>
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <FiInfo className="mr-1" size={14} />
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="email"
-                  id="email"
-                  {...register("email", {
-                    required: "Email is required",
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: "Invalid email address",
-                    },
-                  })}
-                  className={`block w-full rounded-lg border pl-10 px-4 py-3 shadow-sm transition duration-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none ${
-                    errors.email ? "border-red-300 bg-red-50" : "border-gray-300"
-                  }`}
-                  placeholder="your.email@example.com"
-                  disabled={isLoading}
-                />
+          {/* Password Field */}
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FiLock className="h-5 w-5 text-gray-400" />
               </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <FiInfo className="mr-1" size={14} />
-                  {errors.email.message}
-                </p>
-              )}
+              <input
+                type="password"
+                id="password"
+                {...register("password", { required: "Password is required" })}
+                className={`block w-full rounded-lg border pl-10 px-4 py-3 shadow-sm transition duration-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none ${
+                  errors.password ? "border-red-300 bg-red-50" : "border-gray-300"
+                }`}
+                placeholder="••••••••"
+                disabled={isLoading}
+              />
             </div>
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <FiInfo className="mr-1" size={14} />
+                {errors.password.message}
+              </p>
+            )}
+          </div>
 
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="password"
-                  id="password"
-                  {...register("password", { required: "Password is required" })}
-                  className={`block w-full rounded-lg border pl-10 px-4 py-3 shadow-sm transition duration-200 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none ${
-                    errors.password ? "border-red-300 bg-red-50" : "border-gray-300"
-                  }`}
-                  placeholder="••••••••"
-                  disabled={isLoading}
-                />
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <FiInfo className="mr-1" size={14} />
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
-
-           
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              className="w-full rounded-3xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 font-medium flex items-center justify-center gap-2"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-                  <span>Signing in...</span>
-                </>
-              ) : (
-                <>
-                  <span>Sign In</span>
-                  <FiArrowRight />
-                </>
-              )}
-            </button>
-          </form>
-        </motion.div>
-      </div>
+          {/* Submit Button */}
+          <button
+            type="submit"
+            className="w-full rounded-3xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 font-medium flex items-center justify-center gap-2"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                <span>Signing in...</span>
+              </>
+            ) : (
+              <>
+                <span>Sign In</span>
+                <FiArrowRight />
+              </>
+            )}
+          </button>
+        </form>
+      </motion.div>
 
       {/* Organization Selection Modal */}
       <AnimatePresence>
@@ -219,7 +214,6 @@ export default function SignInPage() {
                     </div>
                     <div className="flex-grow">
                       <p className="font-medium text-gray-800">{org.name}</p>
-                      
                     </div>
                     {selectedOrg === org._id && (
                       <FiCheckCircle className="h-5 w-5 text-blue-600 ml-2" />
@@ -231,9 +225,9 @@ export default function SignInPage() {
               <style jsx>{`
                 .custom-scrollbar::-webkit-scrollbar {
                   width: 6px;
-                }
+                }background
                 .custom-scrollbar::-webkit-scrollbar-track {
-                  background: #f1f1f1;
+                  : #f1f1f1;
                   border-radius: 10px;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb {
@@ -248,10 +242,6 @@ export default function SignInPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <footer className="w-full text-center text-sm text-gray-500 py-6 relative z-10">
-        © {new Date().getFullYear()} TurfMania. All Rights Reserved.
-      </footer>
-    </div>
+    </>
   );
 }

@@ -60,7 +60,7 @@ export default class TeamSizeService {
                 
                 // Update each turf's team_size
                 for (const turf of turfsToUpdate) {
-                    turf.team_size = updateData.name as number;
+                    turf.team_size = updateData.name;
                     await turf.save({ session });
                 }
             }
