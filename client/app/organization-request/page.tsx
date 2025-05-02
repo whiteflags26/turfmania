@@ -371,7 +371,7 @@ export default function CreateOrganizationRequestForm() {
     'mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-gray-900';
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="max-w-7xl mx-auto p-6 pt-10">
       <div className="mb-6">
         <button
           onClick={goBack}
