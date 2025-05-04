@@ -81,10 +81,10 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
 
       setUser(null);
       // Only redirect if not already on sign-in page and not loading
-      if (!pathname.includes('/sign-in') && !loading) {
+      
         console.log('Redirecting to sign-in page...');
-        router.push('/admin/sign-in');
-      }
+        router.push('/');
+      
       return false;
     } finally {
       setLoading(false);

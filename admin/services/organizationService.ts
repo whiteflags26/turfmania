@@ -35,7 +35,7 @@ export async function getOrganizationRequests(
 
 export interface OrganizationRequest {
   _id: string;
-  name: string;
+  organizationName: string;
   location?: {
     address?: string;
     place_id?: string;

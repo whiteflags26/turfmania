@@ -19,12 +19,12 @@ export default function ProtectedRoute({
       const isAuthenticated = await checkAuth();
       
       if (!isAuthenticated) {
-        router.push("/admin/sign-in");
+        router.push("/");
         return;
       }
       
       if (requireAdmin && !user?.isAdmin) {
-        router.push("/unauthorized");
+        router.push("/");
       }
     };
 

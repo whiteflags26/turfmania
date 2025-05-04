@@ -39,7 +39,7 @@ export default function Page({ params }: ClientPageProps) {
         const org = resp.data;
         setOrganization({
           _id: org._id,
-          name: org.name,
+          organizationName: org.organizationName,
           address: org.location?.address ?? '',
           placeId: org.location?.place_id ?? '',
           city: org.location?.city ?? '',

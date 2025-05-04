@@ -16,7 +16,7 @@ export interface ImageFile extends File {
 
 export interface OrganizationFormData {
   _id?: string;
-  name: string;
+  organizationName: string;
   address: string;
   placeId: string;
   city: string;
@@ -50,7 +50,7 @@ export default function OrganizationForm({
   facilityOptionsOverride,
 }: OrganizationFormProps) {
   // Form state with defaults or initial data
-  const [name, setName] = useState(initialData.name ?? '');
+  const [name, setName] = useState(initialData.organizationName ?? '');
   const [address, setAddress] = useState(initialData.address ?? '');
   const [placeId, setPlaceId] = useState(initialData.placeId ?? '');
   const [city, setCity] = useState(initialData.city ?? '');
