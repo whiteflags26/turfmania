@@ -1,4 +1,5 @@
 "use client"
+import React from 'react';
 import {
   Check,
   ChevronDown,
@@ -129,9 +130,8 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
                 }
 
                 return (
-                  <>
+                  <React.Fragment key={role._id}>
                     <tr
-                      key={role._id}
                       className={`${
                         expandedRow === role._id
                           ? 'bg-blue-50'
@@ -296,7 +296,7 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </tbody>
