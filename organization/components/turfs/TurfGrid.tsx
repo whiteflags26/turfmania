@@ -5,9 +5,10 @@ import TurfCard from "@/components/turfs/TurfCard";
 interface TurfGridProps {
   turfs: ITurf[];
   loading?: boolean;
+  onDelete: (turfId: string) => Promise<void>;
 }
 
-const TurfGrid: React.FC<TurfGridProps> = ({ turfs, loading = false }) => {
+const TurfGrid: React.FC<TurfGridProps> = ({ turfs, loading = false, onDelete }) => {
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -59,7 +60,7 @@ const TurfGrid: React.FC<TurfGridProps> = ({ turfs, loading = false }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {turfs.map((turf) => (
-        <TurfCard key={turf._id} turf={turf} />
+        <TurfCard key={turf._id} turf={turf} onDelete={onDelete} />
       ))}
     </div>
   );
