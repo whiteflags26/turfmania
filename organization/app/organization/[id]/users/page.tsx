@@ -24,7 +24,7 @@ export default function UsersManagement() {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/api/v1/users/without-global-roles');
+        const response = await api.get(`/api/v1/organizations/${orgId}/unassigned-users`);
         setUsers(response.data.data);
         setError(null);
       } catch (err) {
