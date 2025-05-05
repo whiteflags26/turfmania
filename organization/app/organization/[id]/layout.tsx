@@ -8,18 +8,20 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import { ReactNode, useEffect, useState } from 'react';
-import { FaRegBuilding } from 'react-icons/fa';
 import {
-  FiBarChart2,
-  FiChevronRight,
-  FiDollarSign,
   FiHome,
+  FiCalendar,
+  FiDollarSign,
+  FiUsers,
   FiLogOut,
   FiMenu,
-  FiMessageSquare,
-  FiSettings,
-  FiUsers,
+  FiChevronRight,
+  FiShield,
+  FiGrid
 } from 'react-icons/fi';
+import {
+  FaRegBuilding,
+} from 'react-icons/fa';
 
 interface MenuItem {
   readonly name: string;
@@ -66,27 +68,27 @@ export default function DashboardLayout({
     },
     {
       name: 'View Turfs',
-      icon: <FiUsers className="h-5 w-5" />,
+      icon: <FiGrid className="h-5 w-5" />, // Changed: Field/grid icon for turfs
       path: `/organization/${orgId}/view-turfs`,
     },
     {
       name: 'Timeslot Management',
-      icon: <FiBarChart2 className="h-5 w-5" />,
+      icon: <FiCalendar className="h-5 w-5" />, // Changed: Calendar icon for timeslots
       path: `/organization/${orgId}/turf-timeslot`,
     },
     {
-      name: 'Payments',
-      icon: <FiDollarSign className="h-5 w-5" />,
-      path: `/organization/${orgId}/payments`,
+      name: 'Bookings and Payments',
+      icon: <FiDollarSign className="h-5 w-5" />, 
+      path: `/organization/${orgId}/bookings`,
     },
     {
-      name: 'Roles',
-      icon: <FiMessageSquare className="h-5 w-5" />,
+      name: 'Role Management',
+      icon: <FiShield className="h-5 w-5" />, // Changed: Shield icon for roles/permissions
       path: `/organization/${orgId}/roles`,
     },
     {
-      name: 'Users',
-      icon: <FiSettings className="h-5 w-5" />,
+      name: 'User List',
+      icon: <FiUsers className="h-5 w-5" />, // Changed: Users icon for user list
       path: `/organization/${orgId}/users`,
     },
   ];

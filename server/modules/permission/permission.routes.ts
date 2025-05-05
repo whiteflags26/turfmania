@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../auth/auth.middleware';
+import { checkPermission, protect } from '../auth/auth.middleware';
 import {
   getAllPermissions,
   getGlobalPermissions,
@@ -15,7 +15,7 @@ const router = express.Router();
 router.get('/',standardApiLimiter,protect, getAllPermissions);
 
 // Get global permissions
-router.get('/global',standardApiLimiter,protect, getGlobalPermissions);
+router.get('/global',standardApiLimiter,protect,checkPermission('view_permissions'), getGlobalPermissions);
 
 // Get local (organization) permissions
 router.get('/local',standardApiLimiter,protect, getLocalPermissions);

@@ -153,13 +153,13 @@ export const featureContents = [
   },
   {
     id: 3,
-    imgPath: "/images/Feature-TimeToShine.jpg",
-    heading: "Your Time to Shine.",
+    imgPath: "/images/Feature-TimeToShine.jpg", 
+    heading: "Your Organization, Online.",
     content: {
-      title: "Host or Join Exciting Tournaments",
+      title: "Dedicated Organization Portal",
       description: [
-        "Step into the spotlight with TurfMania's event and tournament feature. Whether you want to host a competitive tournament or join an exciting event, we've got everything you need to make it happen.",
-        "Engage with the sports community, showcase your skills, and enjoy the thrill of competition. It's your time to shine on the turf!",
+        "Take control of your sports business with TurfMania's dedicated organization portal. Manage your turfs, track bookings, handle payments, and customize your organization's profile all in one place.",
+        "Our intuitive dashboard provides everything venue owners need to streamline operations and grow their business, putting the power of digital management at your fingertips.",
       ],
     },
   },

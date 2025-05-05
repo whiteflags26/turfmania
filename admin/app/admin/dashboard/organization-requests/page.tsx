@@ -48,6 +48,7 @@ export default function OrganizationRequestsPage() {
 
       if (statusCode === 403) {
         setError('Unauthorized');
+        toast.error('You are not authorized to view this page');
         return;
       }
 
@@ -106,9 +107,7 @@ export default function OrganizationRequestsPage() {
     return 'text-gray-500 hover:bg-gray-100';
   };
 
-  if (error === 'Unauthorized') {
-    return <ErrorDisplay statusCode={403} />;
-  }
+  
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

@@ -133,7 +133,20 @@ export default function TurfFilters({
       setLocationLoading(true);
       try {
         const res = await autocomplete({ q: query });
-        setSuggestions(res.places || []);
+        if (res.places && Array.isArray(res.places)) {
+          // Transform string values to numbers to match the IBarikoiSuggestion interface
+          const transformedPlaces = res.places.map(place => ({
+            ...place,
+            longitude: typeof place.longitude === 'string' ? parseFloat(place.longitude) : place.longitude,
+            latitude: typeof place.latitude === 'string' ? parseFloat(place.latitude) : place.latitude,
+            id: typeof place.id === 'string' ? parseInt(place.id, 10) : place.id,
+            postCode: place.postCode ? (typeof place.postCode === 'string' ? 
+                      parseInt(place.postCode, 10) : place.postCode) : undefined
+          }));
+          setSuggestions(transformedPlaces);
+        } else {
+          setSuggestions([]);
+        }
       } catch (err) {
         console.error('Barikoi error:', err);
         setSuggestions([]);
