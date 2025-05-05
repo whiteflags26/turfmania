@@ -1,14 +1,25 @@
-'use client';
+"use client";
 
-import ErrorDisplay from '@/component/errors/ErrorDisplay';
-import { getAllFacilities } from '@/services/organizationService';
+import ErrorDisplay from "@/component/errors/ErrorDisplay";
+import { getAllFacilities } from "@/services/organizationService";
 import {
   prepareImagesForSubmission,
   handleImageUpload as processImageUpload,
-} from '@/utils/image-upload';
-import { Building, Check, MapPin, Package, Upload, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+} from "@/utils/image-upload";
+import {
+  Building,
+  Check,
+  MapPin,
+  Package,
+  Upload,
+  X,
+  Loader,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { autocomplete } from "barikoiapis";
+import '@/lib/config/barikoiConfig';
+import { IBarikoiSuggestion } from "@/types/barikoi";
 
 export interface ImageFile extends File {
   preview?: string;
@@ -46,23 +57,19 @@ export default function OrganizationForm({
   initialData = {},
   isEditing,
   onSubmit,
-  submitButtonText = 'Submit',
+  submitButtonText = "Submit",
   facilityOptionsOverride,
 }: OrganizationFormProps) {
   // Form state with defaults or initial data
-  const [name, setName] = useState(initialData.organizationName ?? '');
-  const [address, setAddress] = useState(initialData.address ?? '');
-  const [placeId, setPlaceId] = useState(initialData.placeId ?? '');
-  const [city, setCity] = useState(initialData.city ?? '');
-  const [area, setArea] = useState(initialData.area  ?? '');
-  const [subArea, setSubArea] = useState(initialData.subArea ?? '');
-  const [postCode, setPostCode] = useState(initialData.postCode ?? '');
-  const [longitude, setLongitude] = useState(
-    initialData.longitude ?? 0
-  );
-  const [latitude, setLatitude] = useState(
-    initialData.latitude ?? 0
-  );
+  const [name, setName] = useState(initialData.organizationName ?? "");
+  const [address, setAddress] = useState(initialData.address ?? "");
+  const [placeId, setPlaceId] = useState(initialData.placeId ?? "");
+  const [city, setCity] = useState(initialData.city ?? "");
+  const [area, setArea] = useState(initialData.area ?? "");
+  const [subArea, setSubArea] = useState(initialData.subArea ?? "");
+  const [postCode, setPostCode] = useState(initialData.postCode ?? "");
+  const [longitude, setLongitude] = useState(initialData.longitude ?? 0);
+  const [latitude, setLatitude] = useState(initialData.latitude ?? 0);
   const [facilities, setFacilities] = useState<string[]>(
     initialData.facilities || []
   );
@@ -71,29 +78,35 @@ export default function OrganizationForm({
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orgContactPhone, setOrgContactPhone] = useState(
-    initialData.orgContactPhone ?? ''
+    initialData.orgContactPhone ?? ""
   );
   const [orgContactEmail, setOrgContactEmail] = useState(
-    initialData.orgContactEmail ?? ''
+    initialData.orgContactEmail ?? ""
   );
-  const [adminNotes, setAdminNotes] = useState(initialData.adminNotes ?? '');
+  const [adminNotes, setAdminNotes] = useState(initialData.adminNotes ?? "");
   const [contactPhone, setContactPhone] = useState(
-    initialData.contactPhone ?? ''
+    initialData.contactPhone ?? ""
   );
-  const [ownerEmail, setOwnerEmail] = useState(initialData.ownerEmail ?? '');
+  const [ownerEmail, setOwnerEmail] = useState(initialData.ownerEmail ?? "");
   const [facilityOptions, setFacilityOptions] = useState<string[]>(
     facilityOptionsOverride ?? []
   );
-  
+
   // Track existing images separately for edit mode
   const [existingImages, setExistingImages] = useState<string[]>(
     initialData.images || []
   );
 
+  const [addressQuery, setAddressQuery] = useState(initialData.address ?? "");
+  const [locationSuggestions, setLocationSuggestions] = useState<
+    IBarikoiSuggestion[]
+  >([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   useEffect(() => {
     // Cleanup function to revoke object URLs
     return () => {
-      imageFiles.forEach(file => {
+      imageFiles.forEach((file) => {
         if (file.preview) {
           URL.revokeObjectURL(file.preview);
         }
@@ -113,19 +126,64 @@ export default function OrganizationForm({
             );
           }
         } catch (error) {
-          console.error('Error fetching facilities:', error);
-          setError('Failed to load facilities');
+          console.error("Error fetching facilities:", error);
+          setError("Failed to load facilities");
         }
       };
-  
+
       fetchFacilities();
     }
   }, [facilityOptionsOverride]);
 
+  useEffect(() => {
+    const fetchLocationSuggestions = async () => {
+      if (addressQuery.length < 3) {
+        setLocationSuggestions([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const response = await autocomplete({ q: addressQuery });
+        console.log(response);
+        if (response.places && Array.isArray(response.places)) {
+          // Convert string values to numbers to match the IBarikoiSuggestion interface
+          const transformedPlaces = response.places.map((place) => ({
+            ...place,
+            longitude:
+              typeof place.longitude === "string"
+                ? parseFloat(place.longitude)
+                : place.longitude,
+            latitude:
+              typeof place.latitude === "string"
+                ? parseFloat(place.latitude)
+                : place.latitude,
+            id:
+              typeof place.id === "string" ? parseInt(place.id, 10) : place.id,
+            postCode: place.postCode
+              ? typeof place.postCode === "string"
+                ? parseInt(place.postCode, 10)
+                : place.postCode
+              : undefined,
+          }));
+          setLocationSuggestions(transformedPlaces);
+        }
+      } catch (error) {
+        console.error("Error fetching location suggestions:", error);
+        toast.error("Failed to load location suggestions");
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchLocationSuggestions, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [addressQuery]);
+
   const handleFacilityToggle = (facility: string) => {
-    setFacilities(prev =>
+    setFacilities((prev) =>
       prev.includes(facility)
-        ? prev.filter(f => f !== facility)
+        ? prev.filter((f) => f !== facility)
         : [...prev, facility]
     );
   };
@@ -138,31 +196,47 @@ export default function OrganizationForm({
       [], // We handle existing images separately
       {
         maxImages: 5 - (imageFiles.length + existingImages.length),
-        allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+        allowedTypes: ["image/jpeg", "image/png", "image/webp"],
       }
     );
 
     if (!result.isValid) {
-      toast.error(result.errorMessage ?? 'Image upload failed');
+      toast.error(result.errorMessage ?? "Image upload failed");
       return;
     }
 
     // Create ImageFile objects with previews
-    const newFiles: ImageFile[] = result.files.map(file => {
+    const newFiles: ImageFile[] = result.files.map((file) => {
       const imageFile = file as ImageFile;
       imageFile.preview = URL.createObjectURL(file);
       return imageFile;
     });
 
-    setImageFiles(prev => [...prev, ...newFiles]);
+    setImageFiles((prev) => [...prev, ...newFiles]);
   };
 
   const removeImage = (index: number) => {
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const removeExistingImage = (index: number) => {
-    setExistingImages(prev => prev.filter((_, i) => i !== index));
+    setExistingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleLocationSelect = (place: IBarikoiSuggestion) => {
+    // Fill in all the location fields from the selected suggestion
+    setAddress(place.address);
+    setPlaceId(place.id.toString());
+    setCity(place.city || "");
+    setArea(place.area || "");
+    // Note: subArea is not directly available in the Barikoi response
+    setPostCode(place.postCode ? place.postCode.toString() : "");
+    setLongitude(place.longitude);
+    setLatitude(place.latitude);
+
+    // Clear suggestions after selection
+    setLocationSuggestions([]);
+    setAddressQuery(place.address);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,12 +246,12 @@ export default function OrganizationForm({
 
     try {
       const formData = new FormData();
-      
+
       // Add basic form fields
-      formData.set('name', name);
-      formData.set('facilities', JSON.stringify(facilities));
+      formData.set("name", name);
+      formData.set("facilities", JSON.stringify(facilities));
       formData.set(
-        'location',
+        "location",
         JSON.stringify({
           place_id: placeId,
           address,
@@ -186,20 +260,20 @@ export default function OrganizationForm({
           sub_area: subArea,
           post_code: postCode,
           coordinates: {
-            type: 'Point',
+            type: "Point",
             coordinates: [longitude, latitude],
           },
         })
       );
-      formData.set('orgContactPhone', orgContactPhone);
-      formData.set('orgContactEmail', orgContactEmail);
-      formData.set('adminNotes', adminNotes);
-      formData.set('contactPhone', contactPhone);
-      formData.set('ownerEmail', ownerEmail);
-      
+      formData.set("orgContactPhone", orgContactPhone);
+      formData.set("orgContactEmail", orgContactEmail);
+      formData.set("adminNotes", adminNotes);
+      formData.set("contactPhone", contactPhone);
+      formData.set("ownerEmail", ownerEmail);
+
       // Add ID if editing
       if (isEditing && initialData._id) {
-        formData.set('_id', initialData._id);
+        formData.set("_id", initialData._id);
       }
 
       // Handle images properly for both new and existing
@@ -213,7 +287,9 @@ export default function OrganizationForm({
       await onSubmit(preparedFormData);
 
       // Show success message
-      toast.success(`Organization ${isEditing ? 'updated' : 'created'} successfully!`);
+      toast.success(
+        `Organization ${isEditing ? "updated" : "created"} successfully!`
+      );
       setSuccess(true);
 
       // Reset form or redirect after success
@@ -221,23 +297,23 @@ export default function OrganizationForm({
         setSuccess(false);
         // For create form, reset all fields
         if (!isEditing) {
-          setName('');
-          setAddress('');
-          setPlaceId('');
-          setCity('');
-          setArea('');
-          setSubArea('');
-          setPostCode('');
+          setName("");
+          setAddress("");
+          setPlaceId("");
+          setCity("");
+          setArea("");
+          setSubArea("");
+          setPostCode("");
           setLongitude(0);
           setLatitude(0);
           setFacilities([]);
           setImageFiles([]);
           setExistingImages([]);
-          setOrgContactPhone('');
-          setOrgContactEmail('');
-          setAdminNotes('');
-          setContactPhone('');
-          setOwnerEmail('');
+          setOrgContactPhone("");
+          setOrgContactEmail("");
+          setAdminNotes("");
+          setContactPhone("");
+          setOwnerEmail("");
         }
       }, 3000);
     } catch (err: any) {
@@ -249,7 +325,10 @@ export default function OrganizationForm({
       }
 
       setError(errorMessage);
-      toast.error(errorMessage ?? `Failed to ${isEditing ? 'update' : 'create'} organization`);
+      toast.error(
+        errorMessage ??
+          `Failed to ${isEditing ? "update" : "create"} organization`
+      );
     } finally {
       setLoading(false);
     }
@@ -265,7 +344,7 @@ export default function OrganizationForm({
     orgContactEmail;
 
   // Add error check at the top of your render
-  if (error === 'Unauthorized' || error === 'Forbidden') {
+  if (error === "Unauthorized" || error === "Forbidden") {
     return <ErrorDisplay statusCode={403} />;
   }
 
@@ -275,7 +354,7 @@ export default function OrganizationForm({
     <div className="max-w-7xl mx-auto p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          {isEditing ? 'Edit' : 'Create New'} Organization
+          {isEditing ? "Edit" : "Create New"} Organization
         </h1>
       </div>
 
@@ -283,12 +362,12 @@ export default function OrganizationForm({
         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center">
           <Check className="h-5 w-5 text-green-500 mr-2" />
           <p className="text-green-700">
-            Organization {isEditing ? 'updated' : 'created'} successfully!
+            Organization {isEditing ? "updated" : "created"} successfully!
           </p>
         </div>
       )}
 
-      {error && error !== 'Unauthorized' && error !== 'Forbidden' && (
+      {error && error !== "Unauthorized" && error !== "Forbidden" && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
           <X className="h-5 w-5 text-red-500 mr-2" />
           <p className="text-red-700">{error}</p>
@@ -319,7 +398,7 @@ export default function OrganizationForm({
                   <input
                     id="name"
                     value={name}
-                    onChange={e => setName(e.target.value)}
+                    onChange={(e) => setName(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter organization name"
                     required
@@ -339,7 +418,7 @@ export default function OrganizationForm({
                       id="contactPhone"
                       type="tel"
                       value={contactPhone}
-                      onChange={e => setContactPhone(e.target.value)}
+                      onChange={(e) => setContactPhone(e.target.value)}
                       className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="01XXXXXXXXX"
                       required
@@ -357,7 +436,7 @@ export default function OrganizationForm({
                       id="ownerEmail"
                       type="email"
                       value={ownerEmail}
-                      onChange={e => setOwnerEmail(e.target.value)}
+                      onChange={(e) => setOwnerEmail(e.target.value)}
                       className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="owner@example.com"
                       required
@@ -376,7 +455,7 @@ export default function OrganizationForm({
                       id="orgContactPhone"
                       type="tel"
                       value={orgContactPhone}
-                      onChange={e => setOrgContactPhone(e.target.value)}
+                      onChange={(e) => setOrgContactPhone(e.target.value)}
                       className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="+8801XXXXXXXXX"
                       required
@@ -394,7 +473,7 @@ export default function OrganizationForm({
                       id="orgContactEmail"
                       type="email"
                       value={orgContactEmail}
-                      onChange={e => setOrgContactEmail(e.target.value)}
+                      onChange={(e) => setOrgContactEmail(e.target.value)}
                       className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="contact@organization.com"
                       required
@@ -413,7 +492,7 @@ export default function OrganizationForm({
                   <textarea
                     id="adminNotes"
                     value={adminNotes}
-                    onChange={e => setAdminNotes(e.target.value)}
+                    onChange={(e) => setAdminNotes(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     rows={3}
                     placeholder="Add any administrative notes here..."
@@ -431,21 +510,45 @@ export default function OrganizationForm({
                 </h2>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
+                {/* Full Address field with autocomplete */}
+                <div className="md:col-span-2 relative"> {/* Add 'relative' here */}
                   <label
                     htmlFor="address"
                     className="block text-sm font-medium text-gray-900"
                   >
                     Full Address*
                   </label>
-                  <input
-                    id="address"
-                    value={address}
-                    onChange={e => setAddress(e.target.value)}
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter full address"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      id="address"
+                      value={addressQuery}
+                      onChange={(e) => setAddressQuery(e.target.value)}
+                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Search for an address..."
+                      required
+                    />
+                    {isSearching && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <Loader className="animate-spin h-4 w-4 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Location suggestions dropdown - Fixed positioning */}
+                  {locationSuggestions.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
+                      {locationSuggestions.map((place) => (
+                        <button
+                          key={place.id}
+                          type="button"
+                          className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 border-b border-gray-100 last:border-0 text-gray-800"
+                          onClick={() => handleLocationSelect(place)}
+                        >
+                          {place.address}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -458,7 +561,7 @@ export default function OrganizationForm({
                   <input
                     id="placeId"
                     value={placeId}
-                    onChange={e => setPlaceId(e.target.value)}
+                    onChange={(e) => setPlaceId(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter place ID"
                     required
@@ -475,7 +578,7 @@ export default function OrganizationForm({
                   <input
                     id="city"
                     value={city}
-                    onChange={e => setCity(e.target.value)}
+                    onChange={(e) => setCity(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter city"
                     required
@@ -493,7 +596,7 @@ export default function OrganizationForm({
                   <input
                     id="area"
                     value={area}
-                    onChange={e => setArea(e.target.value)}
+                    onChange={(e) => setArea(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter area (optional)"
                   />
@@ -509,7 +612,7 @@ export default function OrganizationForm({
                   <input
                     id="subArea"
                     value={subArea}
-                    onChange={e => setSubArea(e.target.value)}
+                    onChange={(e) => setSubArea(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter sub area (optional)"
                   />
@@ -525,7 +628,7 @@ export default function OrganizationForm({
                   <input
                     id="postCode"
                     value={postCode}
-                    onChange={e => setPostCode(e.target.value)}
+                    onChange={(e) => setPostCode(e.target.value)}
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter post code (optional)"
                   />
@@ -542,7 +645,9 @@ export default function OrganizationForm({
                     id="longitude"
                     type="number"
                     value={longitude}
-                    onChange={e => setLongitude(parseFloat(e.target.value) || 0)}
+                    onChange={(e) =>
+                      setLongitude(parseFloat(e.target.value) || 0)
+                    }
                     step="0.000001"
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0.000000"
@@ -561,7 +666,9 @@ export default function OrganizationForm({
                     id="latitude"
                     type="number"
                     value={latitude}
-                    onChange={e => setLatitude(parseFloat(e.target.value) || 0)}
+                    onChange={(e) =>
+                      setLatitude(parseFloat(e.target.value) || 0)
+                    }
                     step="0.000001"
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0.000000"
@@ -575,19 +682,21 @@ export default function OrganizationForm({
             <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b bg-gray-50 flex items-center">
                 <Package className="w-5 h-5 mr-2 text-gray-700" />
-                <h2 className="text-lg font-medium text-gray-800">Facilities</h2>
+                <h2 className="text-lg font-medium text-gray-800">
+                  Facilities
+                </h2>
               </div>
               <div className="p-6 flex flex-wrap gap-2">
                 {facilityOptions.length > 0 ? (
-                  facilityOptions.map(facility => (
+                  facilityOptions.map((facility) => (
                     <button
                       key={facility}
                       type="button"
                       onClick={() => handleFacilityToggle(facility)}
                       className={`px-4 py-2 rounded-full text-sm font-medium ${
                         facilities.includes(facility)
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }`}
                     >
                       {facility}
@@ -612,7 +721,7 @@ export default function OrganizationForm({
                 <label
                   htmlFor="imageUpload"
                   className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${
-                    totalImagesCount >= 5 ? 'opacity-50 cursor-not-allowed' : ''
+                    totalImagesCount >= 5 ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
                   <div className="flex flex-col items-center pt-5 pb-6">
@@ -667,7 +776,7 @@ export default function OrganizationForm({
                 {imageFiles.length > 0 && (
                   <>
                     <h3 className="text-sm font-medium text-gray-700">
-                      {existingImages.length > 0 ? 'New Images' : 'Images'}
+                      {existingImages.length > 0 ? "New Images" : "Images"}
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
                       {imageFiles.map((file, index) => (
@@ -706,11 +815,11 @@ export default function OrganizationForm({
             disabled={!isFormValid || loading}
             className={`px-6 py-2 rounded-md text-white font-semibold ${
               isFormValid
-                ? 'bg-blue-600 hover:bg-blue-700'
-                : 'bg-gray-400 cursor-not-allowed'
+                ? "bg-blue-600 hover:bg-blue-700"
+                : "bg-gray-400 cursor-not-allowed"
             }`}
           >
-            {loading ? 'Submitting...' : submitButtonText}
+            {loading ? "Submitting..." : submitButtonText}
           </button>
         </div>
       </form>

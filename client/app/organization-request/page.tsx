@@ -21,6 +21,9 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { autocomplete } from 'barikoiapis';
+import '@/lib/config/barikoiConfig';
+import { IBarikoiSuggestion } from '@/types/barikoi';
 
 export default function CreateOrganizationRequestForm() {
   const { user, isLoading: authLoading } = useAuth();
@@ -29,7 +32,7 @@ export default function CreateOrganizationRequestForm() {
   // Form state
   const [organizationName, setOrganizationName] = useState('');
   const [facilities, setFacilities] = useState<string[]>([]);
-  const [availableFacilities, setAvailableFacilities] = useState<string[]>([]); // Added state for fetched facilities
+  const [availableFacilities, setAvailableFacilities] = useState<string[]>([]);
   const [address, setAddress] = useState('');
   const [placeId, setPlaceId] = useState('');
   const [city, setCity] = useState('');
@@ -50,6 +53,11 @@ export default function CreateOrganizationRequestForm() {
   const [facilitiesLoading, setFacilitiesLoading] = useState(true); // Added loading state for facilities
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Add state for location search
+  const [addressQuery, setAddressQuery] = useState('');
+  const [locationSuggestions, setLocationSuggestions] = useState<IBarikoiSuggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Fetch facilities on component mount
   useEffect(() => {
@@ -74,6 +82,41 @@ export default function CreateOrganizationRequestForm() {
 
     loadFacilities();
   }, []);
+
+  // Add useEffect for autocomplete
+  useEffect(() => {
+    const fetchLocationSuggestions = async () => {
+      if (addressQuery.length < 3) {
+        setLocationSuggestions([]);
+        return;
+      }
+      
+      setIsSearching(true);
+      try {
+        const response = await autocomplete({ q: addressQuery });
+        if (response.places && Array.isArray(response.places)) {
+          // Convert string values to numbers to match the IBarikoiSuggestion interface
+          const transformedPlaces = response.places.map(place => ({
+            ...place,
+            longitude: typeof place.longitude === 'string' ? parseFloat(place.longitude) : place.longitude,
+            latitude: typeof place.latitude === 'string' ? parseFloat(place.latitude) : place.latitude,
+            id: typeof place.id === 'string' ? parseInt(place.id, 10) : place.id,
+            postCode: place.postCode ? (typeof place.postCode === 'string' ? 
+                      parseInt(place.postCode, 10) : place.postCode) : undefined
+          }));
+          setLocationSuggestions(transformedPlaces);
+        }
+      } catch (error) {
+        console.error('Error fetching location suggestions:', error);
+        toast.error('Failed to load location suggestions');
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchLocationSuggestions, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [addressQuery]);
 
   // Populate email from user context if available
   useEffect(() => {
@@ -317,6 +360,22 @@ export default function CreateOrganizationRequestForm() {
     }
   };
 
+  const handleLocationSelect = (place: IBarikoiSuggestion) => {
+    // Fill in all the location fields from the selected suggestion
+    setAddress(place.address);
+    setPlaceId(place.id.toString());
+    setCity(place.city || '');
+    setArea(place.area || '');
+    // Note: subArea is not directly available in the Barikoi response
+    setPostCode(place.postCode ? place.postCode.toString() : '');
+    setLongitude(place.longitude);
+    setLatitude(place.latitude);
+    
+    // Clear suggestions after selection
+    setLocationSuggestions([]);
+    setAddressQuery(place.address);
+  };
+
   const isFormValid =
     organizationName &&
     facilities.length > 0 &&
@@ -371,7 +430,7 @@ export default function CreateOrganizationRequestForm() {
     'mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm text-gray-900';
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="max-w-7xl mx-auto p-6 pt-10">
       <div className="mb-6">
         <button
           onClick={goBack}
@@ -539,14 +598,63 @@ export default function CreateOrganizationRequestForm() {
                     >
                       Full Address*
                     </label>
-                    <input
-                      type="text"
-                      id="address"
+                    <div className="relative">
+                      <input
+                        type="text"
+                        id="address"
+                        value={addressQuery}
+                        onChange={e => setAddressQuery(e.target.value)}
+                        className={`${inputClasses} placeholder-gray-500`}
+                        placeholder="Search for an address..."
+                        required
+                      />
+                      {isSearching && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <svg
+                            className="animate-spin h-5 w-5 text-gray-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Location suggestions dropdown */}
+                    {locationSuggestions.length > 0 && (
+                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-y-auto">
+                        {locationSuggestions.map(place => (
+                          <button
+                            key={place.id}
+                            type="button"
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 border-b border-gray-100 last:border-0"
+                            onClick={() => handleLocationSelect(place)}
+                          >
+                            {place.address}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Hidden input for the actual address value */}
+                    <input 
+                      type="hidden" 
+                      name="address"
                       value={address}
-                      onChange={e => setAddress(e.target.value)}
-                      className={`${inputClasses} placeholder-gray-500`}
-                      placeholder="Enter full address"
-                      required
                     />
                   </div>
 
@@ -565,6 +673,7 @@ export default function CreateOrganizationRequestForm() {
                       className={`${inputClasses} placeholder-gray-500`}
                       placeholder="Enter place ID"
                       required
+                      readOnly
                     />
                   </div>
 

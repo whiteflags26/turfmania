@@ -24,7 +24,7 @@ const upload = multer({
   },
 });
 
-router.post("/",standardApiLimiter,upload.array("images", 5), turfController.createTurf);
+router.post("/",standardApiLimiter,upload.array("images", 5),protect, turfController.createTurf);
 router.get("/",standardApiLimiter, turfController.getTurfs);
 router.get("/:id",standardApiLimiter, turfController.getTurfById);
 router.put("/:id",standardApiLimiter,protect, upload.array("images", 5), turfController.updateTurfById);

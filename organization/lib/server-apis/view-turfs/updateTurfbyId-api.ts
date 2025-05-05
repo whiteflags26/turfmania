@@ -9,6 +9,7 @@ export const updateTurf = async (
     {
       method: "PUT",
       body: formData,
+      credentials: 'include',
     }
   );
   
