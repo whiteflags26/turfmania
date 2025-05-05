@@ -26,7 +26,8 @@ import { fetchTurfCurrentMonthEarnings } from '@/lib/server-apis/bookings/fetchT
 import { fetchTurfMonthlyEarnings } from '@/lib/server-apis/bookings/fetchTurfMonthlyEarnings';
 import { IOrganization } from '@/types/organization';
 import { ITurf } from '@/types/turf';
-import { IBooking, BookingStatus } from '@/types/booking';
+import { IBooking } from '@/types/bookingPageTypes';
+import { BookingStatus } from '@/types/bookingPageTypes';
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -77,8 +78,8 @@ export default function OrganizationDashboard() {
           // Calculate booking statistics
           const allBookings = bookingsResponse.data;
           const stats = {
-            pending: allBookings.filter(b => b.status === 'pending' || b.status === 'advance_payment_completed').length,
-            confirmed: allBookings.filter(b => b.status === 'confirmed').length,
+            pending: allBookings.filter(b => b.status === 'created' || b.status === 'advance_payment_completed').length,
+            confirmed: allBookings.filter(b => b.status === 'completed').length,
             completed: allBookings.filter(b => b.status === 'completed').length
           };
           setBookingStats(stats);

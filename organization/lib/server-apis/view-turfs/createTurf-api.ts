@@ -4,9 +4,7 @@ export const createTurf = async (organizationId: string, formData: FormData): Pr
   try {
     // Make sure we're sending organizationId in the correct format the server expects
     // The server expects a field named "organization" with just the ID string
-    formData.delete('organization'); // Remove any existing organization field to avoid duplicates
-    formData.append('organization', organizationId);
-    
+    // formData.append('organization', organizationId);    
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf`,
       {
