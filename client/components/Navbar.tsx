@@ -26,7 +26,7 @@ import { useAuth } from "@/lib/contexts/authContext";
 import {
   fetchSuggestions,
   fetchSearchResults,
-} from "@/lib/server-apis/search-api";
+} from "@/lib/server-apis/search/search-api";
 import { ISuggestion, ISearchResult, SearchPagination } from "@/types/search";
 
 // Import the components we've just created

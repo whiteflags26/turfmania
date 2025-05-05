@@ -7,9 +7,10 @@ import { FiClock, FiMapPin, FiUsers } from 'react-icons/fi';
 
 interface TurfCardProps {
   turf: ITurf;
+  onDelete: (turfId: string) => Promise<void>;
 }
 
-const TurfCard: React.FC<TurfCardProps> = ({ turf }) => {
+const TurfCard: React.FC<TurfCardProps> = ({ turf, onDelete }) => {
   // Get today's operating hours
   const today = new Date().getDay(); // 0 = Sunday, 6 = Saturday
   const todayHours = turf.operatingHours.find(hours => hours.day === today);

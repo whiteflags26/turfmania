@@ -42,7 +42,7 @@ export default function UsersManagement() {
     const fetchGlobalRoles = async () => {
       try {
         const response = await axios.get(
-          'http://localhost:5000/api/v1/roles/global',
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles/global`,
           { withCredentials: true },
         );
         setGlobalRoles(response.data.data);
@@ -86,24 +86,7 @@ export default function UsersManagement() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h2 className="text-xl font-semibold text-red-700 mb-2">
-            You are not authorized to view this page
-          </h2>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="max-w-7xl mx-auto p-6">

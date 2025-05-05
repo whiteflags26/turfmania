@@ -49,7 +49,7 @@ router.get(
   '/global',
   standardApiLimiter,
   protect,
-  checkPermission('manage_user_global_roles'),
+  checkPermission('view_roles'),
   getGlobalRoles,
 );
 
@@ -67,7 +67,7 @@ router.get(
   '/:roleId/permissions',
   standardApiLimiter,
   protect,
-  checkPermission('manage_user_global_roles'),
+  checkPermission('view_permissions'),
   getRolePermissions,
 );
 
