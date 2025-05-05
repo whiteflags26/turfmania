@@ -3,9 +3,12 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import { squareData } from "@/constants/index";
-import {Square} from "@/types/square";
+import { Square } from "@/types/square";
+import { useAuth } from "@/lib/contexts/authContext";
+import Link from "next/link";
 
 const Hero = () => {
+  const { user } = useAuth();
   return (
     <section className="w-full px-8 py-40 grid grid-cols-1 md:grid-cols-2 items-center gap-8 max-w-6xl mx-auto">
       <div>
@@ -17,9 +20,11 @@ const Hero = () => {
           hassle-free turf booking for enthusiasts and streamlined management
           for owners.
         </p>
-        <Button variant="default" className="font-semibold">
-          Get Started
-        </Button>
+        <Link href={user ? "/about" : "/sign-in"}>
+          <Button variant="default" className="font-semibold">
+            {user ? "Explore Features" : "Get Started"}
+          </Button>
+        </Link>
       </div>
       <ShuffleGrid />
     </section>

@@ -288,17 +288,34 @@ export default class OrganizationRequestService {
     try {
       // Get the original request
       const request = await this.getRequestById(requestId);
+      console.log(request);
       if (!request) {
         throw new ErrorResponse('Organization request not found', 404);
       }
 
       // Check for differences between request and new organization data
       const nameChanged = request.organizationName !== orgName;
+      console.log(
+        'requestName:',
+        request.organizationName,
+        'orgName:',
+        orgName,
+        'nameChanged:',
+        nameChanged,
+      );
 
       // Compare facilities (order might be different so we need to sort)
       const facilitiesChanged =
         facilities.length !== request.facilities.length ||
         !facilities.every(f => request.facilities.includes(f));
+      console.log(
+        'requestFacilities:',
+        request.facilities,
+        'newFacilities:',
+        facilities,
+        'facilitiesChanged:',
+        facilitiesChanged,
+      );
 
       // Compare location (check essential fields)
       const locationChanged =
@@ -309,9 +326,60 @@ export default class OrganizationRequestService {
           location.coordinates.coordinates[0] ||
         request.location.coordinates.coordinates[1] !==
           location.coordinates.coordinates[1];
+      console.log('locationChanged:', locationChanged, {
+        placeId: {
+          original: request.location.place_id,
+          new: location.place_id,
+          changed: request.location.place_id !== location.place_id,
+        },
+        address: {
+          original: request.location.address,
+          new: location.address,
+          changed: request.location.address !== location.address,
+        },
+        city: {
+          original: request.location.city,
+          new: location.city,
+          changed: request.location.city !== location.city,
+        },
+        coordinates: {
+          original: request.location.coordinates.coordinates,
+          new: location.coordinates.coordinates,
+          changed:
+            request.location.coordinates.coordinates[0] !==
+              location.coordinates.coordinates[0] ||
+            request.location.coordinates.coordinates[1] !==
+              location.coordinates.coordinates[1],
+        },
+      });
 
       const phoneChanged = request.orgContactPhone !== orgContactPhone;
+      console.log(
+        'requestPhone:',
+        request.orgContactPhone,
+        'newPhone:',
+        orgContactPhone,
+        'phoneChanged:',
+        phoneChanged,
+      );
+
       const emailChanged = request.orgContactEmail !== orgContactEmail;
+      console.log(
+        'requestEmail:',
+        request.orgContactEmail,
+        'newEmail:',
+        orgContactEmail,
+        'emailChanged:',
+        emailChanged,
+      );
+
+      console.log('SUMMARY - Changes detected:', {
+        nameChanged,
+        facilitiesChanged,
+        locationChanged,
+        phoneChanged,
+        emailChanged,
+      });
 
       return (
         nameChanged ||
@@ -459,10 +527,10 @@ export default class OrganizationRequestService {
     isOwner: boolean,
   ): Promise<void> {
     if (isOwner) {
-      console.log("email sent to ",user.email+subject+message);
+      console.log('email sent to ', user.email + subject + message);
       // Send owner-specific message
       await sendEmail(user.email, subject, message);
-      console.log("email sent to ",user.email+subject+message);
+      console.log('email sent to ', user.email + subject + message);
     } else {
       // Send standard message to requester
       await sendEmail(user.email, subject, message);
@@ -648,9 +716,12 @@ export default class OrganizationRequestService {
     return result.modifiedCount;
   }
 
-  public startPeriodicCleanup(timeoutHours: number = 2, intervalHours: number = 1): void {
+  public startPeriodicCleanup(
+    timeoutHours: number = 2,
+    intervalHours: number = 1,
+  ): void {
     const intervalMs = intervalHours * 60 * 60 * 1000;
-    
+
     setInterval(async () => {
       try {
         const count = await this.resetStuckProcessingRequests(timeoutHours);
