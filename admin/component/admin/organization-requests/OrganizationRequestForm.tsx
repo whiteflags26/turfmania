@@ -26,7 +26,7 @@ export interface ImageFile extends File {
 }
 
 export interface OrganizationFormData {
-  _id?: string;
+  requestId?: string;
   organizationName: string;
   address: string;
   placeId: string;
@@ -272,8 +272,8 @@ export default function OrganizationForm({
       formData.set("ownerEmail", ownerEmail);
 
       // Add ID if editing
-      if (isEditing && initialData._id) {
-        formData.set("_id", initialData._id);
+      if (isEditing && initialData.requestId) {
+        formData.set("_id", initialData.requestId);
       }
 
       // Handle images properly for both new and existing

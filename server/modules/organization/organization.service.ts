@@ -77,6 +77,17 @@ class OrganizationService {
         imageUrls = uploadedImages.map(img => img.url);
       }
 
+     
+      if (!requestId) {
+        console.log(
+          'requestId not provided, skipping request approval process.',
+        );
+      } else {
+        console.log(
+          'requestId provided, will approve the request after creating the organization.',
+        );
+      }
+
       // If requestId is provided, use a transaction to ensure atomicity
       if (requestId && adminId) {
         const session = await mongoose.startSession();
@@ -88,9 +99,9 @@ class OrganizationService {
           // Execute all operations within a transaction
 
           await session.withTransaction(async () => {
-            // Create organization with basic information
+            // Create organization with basic information - using exact name without sanitization
             organization = new Organization({
-              name,
+              name, // Use the name exactly as provided
               facilities,
               orgContactPhone,
               orgContactEmail,

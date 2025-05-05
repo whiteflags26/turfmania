@@ -1,9 +1,6 @@
 import api from '@/lib/axios';
 import { ApiResponse } from '@/types/api';
-import {
-  
-  OrganizationRequestsResponse,
-} from '@/types/organization';
+import { OrganizationRequestsResponse } from '@/types/organization';
 
 export interface RequestFilters {
   requesterEmail: string;
@@ -154,7 +151,7 @@ export async function createOrganization(
     // Case 1: Creating org from request - first param is requestId, second is form data
     if (typeof requestIdOrPayload === 'string' && formData) {
       payload = formData;
-      payload.append('organizationRequestId', requestIdOrPayload);
+      payload.append('requestId', requestIdOrPayload); // Changed from 'organizationRequestId' to 'requestId'
       // Admin ID will be determined from the session cookie
     }
     // Case 2: Direct organization creation - first param is form data
@@ -175,6 +172,7 @@ export async function createOrganization(
     if (!response.ok) {
       throw new Error(data.message ?? 'Failed to create organization');
     }
+    console.log(data.data);
 
     return {
       success: true,

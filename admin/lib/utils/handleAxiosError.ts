@@ -4,7 +4,7 @@ export function handleAxiosError(error: unknown, fallbackMessage = 'An error occ
   if (axios.isAxiosError(error)) {
     // Handle specific status codes
     if (error.response?.status === 403) {
-      return error.response.data?.message || 'You are not authorized to perform this action';
+      return  'You are not authorized to perform this action';
     }
     if (error.response?.status === 401) {
       return 'Please login to continue';
