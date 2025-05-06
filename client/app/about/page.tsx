@@ -32,7 +32,7 @@ export default function AboutPage() {
       {/* Hero Section with Particle Background */}
       <div className="relative h-[80vh] w-full overflow-hidden">
         <ParticleBackground />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70 z-10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70 z-0" />
 
         <motion.div
           ref={ref}
