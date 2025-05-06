@@ -5,9 +5,10 @@ import ProfileContent from "@/components/profile/ProfileContent";
 
 export default async function ProfilePage() {
   const session = await auth();
+  console.log(session)
 
   if (!session?.user) {
-    redirect("/auth/login");
+    redirect("/sign-in");
   }
 
   return (
