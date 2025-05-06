@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect, FormEvent } from "react";
@@ -28,6 +27,7 @@ import {
   fetchSearchResults,
 } from "@/lib/server-apis/search/search-api";
 import { ISuggestion, ISearchResult, SearchPagination } from "@/types/search";
+import Image from "next/image";
 
 // Import the components we've just created
 import UserContent from "@/components/UserContent";
@@ -218,14 +218,20 @@ const Navbar = () => {
           visible: { y: "0%" },
         }}
         transition={{ duration: 0.2 }}
-        className={`fixed top-1 z-10 w-full mx-2 ${
+        className={`fixed top-1 z-50 w-full mx-2 ${
           isScrolled ? "border border-gray-400 rounded-3xl" : ""
         } bg-white`}
       >
         <nav className="mx-auto flex items-center justify-between rounded-3xl bg-white p-4">
           <div className="flex items-center gap-10">
-            <Link href="/" className="text-2xl font-bold">
-              TurfMania
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/images/TurfMania.png" 
+                width={150}
+                height={30}
+                alt="TurfMania Logo"
+                priority
+              />
             </Link>
             <div className="hidden space-x-4 lg:flex">
               {NAV_LINKS.map((link) => (
