@@ -1,4 +1,3 @@
-// app/organization/[id]/layout.tsx
 
 'use client';
 
@@ -68,12 +67,12 @@ export default function DashboardLayout({
     },
     {
       name: 'View Turfs',
-      icon: <FiGrid className="h-5 w-5" />, // Changed: Field/grid icon for turfs
+      icon: <FiGrid className="h-5 w-5" />,
       path: `/organization/${orgId}/view-turfs`,
     },
     {
       name: 'Timeslot Management',
-      icon: <FiCalendar className="h-5 w-5" />, // Changed: Calendar icon for timeslots
+      icon: <FiCalendar className="h-5 w-5" />, 
       path: `/organization/${orgId}/turf-timeslot`,
     },
     {
@@ -81,16 +80,16 @@ export default function DashboardLayout({
       icon: <FiDollarSign className="h-5 w-5" />, 
       path: `/organization/${orgId}/bookings`,
     },
-    {
-      name: 'Role Management',
-      icon: <FiShield className="h-5 w-5" />, // Changed: Shield icon for roles/permissions
-      path: `/organization/${orgId}/roles`,
-    },
-    {
-      name: 'User List',
-      icon: <FiUsers className="h-5 w-5" />, // Changed: Users icon for user list
-      path: `/organization/${orgId}/users`,
-    },
+    // {
+    //   name: 'Role Management',
+    //   icon: <FiShield className="h-5 w-5" />,
+    //   path: `/organization/${orgId}/roles`,
+    // },
+    // {
+    //   name: 'User List',
+    //   icon: <FiUsers className="h-5 w-5" />,
+    //   path: `/organization/${orgId}/users`,
+    // },
   ];
 
   return (
@@ -173,7 +172,7 @@ export default function DashboardLayout({
                         <Link href={item.path} passHref>
                           <button
                             type="button"
-                            className={`flex items-center w-full text-left px-3 py-3 rounded-xl cursor-pointer transition-all ${
+                            className={`flex items-center ${isCollapsed ? 'justify-center' : 'w-full text-left'} px-3 py-3 rounded-xl cursor-pointer transition-all ${
                               isActive
                                 ? 'bg-blue-50 text-blue-600'
                                 : 'text-gray-600 hover:bg-gray-100'
@@ -183,9 +182,11 @@ export default function DashboardLayout({
                             <div className="flex items-center justify-center">
                               {item.icon}
                             </div>
-                            <span className="ml-3 font-medium">
-                              {item.name}
-                            </span>
+                            {!isCollapsed && (
+                              <span className="ml-3 font-medium">
+                                {item.name}
+                              </span>
+                            )}
                           </button>
                         </Link>
                       </li>
@@ -295,7 +296,7 @@ export default function DashboardLayout({
                             <Link href={item.path} passHref>
                               <button
                                 type="button"
-                                className={`flex items-center w-full text-left px-3 py-3 rounded-xl cursor-pointer transition-all ${
+                                className={`flex items-center ${isCollapsed ? 'justify-center' : 'w-full text-left'} px-3 py-3 rounded-xl cursor-pointer transition-all ${
                                   isActive
                                     ? 'bg-blue-50 text-blue-600'
                                     : 'text-gray-600 hover:bg-gray-100'
@@ -305,9 +306,11 @@ export default function DashboardLayout({
                                 <div className="flex items-center justify-center">
                                   {item.icon}
                                 </div>
-                                <span className="ml-3 font-medium">
-                                  {item.name}
-                                </span>
+                                {!isCollapsed && (
+                                  <span className="ml-3 font-medium">
+                                    {item.name}
+                                  </span>
+                                )}
                               </button>
                             </Link>
                           </li>
