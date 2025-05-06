@@ -89,6 +89,36 @@ export default function SignIn() {
           </p>
         </div>
 
+        {/* Demo Credentials */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-blue-700">Demo Credentials</h3>
+            <button 
+              type="button"
+              onClick={() => {
+                reset({
+                  email: 'admin@email.com',
+                  password: '12345678'
+                });
+              }}
+              className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1.5"
+            >
+              <FiCheckCircle size={14} />
+              <span>Auto-fill</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="text-gray-600">Email:</span>
+              <div className="font-mono text-blue-700 truncate">admin@email.com</div>
+            </div>
+            <div>
+              <span className="text-gray-600">Password:</span>
+              <div className="font-mono text-blue-700">12345678</div>
+            </div>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Email Field */}
           <div>
@@ -158,6 +188,23 @@ export default function SignIn() {
                 {errors.password.message}
               </p>
             )}
+          </div>
+
+          {/* Forgot Password Note */}
+          <div className="text-sm text-gray-600 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg flex items-start">
+            <FiInfo className="mr-2 mt-0.5 flex-shrink-0 text-blue-500" size={16} />
+            <span>
+              <strong>Forgot Password?</strong> Please visit{" "}
+              <a 
+                href="https://turfmania.vercel.app" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
+                TurfMania Client Portal
+              </a>{" "}
+              and change your password from User Profile.
+            </span>
           </div>
 
           {/* Submit Button */}
