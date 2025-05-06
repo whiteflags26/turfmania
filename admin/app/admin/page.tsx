@@ -1,16 +1,16 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@email.com'); // Demo email pre-filled
+  const [password, setPassword] = useState('12345678'); // Demo password pre-filled
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL ;
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +28,7 @@ export default function AdminLogin() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message ??  'Login failed');
+        throw new Error(data.message ?? 'Login failed');
       }
 
       router.push('/admin/dashboard');
@@ -42,7 +42,21 @@ export default function AdminLogin() {
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-sm p-8 bg-white rounded-2xl shadow-md border border-gray-200">
-        <h1 className="text-2xl font-semibold text-gray-800 text-center mb-6">Admin Login</h1>
+        <h1 className="text-2xl font-semibold text-gray-800 text-center mb-6">
+          Admin Login
+        </h1>
+
+        <div className="mb-4 rounded-md bg-blue-50 px-4 py-2 text-sm text-blue-700 border border-blue-200">
+          <div>
+            <span className="font-semibold">Demo Credentials:</span>
+            <div>
+              Email: <span className="font-mono">admin@email.com</span>
+            </div>
+            <div>
+              Password: <span className="font-mono">12345678</span>
+            </div>
+          </div>
+        </div>
 
         {error && (
           <div className="mb-4 rounded-md bg-red-100 px-4 py-2 text-sm text-red-700 border border-red-200">
@@ -52,28 +66,34 @@ export default function AdminLogin() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Email address
             </label>
             <input
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
               required
-/>
+            />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Password
             </label>
             <input
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm sm:text-sm text-gray-900 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
               required
             />
