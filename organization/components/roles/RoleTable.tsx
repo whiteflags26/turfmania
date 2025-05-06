@@ -1,4 +1,5 @@
 "use client"
+import React from 'react';
 import {
   Check,
   ChevronDown,
@@ -120,8 +121,7 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
               {filteredRoles.map(role => {
-                // Extract nested ternary into variable
-                let scopeClass = 'bg-green-100 text-green-800'; // Default for 'local'
+                let scopeClass = 'bg-green-100 text-green-800';
                 if (role.scope === 'global') {
                   scopeClass = 'bg-purple-100 text-purple-800';
                 } else if (role.scope === 'organization') {
@@ -129,9 +129,8 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
                 }
 
                 return (
-                  <>
+                  <React.Fragment key={role._id}>
                     <tr
-                      key={role._id}
                       className={`${
                         expandedRow === role._id
                           ? 'bg-blue-50'
@@ -296,7 +295,7 @@ export default function RoleTable({ roles, canDelete, onDelete }: Props) {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </tbody>

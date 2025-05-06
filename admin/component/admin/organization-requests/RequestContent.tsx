@@ -42,19 +42,7 @@ export function RequestContent({
     );
   }
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mt-6">
-        <p>{error}</p>
-        <button
-          onClick={handleRefresh}
-          className="mt-2 text-sm font-medium text-red-700 underline"
-        >
-          Try again
-        </button>
-      </div>
-    );
-  }
+
 
   if (!data?.data?.requests?.length) {
     return (

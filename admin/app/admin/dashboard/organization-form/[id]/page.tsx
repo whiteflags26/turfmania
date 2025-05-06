@@ -36,10 +36,12 @@ export default function Page({ params }: ClientPageProps) {
           return;
         }
 
+
         const org = resp.data;
+        console.log('Organization Request:', org);
         setOrganization({
-          _id: org._id,
-          name: org.name,
+          requestId: id,
+          organizationName: org.organizationName,
           address: org.location?.address ?? '',
           placeId: org.location?.place_id ?? '',
           city: org.location?.city ?? '',
@@ -56,6 +58,7 @@ export default function Page({ params }: ClientPageProps) {
           contactPhone: org.contactPhone ?? '',
           ownerEmail: org.ownerEmail ?? '',
         });
+        console.log('Organization:', organization);
       } catch (err: any) {
         console.error(err);
         setError(err.message ?? 'Failed to load organization request');
@@ -74,7 +77,7 @@ export default function Page({ params }: ClientPageProps) {
       const result = await createOrganization(id, formData);
       if (!result.success) throw new Error('Failed to create organization');
       toast.success('Organization created successfully!');
-      router.push('/admin/dashboard/organizations');
+      router.push('/admin/dashboard');
     } catch (err: any) {
       console.error(err);
       toast.error(err.message ?? 'Failed to create organization');

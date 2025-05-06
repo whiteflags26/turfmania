@@ -34,9 +34,9 @@ export async function createRole(orgId: string, roleData: RoleData) {
 
   // Ensure we're using the correct data structure
   const requestData = {
-    name: roleData.name,
+    roleName: roleData.name, // Changed from 'name' to 'roleName'
     permissions: roleData.permissions,
-    isdefault: roleData.isDefault || false,
+    isDefault: roleData.isDefault === 'true', // Fixed capitalization and converted to boolean
   };
 
   // Fix URL path
