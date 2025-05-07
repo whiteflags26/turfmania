@@ -98,7 +98,7 @@ export default function SignIn() {
               onClick={() => {
                 reset({
                   email: 'admin@email.com',
-                  password: '12345678'
+                  password: 'Pass#_123'
                 });
               }}
               className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1.5"
@@ -114,7 +114,7 @@ export default function SignIn() {
             </div>
             <div>
               <span className="text-gray-600">Password:</span>
-              <div className="font-mono text-blue-700">12345678</div>
+              <div className="font-mono text-blue-700">Pass#_123</div>
             </div>
           </div>
         </div>

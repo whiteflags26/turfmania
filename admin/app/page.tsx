@@ -37,7 +37,7 @@ export default function AdminLogin() {
 
   const fillDemoCredentials = () => {
     setEmail("admin@email.com");
-    setPassword("12345678");
+    setPassword("Pass#_123");
   };
 
   return (
@@ -119,7 +119,7 @@ export default function AdminLogin() {
                   <span className="block text-xs text-gray-300 mb-1">
                     Password:
                   </span>
-                  <span className="font-mono text-gray-200">12345678</span>
+                  <span className="font-mono text-gray-200">Pass#_123</span>
                 </div>
               </div>
             </motion.div>
