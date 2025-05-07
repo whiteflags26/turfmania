@@ -658,32 +658,6 @@ export default function TurfDetailPage() {
                   </div>
                 )}
               </div>
-
-              {/* Facilities */}
-              {hasOrgData &&
-                turf.organization.facilities &&
-                turf.organization.facilities.length > 0 && (
-                  <div className="space-y-3 pt-2">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-50 rounded-full text-blue-600">
-                        <FiPlus />
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Available Facilities
-                      </h3>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {(turf.sports || []).map(sport => (
-                        <span
-                          key={sport}
-                          className="px-4 py-2 bg-blue-100 text-blue-800 font-medium rounded-lg"
-                        >
-                          {sport}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
             </div>
           </div>
         </div>
