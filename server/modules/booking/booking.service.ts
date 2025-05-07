@@ -71,25 +71,34 @@ export default class BookingService {
         throw new ErrorResponse('One or more time slots are no longer available', 400);
       }
 
-      // 2. Validate if all slots belong to the same turf
+      // 2. Validate if user is verified
+      const user = await User.findById(validUserId).session(session);
+      if (!user) {
+        throw new ErrorResponse('User not found', 404);
+      }
+      if (!user.isVerified) {
+        throw new ErrorResponse('User is not verified', 403);
+      }
+
+      // 3. Validate if all slots belong to the same turf
       const turfIds = timeSlots.map(slot => slot.turf.toString());
       if (new Set(turfIds).size !== 1 || turfIds[0] !== validTurfId) {
         throw new ErrorResponse('All time slots must belong to the same turf', 400);
       }
 
-      // 3. Get turf for base price
+      // 4. Get turf for base price
       const turf = await Turf.findById(validTurfId).session(session);
       if (!turf) {
         throw new ErrorResponse('Turf not found', 404);
       }
 
-      // 4. Calculate total, advance, and final amounts
+      // 5. Calculate total, advance, and final amounts
       const basePrice = turf.basePrice || 0;
       const totalAmount = basePrice * timeSlots.length;
       const advanceAmount = totalAmount * this.ADVANCE_PAYMENT_PERCENTAGE;
       const finalAmount = totalAmount - advanceAmount;
 
-      // 5. Create booking
+      // 6. Create booking
       const booking = await Booking.create([{
         userId: new Types.ObjectId(validUserId),
         turf: new Types.ObjectId(validTurfId),
@@ -102,7 +111,7 @@ export default class BookingService {
         isPaid: false
       }], { session });
 
-      // 6. Update time slots to not available and set booking reference
+      // 7. Update time slots to not available and set booking reference
       await TimeSlot.updateMany(
         { _id: { $in: validTimeSlotIds } },
         {
