@@ -24,7 +24,7 @@ if (typeof window !== 'undefined') {
     response => response,
     error => {
       if (error.response?.status === 401) {
-        window.location.href = '/admin/login';
+        window.location.href = '/';
       }
       // Convert the error to a proper Error object before rejecting
       return Promise.reject(

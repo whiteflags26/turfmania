@@ -275,7 +275,7 @@ export default function OrganizationRequestsSection() {
           {request.status === 'approved' && request.organizationId && (
             <div className="mt-4 pt-4 border-t border-gray-100">
               <Link
-                href={`/organizations/${request.organizationId}`}
+                href={`/organization/${request.organizationId}`}
                 className="inline-flex items-center gap-2 text-primary hover:text-primary/90 text-sm font-medium"
               >
                 View Organization
