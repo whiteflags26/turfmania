@@ -56,7 +56,7 @@ export default function TurfDetails({ turf }: TurfDetailsProps) {
                 <Building2 className="h-5 w-5 mr-2" />
                 <a
                   href={`/organization/${turf.organization._id}`}
-                  className="hover:text-green-600 transition-colors"
+                  className="hover:text-green-600 transition-colors underline"
                 >
                   {turf.organization.name}
                 </a>
