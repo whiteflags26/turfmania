@@ -160,9 +160,9 @@ export const login = asyncHandler(
     // Set token in cookie
     res.cookie('token', token, {
       httpOnly: true,
-      //secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      sameSite: 'lax',
+      sameSite: 'none',
     });
 
     res.status(200).json({
@@ -240,7 +240,7 @@ export const adminLogin = asyncHandler(
     res.cookie('admin_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'none',
       path: '/',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
@@ -249,7 +249,7 @@ export const adminLogin = asyncHandler(
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'none',
       path: '/',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
@@ -272,20 +272,20 @@ export const logout = asyncHandler(
     res.cookie('token', '', {
       httpOnly: true,
       expires: new Date(0), // set the cookie to expire immediately
-      //secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
     });
     res.cookie('admin_token', '', {
       httpOnly: true,
       expires: new Date(0), // set the cookie to expire immediately
-      //secure: process.env.NODE_ENV === 'production', // Uncomment for production
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production', // Uncomment for production
+      sameSite: 'none',
     });
     res.cookie('org_token', '', {
       httpOnly: true,
       expires: new Date(0), // set the cookie to expire immediately
-      //secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
     });
 
     res.status(200).json({
