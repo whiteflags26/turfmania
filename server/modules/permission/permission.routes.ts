@@ -12,12 +12,12 @@ const router = express.Router();
 
 
 // Get all permissions
-router.get('/',standardApiLimiter,protect, getAllPermissions);
+router.get('/',protect, getAllPermissions);
 
 // Get global permissions
-router.get('/global',standardApiLimiter,protect,checkPermission('view_permissions'), getGlobalPermissions);
+router.get('/global',protect,checkPermission('view_permissions'), getGlobalPermissions);
 
 // Get local (organization) permissions
-router.get('/local',standardApiLimiter,protect, getLocalPermissions);
+router.get('/local',protect, getLocalPermissions);
 
 export default router;
