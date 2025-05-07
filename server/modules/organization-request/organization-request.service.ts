@@ -247,11 +247,10 @@ export default class OrganizationRequestService {
       if (adminNotes) request.adminNotes = adminNotes;
       await request.save(options);
 
-      // Notify requester - this is not part of the transaction
-      // Only do this if we're not in a transaction or after transaction is complete
-      if (!session) {
-        await this.notifyRequestProcessed(request, true, wasEdited);
-      }
+      // Notify requester
+      
+      await this.notifyRequestProcessed(request, true, wasEdited);
+      
 
       return {
         success: true,
