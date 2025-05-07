@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   title: 'TurfMania',
   description: 'Streamlining the Turf Industry in Bangladesh',
   icons: {
-    icon: "/TurfManiaIcon.ico",
+    icon: "/favicon.ico",
   },
 };
 
