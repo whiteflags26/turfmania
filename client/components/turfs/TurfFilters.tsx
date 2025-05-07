@@ -180,24 +180,26 @@ export default function TurfFilters({
   return (
     <div className="mb-8">
       <Tabs defaultValue="all" value={activeTab} className="w-full">
-        <div className="flex items-center justify-between mb-4">
-          <TabsList className="bg-slate-100">
-            <TabsTrigger value="all" onClick={() => handleSportFilter('all')}>
-              All Turfs
-            </TabsTrigger>
-            {sortedSports.map(sport => (
-              <TabsTrigger
-                key={sport._id}
-                value={sport.name.toLowerCase()}
-                onClick={() => handleSportFilter(sport.name)}
-              >
-                {sport.name.charAt(0).toUpperCase() +
-                  sport.name.slice(1).toLowerCase()}
+        <div className="flex items-center justify-between mb-4 flex-col sm:flex-row gap-3">
+          <div className="w-full overflow-x-auto pb-2 -mb-2 hide-scrollbar">
+            <TabsList className="bg-slate-100 w-max min-w-full sm:min-w-0">
+              <TabsTrigger value="all" onClick={() => handleSportFilter('all')}>
+                All Turfs
               </TabsTrigger>
-            ))}
-          </TabsList>
+              {sortedSports.map(sport => (
+                <TabsTrigger
+                  key={sport._id}
+                  value={sport.name.toLowerCase()}
+                  onClick={() => handleSportFilter(sport.name)}
+                >
+                  {sport.name.charAt(0).toUpperCase() +
+                    sport.name.slice(1).toLowerCase()}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 self-end sm:self-auto">
             <Button
               variant="default"
               size="sm"
@@ -205,24 +207,12 @@ export default function TurfFilters({
               className="flex items-center gap-1"
             >
               {showFilters ? <X size={16} /> : <Filter size={16} />}
-              <span className="hidden sm:inline">
+              <span className="whitespace-nowrap">
                 {showFilters ? 'Hide Filters' : 'More Filters'}
               </span>
             </Button>
-          </div>
-        </div>
-      </Tabs>
-
-      <AnimatePresence>
-        {showFilters && (
-          <motion.div
-            variants={filterVariants}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            className="mb-8 overflow-hidden"
-          >
-            <div className="flex justify-end mb-4">
+            
+            {showFilters && (
               <Button
                 variant="destructive"
                 size="sm"
@@ -249,13 +239,27 @@ export default function TurfFilters({
                   setQuery('');
                   setSuggestions([]);
                 }}
+                className="flex items-center justify-center whitespace-nowrap"
               >
+                <X size={16} className="mr-1.5" />
                 Clear Filters
               </Button>
-            </div>
+            )}
+          </div>
+        </div>
+      </Tabs>
 
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            variants={filterVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            className="mb-8 overflow-hidden"
+          >
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 {isLoading ? (
                   <div className="flex justify-center items-center py-8">
                     <svg
@@ -279,7 +283,7 @@ export default function TurfFilters({
                     </svg>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {/* Price Range */}
                     <div className="space-y-4">
                       <h3 className="font-medium flex items-center gap-2">
@@ -317,7 +321,7 @@ export default function TurfFilters({
                       <h3 className="font-medium flex items-center gap-2">
                         <Users size={15} /> Team Size
                       </h3>
-                      <div className="grid grid-cols-5 gap-2">
+                      <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-5 gap-2">
                         {sortedTeamSizes.map(size => (
                           <Button
                             key={size._id}
@@ -327,6 +331,7 @@ export default function TurfFilters({
                                 : 'outline'
                             }
                             size="sm"
+                            className="text-xs sm:text-sm px-1 sm:px-2"
                             onClick={() => {
                               const newTeamSize = filters.teamSize.includes(
                                 size.name,
@@ -411,12 +416,8 @@ export default function TurfFilters({
                     </div>
 
                     {/* Location Filter */}
-                    <div className="space-y-4">
-                      <h3 className="font-medium flex items-center gap-2">
-                        <MapPin size={15} /> Location
-                      </h3>
-
-                      <div className="space-y-3">
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {/* Use My Location Button */}
                         <Button
                           variant="default"
@@ -426,58 +427,7 @@ export default function TurfFilters({
                         >
                           <MapPin size={14} /> Use My Location
                         </Button>
-
-                        {/* Location Search Input */}
-                        <div className="relative">
-                          <Input
-                            type="text"
-                            placeholder="Search location..."
-                            className="w-full pr-10"
-                            value={query}
-                            onChange={e => setQuery(e.target.value)}
-                          />
-
-                          {locationLoading && (
-                            <div className="absolute inset-y-0 right-3 flex items-center">
-                              <svg
-                                className="w-4 h-4 text-slate-500 animate-spin"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                              >
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  strokeWidth="4"
-                                ></circle>
-                                <path
-                                  className="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8v4l3.5-3.5L12 0v4a8 8 0 11-8 8z"
-                                ></path>
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Suggestions List */}
-                        {suggestions.length > 0 && (
-                          <div className="border rounded bg-white shadow-md max-h-48 overflow-y-auto divide-y text-sm">
-                            {suggestions.map(place => (
-                              <button
-                                key={place.id}
-                                type="button"
-                                className="w-full text-left p-3 cursor-pointer hover:bg-slate-100 transition rounded-sm"
-                                onClick={() => handleLocationSelect(place)}
-                              >
-                                {place.address}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
+                        
                         {/* Radius Input */}
                         <div className="flex items-center gap-2">
                           <Input
@@ -492,6 +442,57 @@ export default function TurfFilters({
                           <span className="text-sm text-slate-500">km</span>
                         </div>
                       </div>
+                      
+                      {/* Location Search Input with separate row */}
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          placeholder="Search location..."
+                          className="w-full pr-10"
+                          value={query}
+                          onChange={e => setQuery(e.target.value)}
+                        />
+                        {/* spinner code stays the same */}
+                        {locationLoading && (
+                          <div className="absolute inset-y-0 right-3 flex items-center">
+                            <svg
+                              className="w-4 h-4 text-slate-500 animate-spin"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8v4l3.5-3.5L12 0v4a8 8 0 11-8 8z"
+                              ></path>
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* suggestions stay the same */}
+                      {suggestions.length > 0 && (
+                        <div className="border rounded bg-white shadow-md max-h-48 overflow-y-auto divide-y text-sm">
+                          {suggestions.map(place => (
+                            <button
+                              key={place.id}
+                              type="button"
+                              className="w-full text-left p-3 cursor-pointer hover:bg-slate-100 transition rounded-sm"
+                              onClick={() => handleLocationSelect(place)}
+                            >
+                              {place.address}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

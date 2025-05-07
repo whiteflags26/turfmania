@@ -27,7 +27,6 @@ import { fetchTurfMonthlyEarnings } from '@/lib/server-apis/bookings/fetchTurfMo
 import { IOrganization } from '@/types/organization';
 import { ITurf } from '@/types/turf';
 import { IBooking } from '@/types/bookingPageTypes';
-import { BookingStatus } from '@/types/bookingPageTypes';
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -337,10 +336,11 @@ export default function OrganizationDashboard() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {recentBookings.map((booking) => {
-                    const user = booking.userId as any; // Type assertion for the user object
+                    const user = booking.userId as any; 
                     const userName = user?.first_name ? `${user.first_name} ${user.last_name || ''}` : 'Unknown User';
-                    const turfData = booking.turf as any;
-                    const turfName = turfData?.name || 'Unknown Turf';
+                    const turfId = booking.turf as any;
+                    const matchingTurf= turfs.find(turf=> turf._id===turfId)
+                    const turfName = matchingTurf?.name || 'Unknown Turf';
                     const timeSlots = booking.timeSlots as any[];
                     const firstTimeSlot = timeSlots && timeSlots.length > 0 ? timeSlots[0] : null;
                     

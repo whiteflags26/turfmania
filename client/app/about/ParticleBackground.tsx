@@ -106,7 +106,7 @@ export default function ParticleBackground() {
   return (
     <motion.canvas
       ref={canvasRef}
-      className="absolute inset-0 bg-gradient-to-b from-blue-900 to-green-900"
+      className="absolute inset-0 bg-gradient-to-b from-blue-900 to-green-900 pointer-events-none"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1 }}

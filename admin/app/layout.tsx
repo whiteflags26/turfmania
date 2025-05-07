@@ -1,11 +1,14 @@
-import { AuthProvider } from '@/lib/contexts/authContext';
-import { Metadata } from 'next';
-import { Toaster } from 'react-hot-toast';
-import './globals.css';
+import { AuthProvider } from "@/lib/contexts/authContext";
+import { Metadata } from "next";
+import { Toaster } from "react-hot-toast";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Admin Dashboard',
-  description: 'TurfMania Admin Dashboard',
+  title: "Admin Dashboard",
+  description: "TurfMania Admin Dashboard",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

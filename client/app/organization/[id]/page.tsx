@@ -430,14 +430,15 @@ export default function OrganizationPage() {
                 organization.turfs[0].operatingHours &&
                 organization.turfs[0].operatingHours.length > 0 ? (
                   <Tabs defaultValue="turf-0" className="w-full">
-                    <TabsList className="grid grid-cols-2 mb-4">
+                    <TabsList className="w-full mb-4">
                       {organization.turfs.slice(0, 2).map((turf, index) => (
                         <TabsTrigger
                           key={turf._id}
                           value={`turf-${index}`}
-                          className="text-xs sm:text-sm"
+                          className="text-xs sm:text-sm px-2 py-1.5 overflow-hidden text-ellipsis whitespace-nowrap flex-1"
+                          title={turf.name} // Add tooltip for full name on hover
                         >
-                          {turf.name}
+                          {turf.name.length > 20 ? `${turf.name.substring(0, 20)}...` : turf.name}
                         </TabsTrigger>
                       ))}
                     </TabsList>

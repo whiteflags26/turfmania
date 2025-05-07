@@ -1,4 +1,5 @@
 import NavbarWrapper from '@/components/NavbarWrapper';
+import Footer from '@/components/Footer';
 import { AuthProvider } from '@/lib/contexts/authContext';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -18,6 +19,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'TurfMania',
   description: 'Streamlining the Turf Industry in Bangladesh',
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -28,13 +32,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
         <AuthProvider>
-          <main>
-            <NavbarWrapper />
+          <NavbarWrapper />
+          <main className="flex-grow">
             {children}
           </main>
+          <Footer />
           <Toaster position="top-center" />
         </AuthProvider>
       </body>
