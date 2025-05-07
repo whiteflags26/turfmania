@@ -19,6 +19,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "TurfMania Organization",
   description: "Streamlining the Turf Industry in Bangladesh",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -32,9 +35,8 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-         
-            {children}
-          
+          {children}
+
           <Toaster position="top-center" />
         </AuthProvider>
       </body>

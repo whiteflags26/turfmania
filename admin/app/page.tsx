@@ -1,43 +1,43 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { useAuth } from '@/lib/contexts/authContext';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FiCheckCircle, 
-  FiUser, 
-  FiMail, 
-  FiLock, 
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useAuth } from "@/lib/contexts/authContext";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  FiCheckCircle,
+  FiUser,
+  FiMail,
+  FiLock,
   FiAlertCircle,
-  FiArrowRight 
-} from 'react-icons/fi';
+  FiArrowRight,
+} from "react-icons/fi";
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       await login(email, password);
     } catch (err: any) {
-      setError(err.message ?? 'An error occurred during login');
+      setError(err.message ?? "An error occurred during login");
     } finally {
       setLoading(false);
     }
   };
 
   const fillDemoCredentials = () => {
-    setEmail('admin@email.com');
-    setPassword('12345678');
+    setEmail("admin@email.com");
+    setPassword("12345678");
   };
 
   return (
@@ -45,8 +45,8 @@ export default function AdminLogin() {
       <div className="w-full max-w-md">
         {/* Background decoration */}
         <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-r from-gray-800 to-gray-700 rounded-b-full opacity-20 -z-10 transform -translate-y-1/2"></div>
-        
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -54,7 +54,7 @@ export default function AdminLogin() {
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-gray-800 to-gray-700 px-8 pt-8 pb-12">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2 }}
@@ -64,7 +64,7 @@ export default function AdminLogin() {
                 <FiUser className="text-gray-200 text-3xl" />
               </div>
             </motion.div>
-            <motion.h1 
+            <motion.h1
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
@@ -72,7 +72,7 @@ export default function AdminLogin() {
             >
               Admin Dashboard
             </motion.h1>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
@@ -81,10 +81,10 @@ export default function AdminLogin() {
               Sign in to manage your turf business
             </motion.p>
           </div>
-          
+
           {/* Login Form */}
           <div className="px-8 py-8 -mt-6">
-            <motion.div 
+            <motion.div
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.5 }}
@@ -108,11 +108,17 @@ export default function AdminLogin() {
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-gray-800 p-2 rounded-md border border-gray-600">
-                  <span className="block text-xs text-gray-300 mb-1">Email:</span>
-                  <span className="font-mono text-gray-200">admin@email.com</span>
+                  <span className="block text-xs text-gray-300 mb-1">
+                    Email:
+                  </span>
+                  <span className="font-mono text-gray-200">
+                    admin@email.com
+                  </span>
                 </div>
                 <div className="bg-gray-800 p-2 rounded-md border border-gray-600">
-                  <span className="block text-xs text-gray-300 mb-1">Password:</span>
+                  <span className="block text-xs text-gray-300 mb-1">
+                    Password:
+                  </span>
                   <span className="font-mono text-gray-200">12345678</span>
                 </div>
               </div>
@@ -122,21 +128,24 @@ export default function AdminLogin() {
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10, height: 0 }}
-                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  animate={{ opacity: 1, y: 0, height: "auto" }}
                   exit={{ opacity: 0, y: -10, height: 0 }}
                   className="mb-4 rounded-lg bg-red-900/20 px-4 py-3 text-sm text-red-200 border border-red-800/30 flex items-center"
                 >
-                  <FiAlertCircle className="text-red-400 mr-2 flex-shrink-0" size={18} />
+                  <FiAlertCircle
+                    className="text-red-400 mr-2 flex-shrink-0"
+                    size={18}
+                  />
                   <span>{error}</span>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <motion.form 
+            <motion.form
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
-              onSubmit={handleSubmit} 
+              onSubmit={handleSubmit}
               className="space-y-5"
             >
               <div>
@@ -154,7 +163,7 @@ export default function AdminLogin() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 block w-full rounded-lg border border-gray-600 bg-gray-700 px-4 py-2.5 text-gray-200 shadow-sm focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 outline-none"
                     required
                   />
@@ -176,7 +185,7 @@ export default function AdminLogin() {
                     id="password"
                     type="password"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 block w-full rounded-lg border border-gray-600 bg-gray-700 px-4 py-2.5 text-gray-200 shadow-sm focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 outline-none"
                     required
                   />
@@ -192,9 +201,25 @@ export default function AdminLogin() {
               >
                 {loading ? (
                   <div className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     <span>Signing in</span>
                   </div>
@@ -207,9 +232,9 @@ export default function AdminLogin() {
               </motion.button>
             </motion.form>
           </div>
-          
+
           {/* Footer */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
