@@ -690,7 +690,7 @@ export default class BookingService {
       const bookings = await Booking.aggregate([
         {
           $match: {
-            status: 'advance_payment_completed',
+            status: { $in: ['advance_payment_completed', 'completed'] },
             isReminderSent: { $ne: true } // Only if reminder hasn't been sent
           }
         },
