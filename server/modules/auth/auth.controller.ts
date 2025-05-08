@@ -7,6 +7,7 @@ import ErrorResponse from '../../utils/errorResponse';
 import Token from '../token/token.model';
 import User, { UserDocument } from '../user/user.model';
 import authService, { resetUserPassword } from './auth.service';
+import {sendEmail} from '../../utils/email';
 
 const emailSchema = z.string().email('Invalid email format');
 const passwordSchema = z
@@ -466,9 +467,19 @@ export const verifyEmail = asyncHandler(
       return next(new ErrorResponse('User not found', 404));
     }
 
+    // Check if user is already verified
+    if (user.isVerified) {
+      return res.status(200).json({
+        success: true,
+        message: 'Email already verified',
+      });
+    }
+
     // Check if the token matches and is not expired
     if (
+      !user.verificationToken ||
       user.verificationToken !== token ||
+      !user.verificationTokenExpires ||
       new Date() > user.verificationTokenExpires
     ) {
       return next(new ErrorResponse('Invalid or expired token', 400));
@@ -479,6 +490,42 @@ export const verifyEmail = asyncHandler(
     user.verificationToken = undefined;
     user.verificationTokenExpires = undefined;
     await user.save();
+
+    // Create HTML content for the success notification (from new method)
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 5px; background-color: #f9f9f9;">
+        <h2 style="color: #4a9d61; text-align: center; margin-bottom: 20px;">Email Verification Successful</h2>
+        
+        <div style="background-color: #ffffff; border: 1px solid #eaeaea; border-radius: 3px; padding: 15px; margin-bottom: 20px;">
+          <h3 style="color: #333; margin-top: 0;">Dear ${user.first_name || 'Valued User'},</h3>
+          <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            Your email address has been successfully verified. Thank you for completing this important security step.
+          </p>
+          
+          <div style="background-color: #eafbf0; border-left: 4px solid #4a9d61; padding: 15px; margin: 20px 0;">
+            <p style="font-size: 15px; margin: 0;">
+              Your account is now fully activated, and you can access all features of TurfMania.
+            </p>
+          </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 25px;">
+          <a href="${process.env.CLIENT_URL}/sign-in" style="background-color: #4a9d61; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Login to Your Account</a>
+        </div>
+        
+        <p style="font-size: 15px; line-height: 1.6; color: #555; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+          We're excited to have you join our community! If you have any questions or need assistance, please contact our support team.
+        </p>
+      </div>
+    `;
+
+    // Send confirmation email (from new method)
+    await sendEmail(
+      user.email,
+      'Email Verification Successful - TurfMania',
+      'Your email address has been successfully verified. Your account is now fully activated.',
+      htmlContent
+    );
 
     res.status(200).json({
       success: true,
