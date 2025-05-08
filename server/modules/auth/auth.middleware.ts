@@ -43,7 +43,7 @@ export const protect = async (
 
     if (!token && !adminToken) {
       return next(
-        new ErrorResponse("Not authorized to access this route", 401)
+        new ErrorResponse("Not authorized to access this route. User needs to login or register.", 401)
       );
     }
 
