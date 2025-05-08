@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { useAuth } from "@/lib/contexts/authContext"; 
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "react-hot-toast";
 import TimeSlotGrid from "@/components/booking/TimeSlotGrid";
 import { ITimeSlot } from "@/types/timeslot";
 import { fetchAvailableTimeSlots as fetchAvailableTimeSlotsAPI } from "@/lib/server-apis/booking/fetchAvailableTimeSlot-api";
@@ -33,7 +34,7 @@ export default function BookingModal({
   turfId,
 }: BookingModalProps) {
   const router = useRouter();
-  const { toast } = useToast();
+  const { user } = useAuth(); 
   const [step, setStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState(false);
@@ -46,6 +47,17 @@ export default function BookingModal({
   const [advanceAmount, setAdvanceAmount] = useState(0);
   const [transactionId, setTransactionId] = useState("");
   const [turfBasePrice, setTurfBasePrice] = useState(0);
+
+  useEffect(() => {
+    if (isOpen && !user) {
+      // User is not authenticated, close modal and redirect to sign-in
+      onClose();
+      toast.error("Please sign in to book a turf");
+      setTimeout(() => {
+        router.push('/sign-in');
+      }, 1500);
+    }
+  }, [isOpen, user, onClose, router]);
 
   // Fetch time slots when date changes
   useEffect(() => {
@@ -85,19 +97,11 @@ export default function BookingModal({
       if (response.success) {
         setTimeSlots(response.data);
       } else {
-        toast({
-          title: "Error",
-          description: response.message ?? "Failed to fetch time slots",
-          variant: "destructive",
-        });
+        toast.error(response.message ?? "Failed to fetch time slots");
       }
     } catch (error) {
       console.error("Error fetching available time slots:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch available time slots",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch available time slots");
     } finally {
       setIsLoading(false);
     }
@@ -117,19 +121,11 @@ export default function BookingModal({
       if (data.success) {
         setTurfBasePrice(data.data.basePrice);
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch turf details",
-          variant: "destructive",
-        });
+        toast.error("Failed to fetch turf details");
       }
     } catch (error) {
       console.error("Error fetching turf details:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch turf details",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch turf details");
     }
   };
 
@@ -158,11 +154,7 @@ export default function BookingModal({
 
   const handleContinue = () => {
     if (selectedSlots.length === 0) {
-      toast({
-        title: "No time slots selected",
-        description: "Please select at least one time slot to continue",
-        variant: "destructive",
-      });
+      toast.error("Please select at least one time slot");
       return;
     }
     setStep(2);
@@ -174,11 +166,7 @@ export default function BookingModal({
 
   const handleSubmit = async () => {
     if (!transactionId.trim()) {
-      toast({
-        title: "Missing information",
-        description: "Please provide a transaction ID for your payment",
-        variant: "destructive",
-      });
+      toast.error("Please provide a transaction ID for your payment");
       return;
     }
 
@@ -193,10 +181,7 @@ export default function BookingModal({
       const result = await createBooking(bookingData);
 
       if (result.success) {
-        toast({
-          title: "Booking successful!",
-          description: "Your booking has been confirmed",
-        });
+        toast.success(result.message || "Booking successful! Your booking has been confirmed");
 
         // Reset form and close modal
         resetForm();
@@ -208,19 +193,26 @@ export default function BookingModal({
           router.push(`/venues/${turfId}`);
         }, 2000);
       } else {
-        toast({
-          title: "Booking failed",
-          description: result.message || "Failed to create booking",
-          variant: "destructive",
-        });
+        console.error("Booking error:", result.message);
+        toast.error(result.message || "Failed to create booking");
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to create booking",
-        variant: "destructive",
-      });
+      // Improved error handling with specific cases
+      if (error instanceof Error) {
+        if (error.message.includes("User is not verified")) {
+          toast.error("Your account is not verified. Please go to your profile page and request a verification email.");
+          // Optionally redirect to profile page
+          setTimeout(() => router.push("/profile"), 2000);
+        } else if (error.message.includes("Not authorized")) {
+          toast.error("Please sign in to book a turf");
+          // Redirect to sign-in page
+          setTimeout(() => router.push("/sign-in"), 2000);
+        } else {
+          toast.error(error.message || "Booking failed");
+        }
+      } else {
+        toast.error("An unexpected error occurred");
+      }
     } finally {
       setIsSubmitting(false);
     }
