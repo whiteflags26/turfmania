@@ -581,13 +581,22 @@ export default function TurfBookingsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">৳{booking.totalAmount.toFixed(2)}</div>
+                          {booking.status === 'completed' ? (
+                            <div className="text-sm font-medium text-gray-900">৳{booking.totalAmount.toFixed(2)}</div>
+                          ) : (
+                            <div className="text-sm font-medium text-gray-900">৳{booking.advanceAmount.toFixed(2)}</div>
+                          )}
                           <div className="text-xs text-gray-500">
-                            Advance: ৳{booking.advanceAmount.toFixed(2)}
+                            {booking.status === 'completed' 
+                              ? `Full payment received`
+                              : `Advance: ${((booking.advanceAmount / booking.totalAmount) * 100).toFixed(0)}% of ৳${booking.totalAmount.toFixed(2)}`
+                            }
                           </div>
-                          <div className="text-xs text-gray-500">
-                            Final: ৳{booking.finalAmount.toFixed(2)}
-                          </div>
+                          {booking.status === 'advance_payment_completed' && (
+                            <div className="text-xs text-gray-500">
+                              Pending: ৳{booking.finalAmount.toFixed(2)}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <StatusBadge status={booking.status} />

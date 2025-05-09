@@ -267,7 +267,7 @@ export default function BookingsSection() {
                     <span className="text-gray-600">Advance Paid:</span>
                     <span>৳{booking.advanceAmount.toFixed(2)}</span>
 
-                    <span className="text-gray-600">Remaining:</span>
+                    <span className="text-gray-600">Final Amount:</span>
                     <span>৳{booking.finalAmount.toFixed(2)}</span>
                   </div>
                 </div>
