@@ -366,7 +366,7 @@ export default function OrganizationDashboard() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div>৳{booking.isPaid ? booking.advanceAmount.toLocaleString() : booking.totalAmount.toLocaleString()}</div>
+                          <div>৳{booking.isPaid ? booking.totalAmount.toLocaleString() : booking.advanceAmount.toLocaleString()}</div>
                           <div className="text-xs text-gray-500">
                             {booking.isPaid ? 'Fully Paid' : `Remaining: ৳${booking.finalAmount.toLocaleString()}`}
                           </div>
