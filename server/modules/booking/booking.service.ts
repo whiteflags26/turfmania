@@ -44,7 +44,7 @@ export interface BookingsResult {
 
 export default class BookingService {
   private readonly ADVANCE_PAYMENT_PERCENTAGE = 0.65; // 65% advance payment
-  private readonly ALLOWED_STATUSES = ['pending', 'advance_payment_completed', 'completed', 'cancelled'];
+  private readonly ALLOWED_STATUSES = ['pending', 'advance_payment_completed', 'completed'];
   private readonly ALLOWED_SORT_FIELDS = ['createdAt', 'updatedAt', 'totalAmount'];
 
   /**
@@ -162,6 +162,7 @@ export default class BookingService {
       booking.finalPaymentTransactionId = transactionId;
       booking.status = 'completed';
       booking.isPaid = true;
+      
 
       await booking.save();
 
@@ -197,6 +198,7 @@ export default class BookingService {
       booking.finalPaymentMethod = 'cash';
       booking.status = 'completed';
       booking.isPaid = true;
+      
 
       await booking.save();
 
@@ -498,8 +500,9 @@ export default class BookingService {
 
 
   /**
-   * Get monthly earnings for a turf for the current year
-   */
+ * Get monthly earnings for a turf for the current year
+ * Considers both fully completed bookings and partially paid bookings
+ */
   async getTurfMonthlyEarnings(turfId: string): Promise<{ month: number; earnings: number }[]> {
     try {
       const validTurfId = validateId(turfId);
@@ -509,19 +512,31 @@ export default class BookingService {
       const startDate = new Date(currentYear, 0, 1); // January 1st of current year
       const endDate = new Date(currentYear, 11, 31, 23, 59, 59); // December 31st of current year
 
-      // Aggregate monthly earnings for completed bookings
+      // Aggregate monthly earnings for all bookings in the current year
       const monthlyEarnings = await Booking.aggregate([
         {
           $match: {
             turf: new Types.ObjectId(validTurfId),
-            status: 'completed',
+            status: { $in: ['advance_payment_completed', 'completed'] },
             createdAt: { $gte: startDate, $lte: endDate }
+          }
+        },
+        {
+          $addFields: {
+            // For completed bookings, use totalAmount; for advance_payment_completed, use only advanceAmount
+            actualEarnings: {
+              $cond: [
+                { $eq: ["$status", "completed"] },
+                "$totalAmount",
+                "$advanceAmount"
+              ]
+            }
           }
         },
         {
           $group: {
             _id: { $month: '$createdAt' },
-            earnings: { $sum: '$totalAmount' }
+            earnings: { $sum: '$actualEarnings' }
           }
         },
         {
@@ -557,8 +572,9 @@ export default class BookingService {
   }
 
   /**
-   * Get current month's earnings for a turf
-   */
+ * Get current month's earnings for a turf
+ * Considers both fully completed bookings and partially paid bookings
+ */
   async getTurfCurrentMonthEarnings(turfId: string): Promise<{ earnings: number }> {
     try {
       const validTurfId = validateId(turfId);
@@ -568,19 +584,31 @@ export default class BookingService {
       const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-      // Aggregate earnings for completed bookings in current month
+      // Aggregate earnings for bookings in current month
       const result = await Booking.aggregate([
         {
           $match: {
             turf: new Types.ObjectId(validTurfId),
-            status: 'completed',
+            status: { $in: ['advance_payment_completed', 'completed'] },
             createdAt: { $gte: startDate, $lte: endDate }
+          }
+        },
+        {
+          $addFields: {
+            // For completed bookings, use totalAmount; for advance_payment_completed, use only advanceAmount
+            actualEarnings: {
+              $cond: [
+                { $eq: ["$status", "completed"] },
+                "$totalAmount",
+                "$advanceAmount"
+              ]
+            }
           }
         },
         {
           $group: {
             _id: null,
-            earnings: { $sum: '$totalAmount' }
+            earnings: { $sum: '$actualEarnings' }
           }
         },
         {
@@ -601,8 +629,9 @@ export default class BookingService {
   }
 
   /**
-   * Get current month's earnings for an organization (all turfs combined)
-   */
+ * Get current month's earnings for an organization (all turfs combined)
+ * Considers both fully completed bookings and partially paid bookings
+ */
   async getOrganizationCurrentMonthEarnings(organizationId: string): Promise<{ earnings: number }> {
     try {
       const validOrgId = validateId(organizationId);
@@ -620,19 +649,31 @@ export default class BookingService {
         return { earnings: 0 };
       }
 
-      // Aggregate earnings for completed bookings across all turfs in current month
+      // Aggregate earnings for all bookings across all turfs in current month
       const result = await Booking.aggregate([
         {
           $match: {
             turf: { $in: turfIds },
-            status: 'completed',
+            status: { $in: ['advance_payment_completed', 'completed'] },
             createdAt: { $gte: startDate, $lte: endDate }
+          }
+        },
+        {
+          $addFields: {
+            // For completed bookings, use totalAmount; for advance_payment_completed, use only advanceAmount
+            actualEarnings: {
+              $cond: [
+                { $eq: ["$status", "completed"] },
+                "$totalAmount",
+                "$advanceAmount"
+              ]
+            }
           }
         },
         {
           $group: {
             _id: null,
-            earnings: { $sum: '$totalAmount' }
+            earnings: { $sum: '$actualEarnings' }
           }
         },
         {
@@ -669,11 +710,11 @@ export default class BookingService {
       // Format time slots nicely for display
       const formattedTimeSlots = timeSlots.map(slot => {
         const startTime = new Date(slot.start_time).toLocaleTimeString('en-US', {
-          hour: '2-digit', 
+          hour: '2-digit',
           minute: '2-digit'
         });
         const endTime = new Date(slot.end_time).toLocaleTimeString('en-US', {
-          hour: '2-digit', 
+          hour: '2-digit',
           minute: '2-digit'
         });
         const date = new Date(slot.start_time).toLocaleDateString('en-US', {
@@ -684,9 +725,9 @@ export default class BookingService {
         });
         return { date, startTime, endTime };
       });
-      
+
       // Group slots by date for cleaner email formatting
-      const slotsByDate = formattedTimeSlots.reduce((acc: Record<string, {startTime: string, endTime: string}[]>, slot) => {
+      const slotsByDate = formattedTimeSlots.reduce((acc: Record<string, { startTime: string, endTime: string }[]>, slot) => {
         if (!acc[slot.date]) {
           acc[slot.date] = [];
         }
@@ -696,8 +737,8 @@ export default class BookingService {
 
       // Format currency
       const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { 
-          style: 'currency', 
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
           currency: 'USD'
         }).format(amount);
       };
@@ -785,8 +826,8 @@ export default class BookingService {
 
       // Format currency for display
       const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { 
-          style: 'currency', 
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
           currency: 'USD'
         }).format(amount);
       };
@@ -862,18 +903,18 @@ export default class BookingService {
       // Get turf and timeslot details for reminder
       const turf = await Turf.findById(booking.turf);
       const turfName = turf ? turf.name : 'our facility';
-      
+
       const timeSlots = await TimeSlot.find({
         _id: { $in: booking.timeSlots }
       }).sort({ start_time: 1 });
-      
+
       // Get the first timeslot for reminder
       const firstSlot = timeSlots.length > 0 ? timeSlots[0] : null;
       let slotTime = 'your scheduled time';
-      
+
       if (firstSlot) {
         const startTime = new Date(firstSlot.start_time).toLocaleTimeString('en-US', {
-          hour: '2-digit', 
+          hour: '2-digit',
           minute: '2-digit'
         });
         const date = new Date(firstSlot.start_time).toLocaleDateString('en-US', {
@@ -998,7 +1039,7 @@ export default class BookingService {
    */
   public startPeriodicReminders(intervalMinutes: number = 5): void {
     const intervalMs = intervalMinutes * 60 * 1000;
-    
+
     setInterval(async () => {
       try {
         const count = await this.sendBookingReminders();
