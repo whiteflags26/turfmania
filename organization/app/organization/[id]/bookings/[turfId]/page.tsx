@@ -589,7 +589,7 @@ export default function TurfBookingsPage() {
                           <div className="text-xs text-gray-500">
                             {booking.status === 'completed' 
                               ? `Full payment received`
-                              : `Advance: ${((booking.advanceAmount / booking.totalAmount) * 100).toFixed(0)}% of ৳${booking.totalAmount.toFixed(2)}`
+                              : `Advance: 65% of ৳${booking.totalAmount.toFixed(2)}`
                             }
                           </div>
                           {booking.status === 'advance_payment_completed' && (

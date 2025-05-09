@@ -36,7 +36,7 @@ export default function OrganizationDashboard() {
   const [organization, setOrganization] = useState<IOrganization | null>(null);
   const [turfs, setTurfs] = useState<ITurf[]>([]);
   const [recentBookings, setRecentBookings] = useState<IBooking[]>([]);
-  const [monthlyRevenue, setMonthlyRevenue] = useState<{month: string; revenue: number}[]>([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState<{ month: string; revenue: number }[]>([]);
   const [currentMonthEarnings, setCurrentMonthEarnings] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,22 +45,22 @@ export default function OrganizationDashboard() {
     confirmed: 0,
     completed: 0
   });
-  
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!id) return;
-      
+
       try {
         setLoading(true);
-        
+
         // Fetch organization details
         const orgData = await fetchOrganization(id as string);
         setOrganization(orgData);
-        
+
         // Fetch turfs for this organization
         const turfsData = await fetchTurfsByOrganization(id as string);
         setTurfs(turfsData);
-        
+
         if (turfsData.length > 0) {
           // Fetch recent bookings from the first turf
           // In a real application, you might want to aggregate bookings from all turfs
@@ -71,9 +71,9 @@ export default function OrganizationDashboard() {
             { sortBy: 'createdAt', sortOrder: 'desc' },
             { page: 1, limit: 5 }
           );
-          
+
           setRecentBookings(bookingsResponse.data);
-          
+
           // Calculate booking statistics
           const allBookings = bookingsResponse.data;
           const stats = {
@@ -82,26 +82,26 @@ export default function OrganizationDashboard() {
             completed: allBookings.filter(b => b.status === 'completed').length
           };
           setBookingStats(stats);
-          
+
           // Fetch revenue data - we'll aggregate earnings from all turfs
           let totalCurrentMonthEarnings = 0;
-          const monthlyData: {[month: number]: number} = {};
-          
+          const monthlyData: { [month: number]: number } = {};
+
           // Initialize all months with 0
           for (let i = 1; i <= 12; i++) {
             monthlyData[i] = 0;
           }
-          
+
           // Fetch earnings data for each turf and aggregate
           await Promise.all(turfsData.map(async (turf) => {
             try {
               // Get current month earnings
               const currentEarnings = await fetchTurfCurrentMonthEarnings(turf._id, id as string);
               totalCurrentMonthEarnings += currentEarnings.data.earnings;
-              
+
               // Get monthly earnings for the year
               const monthlyEarnings = await fetchTurfMonthlyEarnings(turf._id, id as string);
-              
+
               // Add to monthly data
               monthlyEarnings.data.forEach(item => {
                 monthlyData[item.month] += item.earnings;
@@ -110,14 +110,14 @@ export default function OrganizationDashboard() {
               console.error(`Error fetching revenue for turf ${turf._id}:`, error);
             }
           }));
-          
+
           // Format monthly data for chart
           const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
           const formattedMonthlyData = Object.entries(monthlyData).map(([month, revenue]) => ({
             month: monthNames[parseInt(month) - 1],
             revenue: revenue
           }));
-          
+
           setMonthlyRevenue(formattedMonthlyData);
           setCurrentMonthEarnings(totalCurrentMonthEarnings);
         }
@@ -129,10 +129,10 @@ export default function OrganizationDashboard() {
         setLoading(false);
       }
     };
-    
+
     fetchDashboardData();
   }, [id]);
-  
+
   // Chart configuration
   const revenueChartData = {
     labels: monthlyRevenue.map(item => item.month),
@@ -146,7 +146,7 @@ export default function OrganizationDashboard() {
       }
     ]
   };
-  
+
   const chartOptions = {
     responsive: true,
     plugins: {
@@ -159,11 +159,11 @@ export default function OrganizationDashboard() {
       },
     },
   };
-  
+
   const calculateTotalRevenue = () => {
     return monthlyRevenue.reduce((total, item) => total + item.revenue, 0);
   };
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
@@ -171,12 +171,12 @@ export default function OrganizationDashboard() {
       </div>
     );
   }
-  
+
   if (error || !organization) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] text-gray-600">
         <p className="text-lg mb-4">Failed to load organization data</p>
-        <Link 
+        <Link
           href="/organization"
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
@@ -187,7 +187,7 @@ export default function OrganizationDashboard() {
   }
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="max-w-7xl mx-auto px-4 sm:px-6 py-8"
@@ -207,33 +207,33 @@ export default function OrganizationDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatsCard 
-          title="Total Turfs" 
-          value={turfs.length} 
+        <StatsCard
+          title="Total Turfs"
+          value={turfs.length}
           icon={<FiGrid className="text-blue-600" />}
           href={`/organization/${id}/view-turfs`}
           bgColor="bg-blue-50"
           textColor="text-blue-800"
         />
-        <StatsCard 
-          title="Current Month Revenue" 
-          value={`৳${currentMonthEarnings.toLocaleString()}`} 
+        <StatsCard
+          title="Current Month Revenue"
+          value={`৳${currentMonthEarnings.toLocaleString()}`}
           icon={<FiDollarSign className="text-purple-600" />}
           href={`/organization/${id}/bookings`}
           bgColor="bg-purple-50"
           textColor="text-purple-800"
         />
-        <StatsCard 
-          title="Active Bookings" 
-          value={bookingStats.pending} 
+        <StatsCard
+          title="Active Bookings"
+          value={bookingStats.pending}
           icon={<FiClock className="text-amber-600" />}
           href={`/organization/${id}/bookings`}
           bgColor="bg-amber-50"
           textColor="text-amber-800"
         />
-        <StatsCard 
-          title="Completed Bookings" 
-          value={bookingStats.completed} 
+        <StatsCard
+          title="Completed Bookings"
+          value={bookingStats.completed}
           icon={<FiCalendar className="text-green-600" />}
           href={`/organization/${id}/bookings`}
           bgColor="bg-green-50"
@@ -303,14 +303,14 @@ export default function OrganizationDashboard() {
       <div className="mt-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-800">Recent Bookings</h2>
-          <Link 
+          <Link
             href={`/organization/${id}/bookings`}
             className="text-blue-600 hover:text-blue-800 flex items-center text-sm font-medium"
           >
             View all <FiArrowRight className="ml-1" />
           </Link>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
           {recentBookings.length > 0 ? (
             <div className="overflow-x-auto">
@@ -336,14 +336,14 @@ export default function OrganizationDashboard() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {recentBookings.map((booking) => {
-                    const user = booking.userId as any; 
+                    const user = booking.userId as any;
                     const userName = user?.first_name ? `${user.first_name} ${user.last_name || ''}` : 'Unknown User';
                     const turfId = booking.turf as any;
-                    const matchingTurf= turfs.find(turf=> turf._id===turfId)
+                    const matchingTurf = turfs.find(turf => turf._id === turfId)
                     const turfName = matchingTurf?.name || 'Unknown Turf';
                     const timeSlots = booking.timeSlots as any[];
                     const firstTimeSlot = timeSlots && timeSlots.length > 0 ? timeSlots[0] : null;
-                    
+
                     return (
                       <tr key={booking._id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -357,7 +357,7 @@ export default function OrganizationDashboard() {
                             <div>
                               <div>{format(new Date(firstTimeSlot.start_time), 'dd MMM yyyy')}</div>
                               <div className="text-xs text-gray-500">
-                                {format(new Date(firstTimeSlot.start_time), 'h:mm a')} - 
+                                {format(new Date(firstTimeSlot.start_time), 'h:mm a')} -
                                 {format(new Date(firstTimeSlot.end_time), 'h:mm a')}
                               </div>
                             </div>
@@ -366,9 +366,9 @@ export default function OrganizationDashboard() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div>৳{booking.totalAmount.toLocaleString()}</div>
+                          <div>৳{booking.isPaid ? booking.advanceAmount.toLocaleString() : booking.totalAmount.toLocaleString()}</div>
                           <div className="text-xs text-gray-500">
-                            {booking.isPaid ? 'Fully Paid' : `Advance: ৳${booking.advanceAmount.toLocaleString()}`}
+                            {booking.isPaid ? 'Fully Paid' : `Remaining: ৳${booking.finalAmount.toLocaleString()}`}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -405,7 +405,7 @@ interface StatsCardProps {
 
 const StatsCard = ({ title, value, icon, href, bgColor, textColor }: StatsCardProps) => (
   <Link href={href}>
-    <motion.div 
+    <motion.div
       whileHover={{ y: -5, boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
       className={`rounded-xl shadow-md p-6 flex flex-col transition-all cursor-pointer ${bgColor} border border-gray-100`}
     >
@@ -430,7 +430,7 @@ interface QuickActionProps {
 
 const QuickAction = ({ icon, title, description, href, bgColor }: QuickActionProps) => (
   <Link href={href}>
-    <motion.div 
+    <motion.div
       whileHover={{ scale: 1.02 }}
       className="flex items-start p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
     >
@@ -448,7 +448,7 @@ const QuickAction = ({ icon, title, description, href, bgColor }: QuickActionPro
 const BookingStatusBadge = ({ status }: { status: string }) => {
   let bgColor = '';
   let textColor = '';
-  
+
   switch (status) {
     case 'confirmed':
       bgColor = 'bg-green-100';
@@ -475,11 +475,11 @@ const BookingStatusBadge = ({ status }: { status: string }) => {
       bgColor = 'bg-gray-100';
       textColor = 'text-gray-800';
   }
-  
+
   // Format status for display
   let displayStatus = status.replace('_', ' ');
   displayStatus = displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1);
-  
+
   return (
     <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
       {displayStatus}
