@@ -1,10 +1,10 @@
 # TurfMania
 
 <div align="center">
-  <img src="https://res.cloudinary.com/dzqgzquno/image/upload/0510_1_g334ul.gif" alt="TurfMania Logo" width="300"/>
+  <img src="https://res.cloudinary.com/dzqgzquno/image/upload/hero_section_z44xkp.gif" alt="TurfMania Logo" width="300"/>
   <h3>Your Game, Your Turf, Your Time</h3>
   
-  ![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)
+  ![Express.js](https://img.shields.io/badge/Express.js-404D59?stycle=for-the-badge)
   ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
   ![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
   ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
