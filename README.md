@@ -1,7 +1,7 @@
 # TurfMania
 
 <div align="center">
-  <img src="https://res.cloudinary.com/dzqgzquno/image/upload/hero_section_z44xkp.gif" alt="TurfMania Logo" width="300"/>
+  <img src="https://res.cloudinary.com/dzqgzquno/image/upload/hero_section_z44xkp.gif" alt="TurfMania Logo" width="600"/>
   <h3>Your Game, Your Turf, Your Time</h3>
   
   ![Express.js](https://img.shields.io/badge/Express.js-404D59?stycle=for-the-badge)
