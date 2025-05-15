@@ -3,7 +3,7 @@ import { IFacility } from "@/types/facility";
 export const fetchFacilities = async (): Promise<IFacility[]> => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/facilities`
+      `/api/v1/facilities`
     );
     const data = await response.json();
 

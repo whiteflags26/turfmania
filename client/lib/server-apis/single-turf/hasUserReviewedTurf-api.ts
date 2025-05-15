@@ -1,7 +1,7 @@
 export async function hasUserReviewedTurf(turfId: string) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/has-reviewed/${turfId}`,
+      `/api/v1/turf-review/has-reviewed/${turfId}`,
       {
         credentials: 'include',
       }

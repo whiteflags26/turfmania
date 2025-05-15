@@ -9,8 +9,7 @@ interface RoleData {
 
 export async function getAllRole() {
   try {
-    // Try the API endpoint with "roles" (plural)
-    const res = await api.get('/api/v1/roles/global');
+    const res = await api.get('/v1/roles/global');
     return res.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 403) {
@@ -22,7 +21,7 @@ export async function getAllRole() {
 
 export async function deleteRole(roleId: string) {
   try {
-    const res = await api.delete(`/api/v1/roles/${roleId}`);
+    const res = await api.delete(`/v1/roles/${roleId}`);
     return res.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 403) {
@@ -34,7 +33,7 @@ export async function deleteRole(roleId: string) {
 
 export async function getAllRolePermissions(roleId: string) {
   try {
-    const res = await api.get(`/api/v1/roles/${roleId}/permissions`);
+    const res = await api.get(`/v1/roles/${roleId}/permissions`);
     return res.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 403) {
@@ -59,7 +58,7 @@ export async function createRole(roleData: RoleData) {
     };
     
     // Make the API request with the roleData using the plural endpoint
-    const response = await api.post('/api/v1/roles/global', requestData);
+    const response = await api.post('/v1/roles/global', requestData);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 403) {

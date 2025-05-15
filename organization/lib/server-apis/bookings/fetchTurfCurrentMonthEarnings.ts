@@ -18,7 +18,7 @@ export async function fetchTurfCurrentMonthEarnings(
     console.log("Query Params:", queryParams.toString()); // Debugging line
 
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/bookings/turf/${turfId}/current-month-earnings?${queryParams.toString()}`,
+      `/api/v1/bookings/turf/${turfId}/current-month-earnings?${queryParams.toString()}`,
       { withCredentials: true } // Include cookies for authentication
     );
 

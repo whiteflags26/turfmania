@@ -1,7 +1,7 @@
 export async function deleteTurfReview(reviewId: string) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/review/${reviewId}`,
+      `/api/v1/turf-review/review/${reviewId}`,
       {
         method: 'DELETE',
         credentials: 'include',

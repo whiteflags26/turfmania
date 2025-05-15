@@ -105,19 +105,36 @@ export interface MetricsHistoryOptions {
 // Service functions - Fixed to match backend routes
 export async function getHealthData(): Promise<SystemHealth> {
   try {
-    const { data } = await api.get('/health');
+    // Use direct fetch instead of axios for the /health endpoint
+    const response = await fetch('/health', {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json',
+        // Include auth token if needed for protected routes
+        ...(typeof window !== 'undefined' && localStorage.getItem('admin_token') 
+          ? { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+          : {})
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Health check failed with status: ${response.status}`);
+    }
+
+    const data = await response.json();
     return data;
   } catch (error: any) {
     console.error('Failed to fetch health data:', error);
     throw new Error(
-      error.response?.data?.message ?? 'Failed to fetch health data',
+      error.message ?? 'Failed to fetch health data'
     );
   }
 }
 
 export async function getMetricsData(): Promise<MetricsData> {
   try {
-    const { data } = await api.get('/api/v1/metrics/latest');
+    const { data } = await api.get('/v1/metrics/latest');
     return data.metrics; // Adjust to extract data.metrics based on your controller response
   } catch (error: any) {
     console.error('Failed to fetch latest metrics:', error);
@@ -131,7 +148,7 @@ export async function getMetricsHistory(
   options: MetricsHistoryOptions = {},
 ): Promise<MetricsHistoryData[]> {
   try {
-    const { data } = await api.get('/api/v1/metrics/history', {
+    const { data } = await api.get('/v1/metrics/history', {
       params: options,
     });
     return data.metrics; // Adjust to extract data.metrics based on your controller response
@@ -146,10 +163,16 @@ export async function getMetricsHistory(
 export async function getPrometheusMetrics(): Promise<string> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/metrics`,
+      '/metrics',
       {
         method: 'GET',
         credentials: 'include',
+        headers: {
+          // Include auth token if needed for protected routes
+          ...(typeof window !== 'undefined' && localStorage.getItem('admin_token') 
+            ? { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+            : {})
+        }
       },
     );
 
@@ -170,7 +193,7 @@ export async function cleanupOldMetrics(days: number): Promise<void> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
-    await api.delete('/api/v1/metrics/cleanup', {
+    await api.delete('/v1/metrics/cleanup', {
       params: { cutoffDate: cutoffDate.toISOString() },
     });
   } catch (error: any) {

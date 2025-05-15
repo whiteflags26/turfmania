@@ -30,7 +30,7 @@ export default function RolesManagement() {
         const rolesResponse = await getAllRole();
 
         // Fetch permissions
-        const permissionsResponse = await api.get('/api/v1/permissions/global');
+        const permissionsResponse = await api.get('/v1/permissions/global');
 
         setRoles(rolesResponse.data);
         setPermissions(permissionsResponse.data.data);

@@ -1,13 +1,11 @@
 import axios from "axios";
 import { TeamSize, Sport, Facility } from "@/types/turfFilterData";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL + "/api/v1";
-
 /**
  * Fetch all team sizes from the API
  */
 export const fetchTeamSizes = async (): Promise<TeamSize[]> => {
-  const response = await axios.get(`${API_BASE_URL}/team-sizes/`);
+  const response = await axios.get(`/api/v1/team-sizes/`);
   if (response.data.success) {
     return response.data.data;
   }
@@ -18,7 +16,7 @@ export const fetchTeamSizes = async (): Promise<TeamSize[]> => {
  * Fetch all sports from the API
  */
 export const fetchSports = async (): Promise<Sport[]> => {
-  const response = await axios.get(`${API_BASE_URL}/sports/`);
+  const response = await axios.get(`/api/v1/sports/`);
   if (response.data.success) {
     return response.data.data;
   }
@@ -29,7 +27,7 @@ export const fetchSports = async (): Promise<Sport[]> => {
  * Fetch all facilities from the API
  */
 export const fetchFacilities = async (): Promise<Facility[]> => {
-  const response = await axios.get(`${API_BASE_URL}/facilities/`);
+  const response = await axios.get(`/api/v1/facilities/`);
   if (response.data.success) {
     return response.data.data;
   }

@@ -110,7 +110,7 @@ export default function BookingModal({
   const fetchTurfDetails = async () => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf/${turfId}`,
+        `/api/v1/turf/${turfId}`,
         {
           credentials: "include",
         }

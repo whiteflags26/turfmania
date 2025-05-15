@@ -25,7 +25,7 @@ export async function fetchReviewsByTurfPublic(
     if (options.maxRating) params.append('maxRating', options.maxRating.toString());
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/turf/${turfId}/public?${params.toString()}`,
+      `/api/v1/turf-review/turf/${turfId}/public?${params.toString()}`,
       { cache: "no-store" }
     );
 

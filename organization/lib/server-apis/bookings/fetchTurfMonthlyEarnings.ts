@@ -17,7 +17,7 @@ export async function fetchTurfMonthlyEarnings(
     queryParams.append("organizationId", organizationId);
 
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/bookings/turf/${turfId}/monthly-earnings?${queryParams.toString()}`,
+      `/api/v1/bookings/turf/${turfId}/monthly-earnings?${queryParams.toString()}`,
       { withCredentials: true } // Include cookies for authentication
     );
 

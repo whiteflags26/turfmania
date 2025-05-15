@@ -1,12 +1,9 @@
 import { ITurf } from "@/types/turf";
 
 export const createTurf = async (organizationId: string, formData: FormData): Promise<ITurf> => {
-  try {
-    // Make sure we're sending organizationId in the correct format the server expects
-    // The server expects a field named "organization" with just the ID string
-    // formData.append('organization', organizationId);    
+  try {   
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf`,
+      `/api/v1/turf`,
       {
         method: "POST",
         body: formData,

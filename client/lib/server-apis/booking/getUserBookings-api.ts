@@ -50,7 +50,7 @@ export async function getUserBookings(
     if (params.isPaid !== undefined) queryParams.append('isPaid', params.isPaid.toString());
     
     const queryString = queryParams.toString();
-    const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/bookings/user${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/v1/bookings/user${queryString ? `?${queryString}` : ''}`;
 
     const response = await fetch(endpoint, {
       method: "GET",

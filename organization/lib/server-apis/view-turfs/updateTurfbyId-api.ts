@@ -5,7 +5,7 @@ export const updateTurf = async (
   formData: FormData
 ): Promise<ITurf> => {
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf/${id}`,
+    `/api/v1/turf/${id}`,
     {
       method: "PUT",
       body: formData,

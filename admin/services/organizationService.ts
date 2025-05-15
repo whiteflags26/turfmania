@@ -17,7 +17,7 @@ export async function getOrganizationRequests(
 ): Promise<OrganizationRequestsResponse> {
   try {
     console.log('Sending filters to API:', filters);
-    const { data } = await api.get('/api/v1/organization-requests', {
+    const { data } = await api.get('/v1/organization-requests', {
       params: filters,
       withCredentials: true,
     });
@@ -64,7 +64,7 @@ export async function getSingleOrganizationRequest(
     }
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/organization-requests/admin/${requestId}`,
+      `/api/v1/organization-requests/admin/${requestId}`,
       {
         method: 'GET',
         credentials: 'include',
@@ -95,7 +95,7 @@ export async function processOrganizationRequest(
 ): Promise<OrganizationRequest> {
   try {
     const response = await api.put<ApiResponse<OrganizationRequest>>(
-      `/api/v1/organization-requests/${requestId}/process`,
+      `/v1/organization-requests/${requestId}/process`,
     );
     return response.data.data;
   } catch (error: any) {
@@ -109,7 +109,7 @@ export async function CancelProcessOrganizationRequest(
 ): Promise<OrganizationRequest> {
   try {
     const response = await api.put<ApiResponse<OrganizationRequest>>(
-      `/api/v1/organization-requests/${requestId}/cancel-processing`,
+      `/v1/organization-requests/${requestId}/cancel-processing`,
     );
     return response.data.data;
   } catch (error: any) {
@@ -128,7 +128,7 @@ export async function rejectOrganizationRequest(
       adminNotes: adminNotes,
     };
     const response = await api.put<ApiResponse<OrganizationRequest>>(
-      `/api/v1/organization-requests/${requestId}/reject`,
+      `/v1/organization-requests/${requestId}/reject`,
       requestData,
     );
     return response.data.data;
@@ -144,7 +144,7 @@ export async function createOrganization(
   formData?: FormData,
 ): Promise<{ success: boolean; data: any }> {
   try {
-    let endpoint = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/organizations`;
+    let endpoint = `/api/v1/organizations`;
     let payload: FormData;
     let method = 'POST';
 
@@ -187,7 +187,7 @@ export async function createOrganization(
 // Get all facilities (already exists)
 export async function getAllFacilities(): Promise<any> {
   try {
-    const response = await api.get('/api/v1/facilities', {
+    const response = await api.get('/v1/facilities', {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -205,7 +205,7 @@ export async function getAllFacilities(): Promise<any> {
 // Get facility by ID
 export async function getFacilityById(facilityId: string): Promise<any> {
   try {
-    const response = await api.get(`/api/v1/facilities/${facilityId}`, {
+    const response = await api.get(`/v1/facilities/${facilityId}`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -223,7 +223,7 @@ export async function getFacilityById(facilityId: string): Promise<any> {
 // Create new facility
 export async function createFacility(facilityData: any): Promise<any> {
   try {
-    const response = await api.post('/api/v1/facilities', facilityData, {
+    const response = await api.post('/v1/facilities', facilityData, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -245,7 +245,7 @@ export async function updateFacility(
 ): Promise<any> {
   try {
     const response = await api.put(
-      `/api/v1/facilities/${facilityId}`,
+      `/v1/facilities/${facilityId}`,
       facilityData,
       {
         headers: {
@@ -266,7 +266,7 @@ export async function updateFacility(
 // Delete facility
 export async function deleteFacility(facilityId: string): Promise<any> {
   try {
-    const response = await api.delete(`/api/v1/facilities/${facilityId}`, {
+    const response = await api.delete(`/v1/facilities/${facilityId}`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -291,7 +291,7 @@ export interface Sport {
 // Get all sports
 export async function getAllSports(): Promise<any> {
   try {
-    const response = await api.get('/api/v1/sports', {
+    const response = await api.get('/v1/sports', {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -307,7 +307,7 @@ export async function getAllSports(): Promise<any> {
 // Get sport by ID
 export async function getSportById(sportId: string): Promise<any> {
   try {
-    const response = await api.get(`/api/v1/sports/${sportId}`, {
+    const response = await api.get(`/v1/sports/${sportId}`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -323,7 +323,7 @@ export async function getSportById(sportId: string): Promise<any> {
 // Create new sport
 export async function createSport(sportData: any): Promise<any> {
   try {
-    const response = await api.post('/api/v1/sports', sportData, {
+    const response = await api.post('/v1/sports', sportData, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -342,7 +342,7 @@ export async function updateSport(
   sportData: any,
 ): Promise<any> {
   try {
-    const response = await api.put(`/api/v1/sports/${sportId}`, sportData, {
+    const response = await api.put(`/v1/sports/${sportId}`, sportData, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -358,7 +358,7 @@ export async function updateSport(
 // Delete sport
 export async function deleteSport(sportId: string): Promise<any> {
   try {
-    const response = await api.delete(`/api/v1/sports/${sportId}`, {
+    const response = await api.delete(`/v1/sports/${sportId}`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -381,7 +381,7 @@ export interface TeamSize {
 // Get all team sizes
 export async function getAllTeamSizes(): Promise<any> {
   try {
-    const response = await api.get('/api/v1/team-sizes', {
+    const response = await api.get('/v1/team-sizes', {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -399,7 +399,7 @@ export async function getAllTeamSizes(): Promise<any> {
 // Create new team size
 export async function createTeamSize(teamSizeData: any): Promise<any> {
   try {
-    const response = await api.post('/api/v1/team-sizes', teamSizeData, {
+    const response = await api.post('/v1/team-sizes', teamSizeData, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -421,7 +421,7 @@ export async function updateTeamSize(
 ): Promise<any> {
   try {
     const response = await api.put(
-      `/api/v1/team-sizes/${teamSizeId}`,
+      `/v1/team-sizes/${teamSizeId}`,
       teamSizeData,
       {
         headers: {
@@ -442,7 +442,7 @@ export async function updateTeamSize(
 // Delete team size
 export async function deleteTeamSize(teamSizeId: string): Promise<any> {
   try {
-    const response = await api.delete(`/api/v1/team-sizes/${teamSizeId}`, {
+    const response = await api.delete(`/v1/team-sizes/${teamSizeId}`, {
       headers: {
         'Content-Type': 'application/json',
       },

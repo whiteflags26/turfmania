@@ -5,7 +5,7 @@ import { HasAccessRequest } from "@/types/organization";
 export const hasOrgAccess = async (id: string) => {
   try {
     const { data } = await api.get<ApiResponse<HasAccessRequest>>(
-      `/api/v1/users/organizations/${id}/check-access`
+      `/v1/users/organizations/${id}/check-access`
     );
     console.log(data.data.hasRole)
     return data.data.hasRole

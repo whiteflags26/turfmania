@@ -1,7 +1,7 @@
 export async function createTurfReview(formData: FormData) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/review`,
+      `/api/v1/turf-review/review`,
       {
         method: "POST",
         credentials: "include", // Important for sending cookies

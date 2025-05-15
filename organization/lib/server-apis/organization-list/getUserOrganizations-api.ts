@@ -9,7 +9,7 @@ interface OrganizationResponse {
 export const getUserOrganizations = async (): Promise<OrganizationResponse> => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/organizations`,
+      `/api/v1/users/organizations`,
       {
         credentials: "include", // Include cookies for authentication
       }

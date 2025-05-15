@@ -48,9 +48,7 @@ export async function fetchTurfBookings(
     if (filters.sortOrder) queryParams.append("sortOrder", filters.sortOrder);
 
     const response = await axios.get(
-      `${
-        process.env.NEXT_PUBLIC_API_URL
-      }/api/v1/bookings/turf/${turfId}?${queryParams.toString()}`,
+      `/api/v1/bookings/turf/${turfId}?${queryParams.toString()}`,
       { withCredentials: true } // Include cookies for authentication
     );
 

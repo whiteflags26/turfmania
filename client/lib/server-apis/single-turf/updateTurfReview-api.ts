@@ -28,7 +28,7 @@ export async function updateTurfReview(
     }
 
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/review/${reviewId}`,
+      `/api/v1/turf-review/review/${reviewId}`,
       {
         method: 'PUT',
         credentials: 'include',

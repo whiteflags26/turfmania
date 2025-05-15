@@ -3,7 +3,7 @@ import { IUserReviewsResponse } from "@/types/userReviewsRespone";
 export async function getUserReviews(): Promise<IUserReviewsResponse> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/user`,
+      `/api/v1/turf-review/user`,
       {
         method: "GET",
         credentials: "include",

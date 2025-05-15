@@ -8,7 +8,7 @@ export async function fetchOrganizationTurfReviewSummary(
 ): Promise<IOrganizationTurfReviewSummary | null> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/organization-summary/${organizationId}`,
+      `/api/v1/turf-review/organization-summary/${organizationId}`,
       {
         method: 'GET',
         headers: {

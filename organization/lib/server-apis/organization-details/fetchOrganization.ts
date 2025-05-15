@@ -3,7 +3,7 @@ import { IOrganization } from "@/types/organization";
 export const fetchOrganization = async (id: string): Promise<IOrganization> => {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/organizations/${id}`
+      `/api/v1/organizations/${id}`
     );
     const data = await response.json();
 

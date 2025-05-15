@@ -17,14 +17,7 @@ export async function getFacilities(): Promise<{
   data: string[] | { message: string };
 }> {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) {
-      throw new Error(
-        'API URL is not defined. Check your environment variables.',
-      );
-    }
-
-    const response = await fetch(`${apiUrl}/api/v1/facilities`, {
+    const response = await fetch(`/api/v1/facilities`, {
       method: 'GET',
       credentials: 'include',
     });
@@ -59,13 +52,6 @@ export async function createOrganizationRequest(
   imageFiles?: File[],
 ) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) {
-      throw new Error(
-        'API URL is not defined. Check your environment variables.',
-      );
-    }
-
     // If we have image files, use FormData
     if (imageFiles && imageFiles.length > 0) {
       const formData = new FormData();
@@ -88,7 +74,7 @@ export async function createOrganizationRequest(
         formData.append('images', file);
       });
 
-      const response = await fetch(`${apiUrl}/api/v1/organization-requests`, {
+      const response = await fetch(`/api/v1/organization-requests`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -103,7 +89,7 @@ export async function createOrganizationRequest(
     }
     // No images, use JSON
     else {
-      const response = await fetch(`${apiUrl}/api/v1/organization-requests`, {
+      const response = await fetch(`/api/v1/organization-requests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

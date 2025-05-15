@@ -7,13 +7,11 @@ interface GenerateTimeslotsParams {
   slotDuration: number;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export async function generateTimeSlots(
   params: GenerateTimeslotsParams
 ): Promise<ApiResponse<any>> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/timeslot/generate`, {
+    const response = await fetch(`/api/v1/timeslot/generate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -47,7 +45,7 @@ export async function getAvailableTimeSlots(
   try {
     const dateStr = date.toISOString().split("T")[0];
     const response = await fetch(
-      `${API_BASE_URL}/api/v1/timeslot/available/${turfId}?date=${dateStr}`
+      `/api/v1/timeslot/available/${turfId}?date=${dateStr}`
     );
 
     if (!response.ok) {

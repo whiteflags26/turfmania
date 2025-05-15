@@ -8,8 +8,8 @@ import {
   ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import {ApiError} from "@/types/api-error";
-import {IUser} from "@/types/user"
+import { ApiError } from "@/types/api-error";
+import { IUser } from "@/types/user";
 
 interface AuthContextType {
   user: IUser | null;
@@ -28,12 +28,9 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`,
-          {
-            credentials: "include", // Important for sending cookies
-          }
-        );
+        const response = await fetch(`/api/v1/auth/me`, {
+          credentials: "include", // Important for sending cookies
+        });
 
         if (response.ok) {
           const data = await response.json();
@@ -53,17 +50,14 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const response = await fetch(`/api/v1/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
 
       const data = await response.json();
 
@@ -75,20 +69,17 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
       router.push("/");
       router.refresh();
     } catch (err) {
-      const error= err as ApiError;
+      const error = err as ApiError;
       throw new Error(error.message);
     }
   };
 
   const logout = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`,
-        {
-          method: "POST",
-          credentials: "include",
-        }
-      );
+      const response = await fetch(`/api/v1/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
 
       if (response.ok) {
         setUser(null);

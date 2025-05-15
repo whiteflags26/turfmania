@@ -8,20 +8,20 @@ interface RoleData {
 
 // Fix the template string with backticks
 export async function getAllRole(orgId: string) {
-  const res = await api.get(`/api/v1/organizations/${orgId}/roles`);
+  const res = await api.get(`/v1/organizations/${orgId}/roles`);
   return res.data;
 }
 
 export async function deleteRole(orgId: string, roleId: string) {
   const res = await api.delete(
-    `/api/v1/organizations/${orgId}/roles/${roleId}`,
+    `/v1/organizations/${orgId}/roles/${roleId}`,
   );
   return res.data;
 }
 
 export async function getAllRolePermissions(orgId: string, roleId: string) {
   const res = await api.get(
-    `/api/v1/organizations/${orgId}/roles/${roleId}/permissions`,
+    `/v1/organizations/${orgId}/roles/${roleId}/permissions`,
   );
   return res.data;
 }
@@ -41,7 +41,7 @@ export async function createRole(orgId: string, roleData: RoleData) {
 
   // Fix URL path
   const response = await api.post(
-    `/api/v1/organizations/${orgId}/roles`,
+    `/v1/organizations/${orgId}/roles`,
     requestData,
   );
   return response.data;

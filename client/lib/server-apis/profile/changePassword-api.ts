@@ -3,7 +3,7 @@ import { ChangePasswordData } from "@/types/profile";
 export async function changePassword(passwordData: ChangePasswordData) {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/change-password`,
+      `/api/v1/users/change-password`,
       {
         method: "PUT",
         credentials: "include",

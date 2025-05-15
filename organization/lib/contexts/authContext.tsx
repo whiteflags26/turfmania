@@ -29,7 +29,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     const checkAuthStatus = async () => {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`,
+          `/api/v1/auth/me`,
           {
             credentials: "include", // Important for sending cookies
           }
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const login = async (email: string, password: string) => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/login`,
+        `/api/v1/auth/login`,
         {
           method: "POST",
           headers: {
@@ -82,7 +82,7 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const logout = async () => {
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`,
+        `/api/v1/auth/logout`,
         {
           method: "POST",
           credentials: "include",

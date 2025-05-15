@@ -17,7 +17,7 @@ export async function completeCashBooking(
     queryParams.append("organizationId", organizationId);
 
     const response = await axios.put(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/bookings/${bookingId}/complete-cash?${queryParams.toString()}`,
+      `/api/v1/bookings/${bookingId}/complete-cash?${queryParams.toString()}`,
       {}, // Empty object as body
       { withCredentials: true } // Include cookies for authentication
     );

@@ -5,7 +5,7 @@ export async function registerUser(data: {
   password: string;
 }) {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/register`,
+    `/api/v1/auth/register`,
     {
       method: "POST",
       headers: {

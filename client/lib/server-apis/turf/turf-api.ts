@@ -1,8 +1,9 @@
 import { ITurf } from "@/types/turf";
+
 export async function fetchTurfs(): Promise<ITurf[]> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf`,
+      `/api/v1/turf`,
       {
         method: "GET",
         headers: {

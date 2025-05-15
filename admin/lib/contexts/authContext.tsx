@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     try {
       console.log("Checking auth status...");
       const response = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/me`,
+        `/api/v1/auth/me`,
         {
           withCredentials: true,
           headers: {
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     try {
       console.log("Attempting login...");
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/admin/login`,
+        `/api/v1/auth/admin/login`,
         { email, password },
         {
           withCredentials: true,
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
   const logout = async (): Promise<void> => {
     try {
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/logout`,
+        `/api/v1/auth/logout`,
         {},
         {
           withCredentials: true,

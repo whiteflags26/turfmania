@@ -4,7 +4,7 @@ import axios from "axios";
 export const fetchTurfById = async (turfId: string): Promise<ITurf> => {
   try {
     const response = await axios.get<{ success: boolean; data: ITurf }>(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf/${turfId}`
+      `/api/v1/turf/${turfId}`
     );
     return response.data.data;
   } catch (error) {

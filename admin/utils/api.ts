@@ -9,8 +9,7 @@ export async function apiRequest<T>(
   options: RequestInit = {},
 ): Promise<ApiResponse<T>> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
-    const url = `${baseUrl}${endpoint}`;
+    const url =`/api${endpoint}`;
 
     // Force POST requests to include proper headers and body handling
     const defaultOptions: RequestInit = {

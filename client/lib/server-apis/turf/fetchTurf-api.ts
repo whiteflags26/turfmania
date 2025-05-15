@@ -47,7 +47,7 @@ export async function fetchTurfs(
   appendParam("limit", pagination.limit);
 
   // 4) Fetch, check, and return
-  const url = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf/filter/search?${params.toString()}`;
+  const url = `/api/v1/turf/filter/search?${params.toString()}`;
   const res = await fetch(url);
 
   if (!res.ok) {

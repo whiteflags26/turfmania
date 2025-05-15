@@ -12,7 +12,7 @@ export const fetchTurfsByOrganization = async (
 ): Promise<ITurf[]> => {
   try {
     const response = await axios.get<TurfsResponse>(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf/organization/${organizationId}`
+      `/api/v1/turf/organization/${organizationId}`
     );
     return response.data.data;
   } catch (error) {

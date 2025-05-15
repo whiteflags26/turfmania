@@ -11,7 +11,7 @@ export async function updateUserProfile(
 ): Promise<IUser> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/me`,
+      `/api/v1/users/me`,
       {
         method: "PUT",
         headers: {

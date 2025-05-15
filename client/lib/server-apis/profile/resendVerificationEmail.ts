@@ -5,7 +5,7 @@ export async function resendVerificationEmail(
 ): Promise<IResendVerificationResponse> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/resend-verification`,
+      `/api/v1/auth/resend-verification`,
       {
         method: "POST",
         credentials: "include",

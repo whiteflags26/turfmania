@@ -3,7 +3,7 @@ import { IOrganizationRequest } from "@/types/organizationRequest";
 export async function getUserOrganizationRequests(): Promise<IOrganizationRequest[]> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/organization-requests/user`,
+      `/api/v1/organization-requests/user`,
       {
         method: "GET",
         credentials: "include",

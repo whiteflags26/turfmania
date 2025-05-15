@@ -6,7 +6,7 @@ import UserTable from '@/component/admin/users/UserTable';
 import { handleAxiosError } from '@/lib/utils/handleAxiosError';
 import axios from 'axios';
 
-import { Users } from 'lucide-react'; // Add this import
+import { Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function UsersManagement() {
@@ -21,7 +21,7 @@ export default function UsersManagement() {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/without-global-roles`, {
+        const response = await axios.get(`/api/v1/users/without-global-roles`, {
           withCredentials: true,
         });
         setUsers(response.data.data);
@@ -42,7 +42,7 @@ export default function UsersManagement() {
     const fetchGlobalRoles = async () => {
       try {
         const response = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/roles/global`,
+          `/api/v1/roles/global`,
           { withCredentials: true },
         );
         setGlobalRoles(response.data.data);
@@ -64,7 +64,7 @@ export default function UsersManagement() {
 
     try {
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/role-assignments/users/${selectedUser._id}/assignments/global`,
+        `/api/v1/role-assignments/users/${selectedUser._id}/assignments/global`,
         { roleId: selectedRole },
         { withCredentials: true },
       );

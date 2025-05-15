@@ -18,7 +18,7 @@ export async function completeStripeBooking(
 ): Promise<CompleteBookingResponse> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/bookings/${bookingId}/complete-stripe`,
+      `/api/v1/bookings/${bookingId}/complete-stripe`,
       {
         method: "PUT",
         headers: {

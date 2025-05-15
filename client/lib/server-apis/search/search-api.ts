@@ -14,9 +14,7 @@ export const fetchSuggestions = async (
 
   try {
     const response = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_API_URL
-      }/api/v1/search/suggestions?query=${encodeURIComponent(query)}`,
+      `/api/v1/search/suggestions?query=${encodeURIComponent(query)}`,
       {
         method: "GET",
         headers: {
@@ -56,9 +54,7 @@ export const fetchSearchResults = async (
 } | null> => {
   try {
     const response = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_API_URL
-      }/api/v1/search?query=${encodeURIComponent(query)}&page=${page}`,
+      `/api/v1/search?query=${encodeURIComponent(query)}&page=${page}`,
       {
         method: "GET",
         headers: {

@@ -3,7 +3,7 @@ import { ITurfReview } from "@/types/turf-review";
 export async function fetchReviewsByUser(userId: string) {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf-review/user/${userId}`,
+      `/api/v1/turf-review/user/${userId}`,
       { cache: "no-store" }
     );
 

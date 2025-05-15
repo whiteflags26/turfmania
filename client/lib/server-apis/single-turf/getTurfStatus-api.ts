@@ -5,7 +5,7 @@ export async function getTurfStatus(
 ): Promise<ITurfStatusResponse> {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/turf/${turfId}/status`,
+      `/api/v1/turf/${turfId}/status`,
       {
         cache: "no-store", // Disable caching to get real-time status
       }

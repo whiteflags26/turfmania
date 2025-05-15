@@ -1,14 +1,12 @@
 import { ApiResponse, Turf } from "@/types/timeslot";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export async function fetchTurfsByOrganizationId(
   organizationId: string
 ): Promise<ApiResponse<Turf[]>> {
   try {
 
     const response = await fetch(
-      `${API_BASE_URL}/api/v1/turf/organization/${organizationId}`
+      `/api/v1/turf/organization/${organizationId}`
     );
 
     console.log(response);

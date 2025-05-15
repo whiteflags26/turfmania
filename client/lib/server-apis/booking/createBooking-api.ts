@@ -22,7 +22,7 @@ export async function createBooking(
 ): Promise<CreateBookingResponse> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/bookings`,
+      `/api/v1/bookings`,
       {
         method: "POST",
         headers: {

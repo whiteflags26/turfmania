@@ -12,7 +12,7 @@ export async function fetchOrganizationTurfs(
 ): Promise<ITurf[] | null> {
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/organizations/${organizationId}/other-turfs/${excludeTurfId}`,
+      `/api/v1/organizations/${organizationId}/other-turfs/${excludeTurfId}`,
       {
         method: "GET",
         headers: {
